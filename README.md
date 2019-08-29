@@ -4,7 +4,7 @@
 
 ## Overview
 
-![](g3doc/images/nsl_overview.png){width="750" style="display:block;margin:auto"}
+![](g3doc/images/nsl_overview.png)
 
 **Neural Structured Learning (NSL)** is a new learning paradigm to train neural
 networks by leveraging structured signals in addition to feature inputs.
@@ -71,7 +71,7 @@ contribute to TF Neural Structured Learning:
 
     If you develop new algorithms in your own repository, we are happy to
     feature pointers to academic publications and/or repos using NSL on
-    [tensorflow.org/nsl](http://www.tensorflow.org/nsl).
+    [tensorflow.org/neural_structured_learning](http://www.tensorflow.org/neural_structured_learning).
 
 Please be sure to review the
 [contribution guidelines](CONTRIBUTING.md#code-style-guidelines-and-best-practices)
@@ -79,7 +79,7 @@ for guidelines on the coding style, best practices, etc.
 
 ## Issues and Questions
 
-For issues, please use [GitHub issues](https://github.com/tensorflow/nsl/issues)
+For issues, please use [GitHub issues](https://github.com/tensorflow/neural-structured-learning/issues)
 for tracking requests and bugs. For questions, please direct them to [Stack Overflow](https://stackoverflow.com) with the
 ["nsl"](https://stackoverflow.com/questions/tagged/nsl)
 tag.
