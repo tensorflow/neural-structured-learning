@@ -1,0 +1,12 @@
+name: Neural Structured Learning
+breadcrumb_name: Neural Structured Learning
+home_url: /neural_structured_learning/
+parent_project_metadata_path: /_project.yaml
+description: >
+  Neural Structured Learning is a TensorFlow framework to train neural networks by leveraging
+  structured signals along with input features.
+use_site_branding: true
+hide_from_products_list: true
+content_license: cc-apache
+buganizer_id: 443907
+include: /_project_included.yaml

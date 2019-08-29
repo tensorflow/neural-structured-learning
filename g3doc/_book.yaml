@@ -1,0 +1,35 @@
+upper_tabs:
+# Tabs left of dropdown menu
+- include: /_upper_tabs_left.yaml
+- include: /api_docs/_upper_tabs_api.yaml
+# Dropdown menu
+- name: Resources
+  path: /resources
+  is_default: true
+  menu:
+  - include: /resources/_menu_toc.yaml
+  lower_tabs:
+    # Subsite tabs
+    other:
+    - name: Guide & Tutorials
+      contents:
+      - title: Framework
+        path: /neural_structured_learning/tutorials/framework
+      - title: Install
+        path: /neural_structured_learning/install
+      - heading: Neural graph learning tutorials
+      - title: Graph regularization for document classification using natural graphs
+        path: /neural_structured_learning/tutorials/graph_keras_mlp_cora
+      - title: Graph regularization for sentiment classification using synthesized graphs
+        path: /neural_structured_learning/tutorials/graph_keras_lstm_imdb
+      - heading: Adversarial learning tutorials
+      - title: Adversarial regularization for image classification
+        path: /neural_structured_learning/tutorials/adversarial_keras_cnn_mnist
+    - name: API
+      skip_translation: true
+      contents:
+      - title: All symbols
+        path: /neural_structured_learning/api_docs/python/
+      - include: /neural_structured_learning/api_docs/python/_toc.yaml
+
+- include: /_upper_tabs_right.yaml

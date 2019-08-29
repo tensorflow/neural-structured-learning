@@ -1,0 +1,12 @@
+# Neural Structured Learning Bazel configuration.
+#
+# See https://docs.bazel.build/versions/master/user-manual.html#config for
+# details on the various configuration options.
+
+# Build with optimization enabled.
+build --compilation_mode=opt
+
+# Processor native optimizations (depends on build host capabilities).
+build --copt=-march=native
+build --host_copt=-march=native
+build --copt=-O3
