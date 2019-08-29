@@ -1,9 +1,5 @@
 # Neural Structured Learning in TensorFlow
 
-[TOC]
-
-## Overview
-
 ![](g3doc/images/nsl_overview.png)
 
 **Neural Structured Learning (NSL)** is a new learning paradigm to train neural
