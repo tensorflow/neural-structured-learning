@@ -38,8 +38,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-
 from absl import app
 from absl import flags
 
@@ -59,6 +57,9 @@ flags.DEFINE_string(
 flags.DEFINE_bool("search_hints", True,
                   "Include metadata search hints in the generated files")
 
+flags.DEFINE_string("site_path", "neural_structured_learning/api_docs/python",
+                    "Path prefix in the _toc.yaml")
+
 FLAGS = flags.FLAGS
 
 
@@ -73,12 +74,12 @@ def main(_):
       py_modules=[("nsl", nsl)],
       code_url_prefix=FLAGS.code_url_prefix,
       search_hints=FLAGS.search_hints,
-      site_path="neural_structured_learning/api_docs/python",
+      site_path=FLAGS.site_path,
       # local_definitions_filter ensures that shared modules are only
       # documented in the location that defines them, instead of every location
       # that imports them.
       callbacks=[public_api.local_definitions_filter])
-  doc_generator.build(output_dir=os.path.join(flags.FLAGS.out_dir))
+  doc_generator.build(output_dir=FLAGS.out_dir)
 
 
 if __name__ == "__main__":
