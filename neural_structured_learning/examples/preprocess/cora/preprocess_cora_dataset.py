@@ -76,6 +76,9 @@ flags.DEFINE_string(
     """Input file for Cora content that contains ID, words and labels.""")
 flags.DEFINE_string('input_cora_graph', '/tmp/cora/cora.cites',
                     """Input file for Cora citation graph in TSV format.""")
+flags.DEFINE_integer(
+    'max_nbrs', None,
+    'The maximum number of neighbors to merge into each labeled Example.')
 flags.DEFINE_float(
     'train_percentage', 0.8,
     """The percentage of examples to be created as training data. The rest
@@ -158,8 +161,11 @@ def main(unused_argv):
   # neighbors for transductive learning purpose. In other words, the labels of
   # test_examples are not used.
   with tf.io.TFRecordWriter(FLAGS.output_train_data) as writer:
-    for merged_example in pack_nbrs.join_examples(train_examples, test_examples,
-                                                  graph, FLAGS.max_nbrs):
+    # Here we call a private function in pack_nbrs to join the examples. This is
+    # one-off for demonstration purpose only. Later on we will refactor that
+    # function to a public API.
+    for merged_example in pack_nbrs._join_examples(  # pylint: disable=protected-access
+        train_examples, test_examples, graph, FLAGS.max_nbrs):
       writer.write(merged_example.SerializeToString())
 
   logging.info('Output training data written to TFRecord file: %s.',
