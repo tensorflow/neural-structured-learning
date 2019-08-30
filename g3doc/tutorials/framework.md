@@ -80,15 +80,15 @@ To obtain hands-on experience with Neural Structured Learning, we have three
 tutorials that cover various scenarios where structured signals may be
 explicitly given, induced or constructed:
 
-*   [Graph regularization for document classification using natural graphs](graph_keras_mlp_cora#top_of_page).
+*   [Graph regularization for document classification using natural graphs](graph_keras_mlp_cora.ipynb).
     In this tutorial, we explore the use of graph regularization to classify
     documents that form a natural (organic) graph.
 
-*   [Graph regularization for sentiment classification using synthesized graphs](graph_keras_lstm_imdb#top_of_page).
+*   [Graph regularization for sentiment classification using synthesized graphs](graph_keras_lstm_imdb.ipynb).
     In this tutorial, we demonstrate the use of graph regularization to classify
     movie review sentiments by constructing (synthesizing) structured signals.
 
-*   [Adversarial learning for image classification](adversarial_keras_cnn_mnist#top_of_page).
+*   [Adversarial learning for image classification](adversarial_keras_cnn_mnist.ipynb).
     In this tutorial, we explore the use of adversarial learning (where
     structured signals are induced) to classify images containing numeric
     digits.
