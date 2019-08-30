@@ -11,7 +11,6 @@ Learning (NSL) in TensorFlow:
     `pip` package manager.
 *   If you have a unique machine configuration,
     [build NSL](#build-the-neural-structured-learning-pip-package) from source.
-*   You can also use [Docker for installing NSL](#using-docker).
 
 ## Install Neural Structured Learning using pip
 
@@ -134,44 +133,3 @@ Note: To exit the virtual environment, run `deactivate`.
 </pre>
 
 Success: The Neural Structured Learning package is built.
-
-## Using Docker
-
-Create a Neural Structured Learning development environment using Docker on
-Ubuntu or macOS.
-
-### 1. Install Docker.
-
-[Install Docker](https://docs.docker.com/install/) on your local machine.
-
-### 2. Clone the latest Neural Structured Learning source.
-
-<pre class="prettyprint lang-bsh">
-<code class="devsite-terminal">git clone https://github.com/tensorflow/neural-structured-learning.git</code>
-<code class="devsite-terminal">cd neural_structured_learning</code>
-</pre>
-
-### 3. Build a Docker image.
-
-<pre class="prettyprint lang-bsh">
-<code class="devsite-terminal">docker build . \
-    --tag neural-structured-learning:latest</code>
-</pre>
-
-### 4. Start a Docker container.
-
-<pre class="prettyprint lang-bsh">
-<code class="devsite-terminal">docker run -it \
-    --workdir /neural_structured_learning \
-    --volume $(pwd):/neural_structured_learning \
-    neural-structured-learning:latest \
-    bash</code>
-</pre>
-
-### 5. (Optional) Test Neural Structured Learning.
-
-<pre class="prettyprint lang-bsh">
-<code class="devsite-terminal">bazel test //neural_structured_learning/...</code>
-</pre>
-
-Success: The Neural Structured Learning development environment is ready.
