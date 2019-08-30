@@ -54,7 +54,7 @@ Note: To exit the virtual environment, run `deactivate`.
 #### 4. (Optional) Test Neural Structured Learning.
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl</code>
+<code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl"</code>
 </pre>
 
 Success: Neural Structured Learning is now installed.
@@ -105,8 +105,8 @@ Note: To exit the virtual environment, run `deactivate`.
 ### 5. Install Neural Structured Learning dependencies.
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal">cd neural_structured_learning</code>
-<code class="devsite-terminal tfo-terminal-venv">pip install --requirement "requirements.txt"</code>
+<code class="devsite-terminal">cd neural-structured-learning</code>
+<code class="devsite-terminal tfo-terminal-venv">pip install --requirement neural_structured_learning/requirements.txt</code>
 </pre>
 
 ### 6. (Optional) Unit Test Neural Structured Learning.
@@ -115,10 +115,22 @@ Note: To exit the virtual environment, run `deactivate`.
 <code class="devsite-terminal tfo-terminal-venv">bazel test //neural_structured_learning/...</code>
 </pre>
 
-#### 7. Test Neural Structured Learning.
+### 7. Build the pip package.
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl</code>
+<code class="devsite-terminal tfo-terminal-venv">python setup.py bdist_wheel --universal --dist-dir="./wheel"</code>
+</pre>
+
+### 8. Install the pip package.
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">pip install --upgrade ./wheel/neural_structured_learning*.whl</code>
+</pre>
+
+### 9. Test Neural Structured Learning.
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl"</code>
 </pre>
 
 Success: The Neural Structured Learning package is built.
