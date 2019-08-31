@@ -25,7 +25,7 @@ Run the docs generator:
 
 ```shell
 python build_docs.py \
---out_dir=/tmp/neural_structured_learning_api
+--output_dir=/tmp/neural_structured_learning_api
 ```
 
 Note:
@@ -47,7 +47,7 @@ from tensorflow_docs.api_generator import doc_controls
 from tensorflow_docs.api_generator import generate_lib
 from tensorflow_docs.api_generator import public_api
 
-flags.DEFINE_string("out_dir", "/tmp/neural_structured_learning_api",
+flags.DEFINE_string("output_dir", "/tmp/neural_structured_learning_api",
                     "Where to output the docs")
 flags.DEFINE_string(
     "code_url_prefix",
@@ -79,7 +79,7 @@ def main(_):
       # documented in the location that defines them, instead of every location
       # that imports them.
       callbacks=[public_api.local_definitions_filter])
-  doc_generator.build(output_dir=FLAGS.out_dir)
+  doc_generator.build(output_dir=FLAGS.output_dir)
 
 
 if __name__ == "__main__":
