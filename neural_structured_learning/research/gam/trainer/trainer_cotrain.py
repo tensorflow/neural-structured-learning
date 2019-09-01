@@ -30,12 +30,12 @@ from __future__ import print_function
 import logging
 import os
 
-from gam.data import CotrainDataset
-from gam.trainer import Trainer
-from gam.trainer import TrainerAgreement
-from gam.trainer import TrainerClassification
-from gam.trainer import TrainerPerfectAgreement
-from gam.trainer import TrainerPerfectClassification
+from gam.data.dataset import CotrainDataset
+from gam.trainer.trainer_base import Trainer
+from gam.trainer.trainer_agreement import TrainerAgreement
+from gam.trainer.trainer_classification import TrainerClassification
+from gam.trainer.trainer_agreement import TrainerPerfectAgreement
+from gam.trainer.trainer_classification import TrainerPerfectClassification
 
 import numpy as np
 import tensorflow as tf
@@ -530,10 +530,10 @@ class TrainerCotraining(Trainer):
     # If a checkpoint with the variables already exists, we restore them.
     if self.checkpoints_dir:
       checkpts_path_cotrain = os.path.join(self.checkpoints_dir, 'cotrain.ckpt')
-      if os.path.exists(checkpts_path_cotrain+'.index'):
+      if os.path.exists(checkpts_path_cotrain):
         saver.restore(session, checkpts_path_cotrain)
       else:
-        os.makedir(checkpts_path_cotrain)
+        os.makedirs(checkpts_path_cotrain)
     else:
       checkpts_path_cotrain = None
 

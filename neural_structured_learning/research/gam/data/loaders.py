@@ -15,16 +15,16 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import google_type_annotations
 from __future__ import print_function
 
 import json
 import logging
 import pickle
 
-from gam.data import convert_image
-from gam.data import FixedDataset
-from gam.data import split_train_val_unlabeled
+from gam.data.dataset import FixedDataset
+from gam.data.preprocessing import convert_image
+from gam.data.preprocessing import split_train_val_unlabeled
+
 import numpy as np
 import tensorflow_datasets as tfds
 

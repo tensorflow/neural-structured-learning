@@ -29,13 +29,13 @@ import os
 from absl import app
 from absl import flags
 
-from gam.data import Dataset
-from gam.data import load_data_realistic_ssl
-from gam.data import load_data_tf_datasets
-from gam.models import ImageCNNAgreement
-from gam.models import MLP
-from gam.models import WideResnet
-from gam.trainer import TrainerCotraining
+from gam.data.dataset import Dataset
+from gam.data.loaders import load_data_realistic_ssl
+from gam.data.loaders import load_data_tf_datasets
+from gam.models.cnn import ImageCNNAgreement
+from gam.models.mlp import MLP
+from gam.models.wide_resnet import WideResnet
+from gam.trainer.trainer_cotrain import TrainerCotraining
 import numpy as np
 import tensorflow as tf
 
@@ -73,10 +73,10 @@ flags.DEFINE_string(
     'Path to the json files containing the label sample indices for '
     'Realistic SSL.')
 flags.DEFINE_string(
-    'data_output_dir', '',
+    'data_output_dir', './outputs',
     'Path to a folder where to save the preprocessed dataset.')
 flags.DEFINE_string(
-    'output_dir', '',
+    'output_dir', './outputs',
     'Path to a folder where checkpoints, summaries and other outputs are '
     'stored.')
 flags.DEFINE_string(
@@ -101,14 +101,18 @@ flags.DEFINE_float(
 flags.DEFINE_float(
     'learning_rate_decay_agr', None,
     'Learning rate decay factor for the agreement model.')
-flags.DEFINE_float('lr_decay_rate_cls', None,
-                   'Learning rate decay rate for the classification model.')
-flags.DEFINE_integer('lr_decay_steps_cls', None,
-                     'Learning rate decay steps for the classification model.')
-flags.DEFINE_float('lr_decay_rate_agr', None,
-                   'Learning rate decay rate for the agreement model.')
-flags.DEFINE_integer('lr_decay_steps_agr', None,
-                     'Learning rate decay steps for the agreement model.')
+flags.DEFINE_float(
+    'lr_decay_rate_cls', None,
+    'Learning rate decay rate for the classification model.')
+flags.DEFINE_integer(
+    'lr_decay_steps_cls', None,
+    'Learning rate decay steps for the classification model.')
+flags.DEFINE_float(
+    'lr_decay_rate_agr', None,
+    'Learning rate decay rate for the agreement model.')
+flags.DEFINE_integer(
+    'lr_decay_steps_agr', None,
+    'Learning rate decay steps for the agreement model.')
 flags.DEFINE_integer(
     'num_epochs_per_decay_cls', 350,
     'Number of epochs after which the learning rate decays for the '
@@ -178,8 +182,9 @@ flags.DEFINE_string(
     'weight_decay_schedule_cls', None,
     'Schedule for decaying the weight decay in the classification model. '
     'Choose bewteen None or linear.')
-flags.DEFINE_float('weight_decay_agr', 0,
-                   'Weight of the L2 penalty on the agreement model weights.')
+flags.DEFINE_float(
+    'weight_decay_agr', 0,
+    'Weight of the L2 penalty on the agreement model weights.')
 flags.DEFINE_string(
     'weight_decay_schedule_agr', None,
     'Schedule for decaying the weight decay in the agreement model. Choose '
@@ -438,9 +443,9 @@ def main(argv):
   checkpoints_dir = os.path.join(FLAGS.output_dir, 'checkpoints', model_name)
   data_dir = os.path.join(FLAGS.data_output_dir, 'data_checkpoints', model_name)
   if not os.path.exists(checkpoints_dir):
-    os.makedir(checkpoints_dir)
+    os.makedirs(checkpoints_dir)
   if not os.path.exists(data_dir):
-    os.makedir(data_dir)
+    os.makedirs(data_dir)
 
   # Select the model based on the provided FLAGS.
   model_cls, model_agr = pick_model(data)
