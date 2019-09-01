@@ -27,7 +27,7 @@ INSTALL_REQUIRES = [
 
 setuptools.setup(
     name="neural-structured-learning",
-    version="0.0.0",
+    version="1.0.0",
     author="Google LLC",
     description="TensorFlow Neural Structured Learning",
     long_description=long_description,
