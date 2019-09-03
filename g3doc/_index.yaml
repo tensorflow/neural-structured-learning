@@ -66,17 +66,12 @@ landing_page:
 
   - classname: devsite-landing-row-cards
     items:
-    - heading: "Sample YouTube video"
-      youtube_id: P4_rJfHpr7k
-      buttons:
-      - label: Watch the video
-        path: https://www.youtube.com/watch?v=P4_rJfHpr7k
-    - heading: "Sample blog post"
+    - heading: "Introducing Neural Structured Learning in TensorFlow"
       image_path: /resources/images/tf-logo-card-16x9.png
-      path: https://medium.com/tensorflow
+      path: https://medium.com/tensorflow/introducing-neural-structured-learning-in-tensorflow-5a802efd7afd
       buttons:
       - label: Read on TensorFlow blog
-        path: https://medium.com/tensorflow/
+        path: https://medium.com/tensorflow/introducing-neural-structured-learning-in-tensorflow-5a802efd7afd
     - heading: TF-NSL on GitHub
       image_path: /resources/images/github-card-16x9.png
       path: https://github.com/tensorflow/neural-structured-learning
