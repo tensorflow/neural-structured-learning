@@ -31,10 +31,10 @@ import logging
 import os
 
 from gam.data.dataset import CotrainDataset
-from gam.trainer.trainer_base import Trainer
 from gam.trainer.trainer_agreement import TrainerAgreement
-from gam.trainer.trainer_classification import TrainerClassification
 from gam.trainer.trainer_agreement import TrainerPerfectAgreement
+from gam.trainer.trainer_base import Trainer
+from gam.trainer.trainer_classification import TrainerClassification
 from gam.trainer.trainer_classification import TrainerPerfectClassification
 
 import numpy as np
