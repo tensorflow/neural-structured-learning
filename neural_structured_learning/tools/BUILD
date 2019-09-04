@@ -40,8 +40,8 @@ py_library(
     srcs = ["graph_utils.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//third_party/py/absl/logging",
-        # package six,
+        # package absl/logging
+        # package six
     ],
 )
 
@@ -51,7 +51,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        "//third_party/py/absl/testing:absltest",
+        # package absl/testing:absltest
     ],
 )
 
@@ -61,12 +61,12 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        "//third_party/py/absl:app",
-        "//third_party/py/absl/flags",
-        "//third_party/py/absl/logging",
-        # package numpy,
-        # package six,
-        # package tensorflow,
+        # package absl:app
+        # package absl/flags
+        # package absl/logging
+        # package numpy
+        # package six
+        # package tensorflow
     ],
 )
 
@@ -83,11 +83,11 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        "//third_party/py/absl:app",
-        "//third_party/py/absl/flags",
-        "//third_party/py/absl/logging",
-        # package six,
-        # package tensorflow,
+        # package absl:app
+        # package absl/flags
+        # package absl/logging
+        # package six
+        # package tensorflow
     ],
 )
 
@@ -104,6 +104,6 @@ py_binary(
     python_version = "PY3",
     deps = [
         "//neural_structured_learning",
-        "//third_party/py/tensorflow_docs/api_generator",
+        # package tensorflow_docs/api_generator
     ],
 )

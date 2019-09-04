@@ -38,11 +38,11 @@ py_library(
     srcs = ["adversarial_regularization.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # package attrs,
+        # package attr
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib",
-        # package six,
-        # package tensorflow,
+        # package six
+        # package tensorflow
     ],
 )
 
@@ -53,8 +53,8 @@ py_test(
     deps = [
         ":adversarial_regularization",
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
     ],
 )
 
@@ -64,10 +64,10 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":adversarial_regularization",
-        # package absl,
+        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )
@@ -79,7 +79,7 @@ py_library(
     deps = [
         "//neural_structured_learning/configs",
         "//neural_structured_learning/keras/layers",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -90,10 +90,10 @@ py_test(
     deps = [
         ":graph_regularization",
         # package protobuf,
-        # package absl,
+        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )

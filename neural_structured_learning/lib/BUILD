@@ -59,7 +59,7 @@ py_library(
     deps = [
         ":abstract_gen_neighbor",
         ":utils",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -72,7 +72,7 @@ py_test(
     deps = [
         ":adversarial_neighbor",
         "//neural_structured_learning/configs",
-        # package tensorflow,
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )
@@ -85,7 +85,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -98,8 +98,8 @@ py_test(
     deps = [
         ":distances",
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
     ],
 )
 
@@ -111,7 +111,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -124,7 +124,7 @@ py_test(
     deps = [
         ":multimodal_lib",
         "//neural_structured_learning/configs",
-        # package tensorflow,
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )
@@ -138,7 +138,7 @@ py_library(
     deps = [
         ":distances",
         ":utils",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -151,8 +151,8 @@ py_test(
     deps = [
         ":regularizer",
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
     ],
 )
 
@@ -164,7 +164,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -176,8 +176,8 @@ py_test(
     deps = [
         ":utils",
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )

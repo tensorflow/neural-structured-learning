@@ -42,10 +42,10 @@ py_test(
     ],
     deps = [
         ":layers",
-        # package absl,
+        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )
@@ -55,10 +55,10 @@ py_library(
     srcs = ["neighbor_features.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # package attrs,
+        # package attr
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib:utils",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -70,10 +70,10 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":neighbor_features",
-        # package absl,
+        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package tensorflow,
+        # package numpy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )
@@ -85,12 +85,12 @@ py_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        # package attrs,
-        # package enum,
+        # package attr
+        # package enum
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib:distances",
         "//neural_structured_learning/lib:utils",
-        # package tensorflow,
+        # package tensorflow
     ],
 )
 
@@ -103,9 +103,9 @@ py_test(
     deps = [
         ":pairwise_distance",
         "//neural_structured_learning/configs",
-        # package numpy,
-        # package scipy,
-        # package tensorflow,
+        # package numpy
+        # package scipy
+        # package tensorflow
         # package tensorflow framework_test_lib,
     ],
 )

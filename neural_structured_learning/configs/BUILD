@@ -30,8 +30,8 @@ py_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        # package attrs,
-        # package enum,
-        # package tensorflow,
+        # package attr
+        # package enum
+        # package tensorflow
     ],
 )
