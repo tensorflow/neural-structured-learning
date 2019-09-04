@@ -64,12 +64,10 @@ contribute to TF Neural Structured Learning:
     showcase the new features.
 
     If you develop new algorithms in your own repository, we are happy to
-    feature pointers to academic publications and/or repos using NSL on
-    [tensorflow.org/neural_structured_learning](http://www.tensorflow.org/neural_structured_learning).
+    feature pointers to academic publications and/or repositories that use NSL,
+    on [tensorflow.org/neural_structured_learning](http://www.tensorflow.org/neural_structured_learning).
 
-Please be sure to review the
-[contribution guidelines](CONTRIBUTING.md#code-style-guidelines-and-best-practices)
-for guidelines on the coding style, best practices, etc.
+Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
 
 ## Issues and Questions
 
