@@ -18,7 +18,7 @@ https://papers.nips.cc/paper/7585-realistic-evaluation-of-deep-semi-supervised-l
 and this Github repository:
 https://github.com/brain-research/realistic-ssl-evaluation
 """
-from gam.models import Model
+from gam.models.models_base import Model
 
 import numpy as np
 import tensorflow as tf

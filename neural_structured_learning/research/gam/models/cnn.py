@@ -21,7 +21,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from gam.models import Model
+from gam.models.models_base import Model
 import numpy as np
 import tensorflow as tf
 

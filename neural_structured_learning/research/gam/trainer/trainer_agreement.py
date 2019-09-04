@@ -27,8 +27,8 @@ import collections
 import logging
 import os
 
-from gam.trainer import batch_iterator
-from gam.trainer import Trainer
+from gam.trainer.trainer_base import batch_iterator
+from gam.trainer.trainer_base import Trainer
 
 import numpy as np
 import tensorflow as tf
