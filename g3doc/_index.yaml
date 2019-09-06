@@ -53,7 +53,7 @@ landing_page:
         ])
 
         # Wrap the model with adversarial regularization.
-        adv_config = nsl.lib.make_adv_reg_config(multiplier=0.2, adv_step_size=0.05)
+        adv_config = nsl.configs.make_adv_reg_config(multiplier=0.2, adv_step_size=0.05)
         adv_model = nsl.keras.AdversarialRegularization(model, adv_config=adv_config)
 
         # Compile, train, and evaluate.
