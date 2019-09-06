@@ -35,7 +35,7 @@ class NormType(enum.Enum):
 
 @attr.s
 class AdvNeighborConfig(object):
-  """AdvNeighborConfig contains configs for generating adversarial neighbors.
+  """Contains configuration for generating adversarial neighbors.
 
   Attributes:
     feature_mask: mask (w/ 0-1 values) applied on gradient. The shape should be
@@ -54,7 +54,7 @@ class AdvNeighborConfig(object):
 
 @attr.s
 class AdvRegConfig(object):
-  """AdvRegConfig contains configs for adversarial regularization.
+  """Contains configuration for adversarial regularization.
 
   Attributes:
     multiplier: multiplier to adversarial regularization loss. Default set to
@@ -71,22 +71,20 @@ def make_adv_reg_config(
     feature_mask=attr.fields(AdvNeighborConfig).feature_mask.default,
     adv_step_size=attr.fields(AdvNeighborConfig).adv_step_size.default,
     adv_grad_norm=attr.fields(AdvNeighborConfig).adv_grad_norm.default):
-  """Creates AdvRegConfig object.
+  """Creates an `nsl.configs.AdvRegConfig` object.
 
   Args:
-    multiplier: multiplier to adversarial regularization loss. Default set to
-      0.2.
-    feature_mask: mask (w/ 0-1 values) applied on gradient. The shape should be
-      the same as (or broadcastable to) input features. If set to None, no
+    multiplier: multiplier to adversarial regularization loss. Defaults to 0.2.
+    feature_mask: mask (w/ 0-1 values) applied on the gradient. The shape should
+      be the same as (or broadcastable to) input features. If set to `None`, no
       feature mask will be applied.
-    adv_step_size: step size to find the adversarial sample. Default set to
-      0.001.
+    adv_step_size: step size to find the adversarial sample. Defaults to 0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
-      converted to `NormType` when applicable (e.g., 'l2' -> NormType.L2).
-      Default set to L2 norm.
+      converted to `NormType` when applicable (e.g., a value of 'l2' will be
+      converted to `nsl.configs.NormType.L2`). Defaults to L2 norm.
 
   Returns:
-    An AdvRegConfig object.
+    An `nsl.configs.AdvRegConfig` object.
   """
   return AdvRegConfig(
       multiplier=multiplier,
@@ -110,7 +108,7 @@ class AdvTargetType(enum.Enum):
 
 @attr.s
 class AdvTargetConfig(object):
-  """AdvTargetConfig contains configs for selecting targets to be attacked.
+  """Contains configuration for selecting targets to be attacked.
 
   Attributes:
     target_method: type of adversarial targeting method. The value needs to be
@@ -142,20 +140,21 @@ class DistanceType(enum.Enum):
 
 @attr.s
 class DistanceConfig(object):
-  """DistanceConfig contains configs for computing distances.
+  """Contains configuration for computing distances between tensors.
 
   Attributes:
     distance_type: type of distance function. Input type will be converted to
-      'DistanceType' when applicable (e.g., 'l2' -> DistanceType.L2). Default
-      set to L2 norm.
-    reduction: type of distance reduction. See tf.compat.v1.losses.Reduction for
-      details. Default set to tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS.
+      the appropriate `nsl.configs.DistanceType` value (e.g., the value 'l2' is
+      converted to `nsl.configs.DistanceType.L2`). Defaults to the L2 norm.
+    reduction: type of distance reduction. See `tf.compat.v1.losses.Reduction`
+      for details. Defaults to `tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS`.
     sum_over_axis: the distance is the sum over the difference along the axis.
-      Default set to None.
+      See `nsl.lib.pairwise_distance_wrapper` for how this field is used.
+      Defaults to `None`.
     transform_fn: type of transform function to be applied on each side before
       computing the pairwise distance. Input type will be converted to
-      'TransformType' when applicable (e.g., 'softmax' ->
-      TransformType.SOFTMAX). Default set to 'none'.
+      `nsl.configs.TransformType` when applicable (e.g., the value 'softmax'
+      maps to `nsl.configs.TransformType.SOFTMAX`). Defaults to 'none'.
   """
   distance_type = attr.ib(converter=DistanceType, default=DistanceType.L2)
   reduction = attr.ib(
@@ -177,7 +176,7 @@ class DecayType(enum.Enum):
 
 @attr.s
 class DecayConfig(object):
-  """DecayConfig contains configs for computing decayed value.
+  """Contains configuration for computing decayed value.
 
   Attributes:
     decay_steps: A scalar int32 or int64 Tensor or a Python number. How often to
@@ -207,7 +206,7 @@ class IntegrationType(enum.Enum):
 
 @attr.s
 class IntegrationConfig(object):
-  """IntegrationConfig contains configs for computing multimodal integration.
+  """Contains configuration for computing multimodal integration.
 
   Attributes:
     integration_type: Type of integration function to apply.
@@ -222,7 +221,7 @@ class IntegrationConfig(object):
 
 @attr.s
 class VirtualAdvConfig(object):
-  """VirtualAdvConfig contains configs for virtual adversarial training.
+  """Contains configuration for virtual adversarial training.
 
   Attributes:
     adv_neighbor_config: an AdvNeighborConfig object for generating virtual
@@ -245,7 +244,7 @@ class VirtualAdvConfig(object):
 
 @attr.s
 class GraphNeighborConfig(object):
-  """GraphNeighborConfig specifies neighbor attributes for graph regularization.
+  """Specifies neighbor attributes for graph regularization.
 
   Attributes:
     prefix: The prefix in feature names that identifies neighbor-specific
@@ -268,20 +267,77 @@ class GraphNeighborConfig(object):
 
 @attr.s
 class GraphRegConfig(object):
-  """GraphRegConfig contains the configuration for graph regularization.
+  """Contains the configuration for graph regularization.
 
   Attributes:
     neighbor_config: An instance of `GraphNeighborConfig` that describes
       neighbor attributes for graph regularization.
     multiplier: The multiplier or weight factor applied on the graph
-      regularization loss term. Defaults to 0.01. This value has to be greater
-      than or equal to 0.
+      regularization loss term. This value has to be non-negative. Defaults to
+      0.01.
     distance_config: An instance of `DistanceConfig` to calculate the graph
-      regularization loss term. Defaults to `DistanceConfig()`.
+      regularization loss term. Defaults to `nsl.configs.DistanceConfig()`.
   """
   neighbor_config = attr.ib(default=GraphNeighborConfig())
   multiplier = attr.ib(default=0.01)
   distance_config = attr.ib(default=DistanceConfig())
+
+
+def make_graph_reg_config(
+    neighbor_prefix=attr.fields(GraphNeighborConfig).prefix.default,
+    neighbor_weight_suffix=attr.fields(
+        GraphNeighborConfig).weight_suffix.default,
+    max_neighbors=attr.fields(GraphNeighborConfig).max_neighbors.default,
+    multiplier=attr.fields(GraphRegConfig).multiplier.default,
+    distance_type=attr.fields(DistanceConfig).distance_type.default,
+    reduction=attr.fields(DistanceConfig).reduction.default,
+    sum_over_axis=attr.fields(DistanceConfig).sum_over_axis.default,
+    transform_fn=attr.fields(DistanceConfig).transform_fn.default):
+  """Creates an `nsl.configs.GraphRegConfig` object.
+
+  Args:
+    neighbor_prefix: The prefix in feature names that identifies
+      neighbor-specific features. Defaults to 'NL_nbr_'.
+    neighbor_weight_suffix: The suffix in feature names that identifies the
+      neighbor weight value. Defaults to '_weight'. Note that neighbor weight
+      features will have `prefix` as a prefix and `weight_suffix` as a suffix.
+      For example, based on the default values of `prefix` and `weight_suffix`,
+      a valid neighbor weight feature is 'NL_nbr_0_weight', where 0 corresponds
+      to the first neighbor of the sample.
+    max_neighbors: The maximum number of neighbors to be used for graph
+      regularization. Defaults to 0, which disables graph regularization. Note
+      that this value has to be less than or equal to the actual number of
+      neighbors in each sample.
+    multiplier: The multiplier or weight factor applied on the graph
+      regularization loss term. This value has to be non-negative. Defaults to
+      0.01.
+    distance_type: type of distance function. Input type will be converted to
+      the appropriate `nsl.configs.DistanceType` value (e.g., the value 'l2' is
+      converted to `nsl.configs.DistanceType.L2`). Defaults to the L2 norm.
+    reduction: type of distance reduction. See `tf.compat.v1.losses.Reduction`
+      for details. Defaults to `tf.losses.Reduction.SUM_BY_NONZERO_WEIGHTS`.
+    sum_over_axis: the distance is the sum over the difference along the axis.
+      See `nsl.lib.pairwise_distance_wrapper` for how this field is used.
+      Defaults to `None`.
+    transform_fn: type of transform function to be applied on each side before
+      computing the pairwise distance. Input type will be converted to
+      `nsl.configs.TransformType` when applicable (e.g., the value 'softmax'
+      maps to `nsl.configs.TransformType.SOFTMAX`). Defaults to 'none'.
+
+  Returns:
+    An `nsl.configs.GraphRegConfig` object.
+  """
+  return GraphRegConfig(
+      neighbor_config=GraphNeighborConfig(
+          prefix=neighbor_prefix,
+          weight_suffix=neighbor_weight_suffix,
+          max_neighbors=max_neighbors),
+      multiplier=multiplier,
+      distance_config=DistanceConfig(
+          distance_type=distance_type,
+          reduction=reduction,
+          sum_over_axis=sum_over_axis,
+          transform_fn=transform_fn))
 
 
 DEFAULT_DISTANCE_PARAMS = attr.asdict(DistanceConfig())

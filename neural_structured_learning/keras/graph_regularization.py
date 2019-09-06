@@ -42,8 +42,7 @@ class GraphRegularization(tf.keras.Model):
 
   # Wrap the base model to include graph regularization using up to 1 neighbor
   # per sample.
-  graph_config = nsl.configs.GraphRegConfig(
-      neighbor_config=nsl.configs.GraphNeighborConfig(max_neighbors=1))
+  graph_config = nsl.configs.make_graph_reg_config(max_neighbors=1)
   graph_model = nsl.keras.GraphRegularization(base_model, graph_config)
 
   # Compile, train, and evaluate the graph-regularized model as usual.
@@ -62,8 +61,9 @@ class GraphRegularization(tf.keras.Model):
     Args:
       base_model: Unregularized model to which the loss term resulting from
         graph regularization will be added.
-      graph_reg_config: Instance of `GraphRegConfig` that contains configuration
-        for graph regularization.
+      graph_reg_config: Instance of `nsl.configs.GraphRegConfig` that contains
+        configuration for graph regularization. Use
+        `nsl.configs.make_graph_reg_config` to construct one.
     """
 
     super(GraphRegularization, self).__init__(name='GraphRegularization')

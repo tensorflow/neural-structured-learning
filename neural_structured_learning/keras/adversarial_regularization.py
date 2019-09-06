@@ -99,7 +99,8 @@ def adversarial_loss(features,
     sample_weights: (optional) A 1-D `Tensor` of weights for the examples, with
       the same length as the first dimension of `features`.
     adv_config: (optional) An `nsl.configs.AdvRegConfig` object for adversarial
-      regularization hyperparameters.
+      regularization hyperparameters. Use `nsl.configs.make_adv_reg_config` to
+      construct one.
     predictions: (optional) Precomputed value of `model(features)`. If set, the
       value will be reused when calculating adversarial regularization. In eager
       mode, the `gradient_tape` has to be set as well.

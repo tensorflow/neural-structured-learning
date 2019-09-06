@@ -416,7 +416,7 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
       tensors. The shape of each neighbor weight tensor is expected to be `[B,
       1]`, where `B` is the batch size. Neighbor weight tensors cannot be sparse
       tensors.
-    neighbor_config: An instance of `GraphNeighborConfig`.
+    neighbor_config: An instance of `nsl.configs.GraphNeighborConfig`.
     keep_rank: Whether to preserve the neighborhood size dimension. Defaults to
       False.
 

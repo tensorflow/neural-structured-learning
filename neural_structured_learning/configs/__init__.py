@@ -15,6 +15,7 @@ from neural_structured_learning.configs.configs import GraphRegConfig
 from neural_structured_learning.configs.configs import IntegrationConfig
 from neural_structured_learning.configs.configs import IntegrationType
 from neural_structured_learning.configs.configs import make_adv_reg_config
+from neural_structured_learning.configs.configs import make_graph_reg_config
 from neural_structured_learning.configs.configs import NormType
 from neural_structured_learning.configs.configs import TransformType
 from neural_structured_learning.configs.configs import VirtualAdvConfig
@@ -35,6 +36,7 @@ __all__ = [
     'IntegrationConfig',
     'IntegrationType',
     'make_adv_reg_config',
+    'make_graph_reg_config',
     'NormType',
     'TransformType',
     'VirtualAdvConfig',

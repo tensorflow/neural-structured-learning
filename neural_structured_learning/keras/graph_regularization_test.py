@@ -195,9 +195,8 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
         model as `tf.keras.Model` instances.
       """
       model = model_fn((2,), weight)
-      graph_reg_config = configs.GraphRegConfig(
-          configs.GraphNeighborConfig(max_neighbors=max_neighbors),
-          multiplier=1)
+      graph_reg_config = configs.make_graph_reg_config(
+          max_neighbors=max_neighbors, multiplier=1)
       graph_reg_model = graph_regularization.GraphRegularization(
           model, graph_reg_config)
       graph_reg_model.compile(

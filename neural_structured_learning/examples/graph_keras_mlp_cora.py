@@ -265,14 +265,13 @@ def main(argv):
   train_dataset, test_dataset = make_datasets(argv[1], argv[2], hparams)
 
   # Graph regularization configuration.
-  graph_reg_config = nsl.configs.GraphRegConfig(
-      neighbor_config=nsl.configs.GraphNeighborConfig(
-          prefix=NBR_FEATURE_PREFIX,
-          weight_suffix=NBR_WEIGHT_SUFFIX,
-          max_neighbors=hparams.num_neighbors),
+  graph_reg_config = nsl.configs.make_graph_reg_config(
+      prefix=NBR_FEATURE_PREFIX,
+      weight_suffix=NBR_WEIGHT_SUFFIX,
+      max_neighbors=hparams.num_neighbors,
       multiplier=hparams.graph_regularization_multiplier,
-      distance_config=nsl.configs.DistanceConfig(
-          distance_type=hparams.distance_type, sum_over_axis=-1))
+      distance_type=hparams.distance_type,
+      sum_over_axis=-1)
 
   # Create the base MLP models.
   base_models = {
