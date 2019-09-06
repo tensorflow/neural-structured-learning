@@ -1,17 +1,17 @@
 Neural structured learning methods such as Neural Graph Machines [1], Graph
 Convolutional Networks [2] and their variants have successfully combined the
 expressiveness of neural networks with graph structures to improve on learning
-tasks. Graph Agreement Models is a technique that can be applied to these
-methods to handle the noisy nature of real world graphs. Traditional graph-based
+tasks. Graph Agreement Models (GAM) is a technique that can be applied to these
+methods to handle the noisy nature of real-world graphs. Traditional graph-based
 algorithms, such as label propagation, were designed with the underlying
 assumption that the label of a node can be imputed from that of the neighboring
-nodes and edge weights. However, most real world graphs are either noisy or have
+nodes and edge weights. However, most real-world graphs are either noisy or have
 edges that do not correspond to label agreement uniformly across the graph.
-Graph Agreement Models(GAM) introduce an auxiliary model that predicts the
+Graph Agreement Models introduce an auxiliary model that predicts the
 probability of two nodes sharing the same label as a learned function of their
 features. This agreement model is then used when training a node classification
 model by encouraging agreement only for those pairs of nodes that it deems
-likely to have the same label, thus guiding its parameters to better local
+likely to have the same label, thus guiding its parameters to a better local
 optima. The classification and agreement models are trained jointly in a
 co-training fashion.
 
