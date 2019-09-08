@@ -15,7 +15,7 @@ Convolutional NNs and Recurrent NNs).
 
 Note that the generalized neighbor loss equation is flexible and can have other
 forms besides the one illustrated above. For example, we can also select
-![equation](http://www.sciweavers.org/tex2img.php?eq=%5C%28%5Csum_%7Bx_j%20%5Cin%20%5Cmathcal%7BN%7D%28x_i%29%7D%5Cmathcal%7BE%7D%28y_i%2Cg_%5Ctheta%28x_j%29%5C%29%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
+<img src="https://latex.codecogs.com/svg.latex?\(\sum_{x_j&space;\in&space;\mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\)" title="\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\)"/>
  to be the
 neighbor loss, which calculates the distance between the ground truth
 ![equation](http://www.sciweavers.org/tex2img.php?eq=%20%5C%28y_i%5C%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0)
