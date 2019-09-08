@@ -203,6 +203,8 @@ class _LossWrapper(tf.keras.losses.Loss):
     # same input `(y_true, y_pred)`.
     # The list of such metrics is here:
     # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/engine/training_utils.py#L1018
+    if isinstance(metric, keras.metrics.Metric):
+      return metric.name
     if metric not in ('accuracy', 'acc', 'crossentropy', 'ce'):
       return metric
     if self._is_binary_classification_loss():
