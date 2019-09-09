@@ -15,12 +15,9 @@ Convolutional NNs and Recurrent NNs).
 
 Note that the generalized neighbor loss equation is flexible and can have other
 forms besides the one illustrated above. For example, we can also select
-<img src="https://latex.codecogs.com/svg.latex?\(\sum_{x_j&space;\in&space;\mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\)" title="\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\)"/>
- to be the
-neighbor loss, which calculates the distance between the ground truth
-<img src="https://latex.codecogs.com/svg.latex?\(y_i\)" title="\(y_i\)" />
-and the prediction from the neighbor <img src="https://latex.codecogs.com/svg.latex?\(g_\theta(x_j)\)" title="\(g_\theta(x_j)\)" />.
- This is commonly used
+\\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\\) to be the
+neighbor loss, which calculates the distance between the ground truth \\(y_i\\)
+and the prediction from the neighbor \\(g_\theta(x_j)\\). This is commonly used
 in adversarial learning
 [(Goodfellow et al., ICLR'15)](https://arxiv.org/pdf/1412.6572.pdf). Therefore,
 NSL generalizes to **Neural Graph Learning** if neighbors are explicitly
