@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Libs/utils for multimodal integration for Neural Structured Learning."""
+"""Utilities for multimodal integration for Neural Structured Learning."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -23,7 +23,7 @@ import tensorflow as tf
 
 
 def _bimodal_op(x, y, op_config):
-  """Apply bimodal integration operation to inputs."""
+  """Applies a bimodal integration operation to the inputs `x` and `y`."""
   if op_config.integration_type == configs.IntegrationType.ADD:
     return x + y
   elif op_config.integration_type == configs.IntegrationType.MUL:
@@ -54,37 +54,36 @@ def bimodal_integration(x,
                         integration_config,
                         reuse=None,
                         scope=None):
-  """Compute the bimodal integration between x and y.
+  """Computes the bimodal integration between `x` and `y`.
 
-    The inputs `x` and `y` are usually from two different types of sources,
-    e.g., `x` represents image embeddings and `y` represent text embeddings.
-    This function will integrate bimodal inputs `x` and `y` by the following:
+    The inputs `x` and `y` are usually from two different types of input
+    sources, e.g., `x` may represent image embeddings and `y` may represent text
+    embeddings. This function will integrate bimodal inputs `x` and `y` as
+    follows:
 
-    `outputs = fc_layer(
-        activation_fn(integration_type(fc_layer(x), fc_layer(y))))`
+    ```
+    outputs = fc_layer(activation_fn(integrate(fc_layer(x), fc_layer(y))))
+    ```,
+    where `fc_layer` represents a fully connected layer.
 
-    When the integration_type is (elementwise) 'additive', this function will is
-    equivalent to concat `x` and `y` and pass them into a two-layer perception.
-    When the integration_type is (elementwise) 'multiplicative', this function
-    is equivalent to multimodal low-rank bilinear Pooling (MLB) in
-    arXiv:1610.04325.
-    When the integration_type is 'tucker_decomp', this function is equivalent to
-    multimodal tensor-based Tucker decomposition (MUTAN) in arXiv:1705.06676.
+    When the integration type is (element-wise) 'additive', this function is
+    equivalent to concatenating `x` and `y` and passing the result into a
+    two-layer perceptron. When the integration type is (element-wise)
+    'multiplicative', this function is equivalent to [multimodal low-rank
+    bilinear Pooling (MLB)](https://arxiv.org/abs/1610.04325). When the
+    integration type is 'tucker_decomp', this function is equivalent to
+    [multimodal tensor-based Tucker decomposition
+    (MUTAN)](https://arxiv.org/abs/1705.06676).
 
   Args:
-    x: A tensor of at least rank 2 and static value for the last dimension; i.e.
-      [batch_size, depth], [None, None, None, channels].
-    y: A tensor of the same type and shape as `x`, except the size of the last
-      dimension can be different.
+    x: A tensor of rank at least 2 and a static value for the last dimension.
+      For example, `[batch_size, depth]`, `[None, None, None, channels]`, etc.
+    y: A tensor of the same type and shape as `x`, except that the size of the
+      last dimension can be different.
     output_dims: Integer or long, the number of output units.
-    integration_config: IntegrationConfig contains the following configs (or
-      hyper-parameters) for computing the hidden integration of `x` and `y`:
-      (a) integration_type: Type of integration function to apply.
-      (b) hidden_dims: Integer or a list of Integer, the number of hidden units
-        in the fully-connected layer(s) before the output layer.
-      (c) activation_fn: Activation function to be applied to.
-    reuse: Whether or not the layer and its variables should be reused. To be
-      able to reuse the layer scope must be given.
+    integration_config: An instance of `nsl.configs.IntegrationConfig`.
+    reuse: Whether or not the fully-connected layers and their variables should
+      be reused. To be able to reuse them, `scope` must be specified.
     scope: Optional scope for `variable_scope`.
 
   Returns:
