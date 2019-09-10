@@ -11,7 +11,7 @@ minimizing the neighbor loss, see the figure below). This technique is generic
 and can be applied on arbitrary neural architectures (such as Feed-forward NNs,
 Convolutional NNs and Recurrent NNs).
 
-![NSL Concept](../images/nlink_figure.png)
+![NSL Concept](images/nlink_figure.png)
 
 Note that the generalized neighbor loss equation is flexible and can have other
 forms besides the one illustrated above. For example, we can also select
@@ -41,7 +41,7 @@ neighbor loss. On the other hand, for induced neighbor-based regularization
 (adversarial), we compute the neighbor loss as the distance between the output
 prediction of the induced adversarial neighbor and the ground truth label.
 
-![NSL workflow](../images/workflow_overview.png)
+![NSL workflow](images/workflow_overview.png)
 
 ## Why use NSL?
 
@@ -80,15 +80,15 @@ To obtain hands-on experience with Neural Structured Learning, we have three
 tutorials that cover various scenarios where structured signals may be
 explicitly given, induced or constructed:
 
-*   [Graph regularization for document classification using natural graphs](graph_keras_mlp_cora.ipynb).
+*   [Graph regularization for document classification using natural graphs](tutorials/graph_keras_mlp_cora.ipynb).
     In this tutorial, we explore the use of graph regularization to classify
     documents that form a natural (organic) graph.
 
-*   [Graph regularization for sentiment classification using synthesized graphs](graph_keras_lstm_imdb.ipynb).
+*   [Graph regularization for sentiment classification using synthesized graphs](tutorials/graph_keras_lstm_imdb.ipynb).
     In this tutorial, we demonstrate the use of graph regularization to classify
     movie review sentiments by constructing (synthesizing) structured signals.
 
-*   [Adversarial learning for image classification](adversarial_keras_cnn_mnist.ipynb).
+*   [Adversarial learning for image classification](tutorials/adversarial_keras_cnn_mnist.ipynb).
     In this tutorial, we explore the use of adversarial learning (where
     structured signals are induced) to classify images containing numeric
     digits.

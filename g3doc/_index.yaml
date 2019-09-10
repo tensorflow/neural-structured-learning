@@ -32,9 +32,9 @@ landing_page:
         </ul>
         <p>Incorporating structured signals is done only during training. So, the performance of the
         serving/inference workflow remains unchanged. More information on neural structured learning
-        can be found in our <a href="tutorials/framework">framework description</a>. To get started,
+        can be found in our <a href="framework">framework description</a>. To get started,
         please see our <a href="install"> install guide</a>, and for a practical introduction to
-        NSL, check out our <a href="tutorials/framework#step-by-step_tutorials">tutorials.</a></p>
+        NSL, check out our <a href="framework#step-by-step_tutorials">tutorials.</a></p>
     - code_block: |
         <pre class = "prettyprint">
         import tensorflow as tf

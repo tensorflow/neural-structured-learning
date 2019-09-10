@@ -14,7 +14,7 @@ upper_tabs:
     - name: Guide & Tutorials
       contents:
       - title: Framework
-        path: /neural_structured_learning/tutorials/framework
+        path: /neural_structured_learning/framework
       - title: Install
         path: /neural_structured_learning/install
       - heading: Neural graph learning tutorials
