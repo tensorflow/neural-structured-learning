@@ -44,13 +44,29 @@ On macOS:
 
 Note: To exit the virtual environment, run `deactivate`.
 
-#### 3. Install the Neural Structured Learning `pip` package.
+#### 3. Install TensorFlow
+
+Neural Structured Learning requires TensorFlow 1.15 or higher.
+
+CPU support:
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow>=1.15.0rc0</code>
+</pre>
+
+GPU support:
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow-gpu>=1.15.0rc0</code>
+</pre>
+
+#### 4. Install the Neural Structured Learning `pip` package.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">pip install --upgrade neural_structured_learning</code>
 </pre>
 
-#### 4. (Optional) Test Neural Structured Learning.
+#### 5. (Optional) Test Neural Structured Learning.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl"</code>
@@ -60,7 +76,7 @@ Success: Neural Structured Learning is now installed.
 
 ## Build the Neural Structured Learning pip package
 
-### 1. Install the Python development environment.
+#### 1. Install the Python development environment.
 
 On Ubuntu:
 
@@ -80,18 +96,18 @@ On macOS:
 <code class="devsite-terminal">sudo pip3 install --upgrade virtualenv  # system-wide install</code>
 </pre>
 
-### 2. Install Bazel.
+#### 2. Install Bazel.
 
 [Install Bazel](https://docs.bazel.build/versions/master/install.html), the
 build tool used to compile Neural Structured Learning.
 
-### 3. Clone the Neural Structured Learning repository.
+#### 3. Clone the Neural Structured Learning repository.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal">git clone https://github.com/tensorflow/neural-structured-learning.git</code>
 </pre>
 
-### 4. Create a virtual environment.
+#### 4. Create a virtual environment.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal">virtualenv --python python3 "./venv"</code>
@@ -101,32 +117,48 @@ build tool used to compile Neural Structured Learning.
 
 Note: To exit the virtual environment, run `deactivate`.
 
-### 5. Install Neural Structured Learning dependencies.
+#### 5. Install Tensorflow
+
+Neural Structured Learning requires TensorFlow 1.15 or higher.
+
+CPU support:
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow>=1.15.0rc0</code>
+</pre>
+
+GPU support:
+
+<pre class="prettyprint lang-bsh">
+<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow-gpu>=1.15.0rc0</code>
+</pre>
+
+#### 6. Install Neural Structured Learning dependencies.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal">cd neural-structured-learning</code>
 <code class="devsite-terminal tfo-terminal-venv">pip install --requirement neural_structured_learning/requirements.txt</code>
 </pre>
 
-### 6. (Optional) Unit Test Neural Structured Learning.
+#### 7. (Optional) Unit Test Neural Structured Learning.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">bazel test //neural_structured_learning/...</code>
 </pre>
 
-### 7. Build the pip package.
+#### 8. Build the pip package.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">python setup.py bdist_wheel --universal --dist-dir="./wheel"</code>
 </pre>
 
-### 8. Install the pip package.
+#### 9. Install the pip package.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">pip install --upgrade ./wheel/neural_structured_learning*.whl</code>
 </pre>
 
-### 9. Test Neural Structured Learning.
+#### 10. Test Neural Structured Learning.
 
 <pre class="prettyprint lang-bsh">
 <code class="devsite-terminal tfo-terminal-venv">python -c "import neural_structured_learning as nsl"</code>
