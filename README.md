@@ -36,11 +36,16 @@ to NSL.
 
 ## Getting started
 
-Install the prebuilt pip package using
+You can install the prebuilt NSL pip package by running:
 
 ```bash
 pip install neural-structured-learning
 ```
+
+For more detailed instructions on how to install NSL as a package or to build it
+from source in various environments, please see the [installation guide](g3doc/install.md)
+
+Note that NSL requires a TensorFlow version of 1.15 or higher.
 
 ## Contributing to NSL
 

@@ -12,6 +12,8 @@ Learning (NSL) in TensorFlow:
 *   If you have a unique machine configuration,
     [build NSL](#build-the-neural-structured-learning-pip-package) from source.
 
+Note: NSL requires a TensorFlow version of 1.15 or higher.
+
 ## Install Neural Structured Learning using pip
 
 #### 1. Install the Python development environment.
@@ -45,8 +47,6 @@ On macOS:
 Note: To exit the virtual environment, run `deactivate`.
 
 #### 3. Install TensorFlow
-
-Neural Structured Learning requires TensorFlow 1.15 or higher.
 
 CPU support:
 
