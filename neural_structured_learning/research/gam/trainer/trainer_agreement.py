@@ -241,7 +241,7 @@ class TrainerAgreement(Trainer):
 
     # Put together the subset of variables to save and restore from the best
     # validation accuracy as we train the agreement model in one cotrain round.
-    vars_to_save = [iter_agr_total] + self.trainable_vars
+    vars_to_save = self.trainable_vars + []
     if isinstance(weight_decay_var, tf.Variable):
       vars_to_save.append(weight_decay_var)
     self.saver = tf.train.Saver(vars_to_save)
