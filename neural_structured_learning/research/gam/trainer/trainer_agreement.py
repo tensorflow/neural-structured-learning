@@ -239,12 +239,20 @@ class TrainerAgreement(Trainer):
     # Create a saver for the model trainable variables.
     self.trainable_vars = [v for _, v in grads_and_vars]
 
+    # Put together the subset of variables to save and restore from the best
+    # validation accuracy as we train the agreement model in one cotrain round.
+    vars_to_save = [iter_agr_total] + self.trainable_vars
+    if isinstance(weight_decay_var, tf.Variable):
+      vars_to_save.append(weight_decay_var)
+    self.saver = tf.train.Saver(vars_to_save)
+
     # Put together all variables that need to be saved in case the process is
     # interrupted and needs to be restarted.
-    self.vars_to_save = [iter_agr_total] + [v for v in self.trainable_vars]
+    self.vars_to_save = [iter_agr_total]
     if isinstance(weight_decay_var, tf.Variable):
       self.vars_to_save.append(weight_decay_var)
-    self.saver = tf.train.Saver(self.vars_to_save)
+    if self.warm_start:
+      self.vars_to_save += self.trainable_vars
 
     # More variables to be initialized after the session is created.
     self.is_initialized = False

@@ -276,7 +276,13 @@ class TrainerClassification(Trainer):
 
     # Create a saver for model variables.
     trainable_vars = [v for _, v in grads_and_vars]
-    saver = tf.train.Saver(trainable_vars)
+
+    # Put together the subset of variables to save and restore from the best
+    # validation accuracy as we train the agreement model in one cotrain round.
+    vars_to_save = trainable_vars
+    if isinstance(weight_decay_var, tf.Variable):
+      vars_to_save.append(weight_decay_var)
+    saver = tf.train.Saver(vars_to_save)
 
     # Put together all variables that need to be saved in case the process is
     # interrupted and needs to be restarted.
