@@ -162,7 +162,7 @@ class TrainerAgreement(Trainer):
     self.weight_decay_schedule = weight_decay_schedule
     self.num_pairs_eval_random = num_pairs_eval_random
     self.agree_by_default = agree_by_default
-    self.percent_val = percent_val
+    self.ratio_val = percent_val
     self.max_num_samples_val = max_num_samples_val
     self.original_var_scope = None
     self.lr_initial = lr_initial
@@ -237,19 +237,18 @@ class TrainerAgreement(Trainer):
       self.summary_op = tf.summary.merge(summaries)
 
     # Create a saver for the model trainable variables.
-    trainable_vars = [v for _, v in grads_and_vars]
-    saver = tf.train.Saver(trainable_vars)
+    self.trainable_vars = [v for _, v in grads_and_vars]
 
     # Put together all variables that need to be saved in case the process is
     # interrupted and needs to be restarted.
-    self.vars_to_save = [weight_decay_var, iter_agr_total]
-    if self.warm_start:
-      self.vars_to_save.extend([v for v in variables])
+    self.vars_to_save = [iter_agr_total] + [v for v in self.trainable_vars]
+    if isinstance(weight_decay_var, tf.Variable):
+      self.vars_to_save.append(weight_decay_var)
+    self.saver = tf.train.Saver(self.vars_to_save)
 
     # More variables to be initialized after the session is created.
     self.is_initialized = False
 
-    self.trainable_vars = trainable_vars
     self.rng = np.random.RandomState(seed)
     self.src_features = src_features
     self.tgt_features = tgt_features
@@ -265,7 +264,6 @@ class TrainerAgreement(Trainer):
     self.accuracy = accuracy
     self.train_op = train_op
     self.loss_op = loss_op
-    self.saver = saver
     self.batch_size_actual = tf.shape(self.predictions)[0]
     self.reset_optimizer = tf.variables_initializer(self.optimizer.variables())
     self.is_train = is_train
@@ -434,40 +432,65 @@ class TrainerAgreement(Trainer):
                          (pair[1], pair[0]) for pair in neighbors_val])
     neighbors_batch = np.empty(shape=(self.batch_size, 2), dtype=np.int32)
     agreement_batch = np.empty(shape=(self.batch_size,), dtype=np.float32)
+    # TODO: remove this. Temporary while fixing something.
     # For sampling random pairs of samples very fast, we create two buffers,
     # one containing elements for the left side of the pair, the other for the
     # right side, and we go through them in parallel.
-    buffer_left = np.copy(labeled_samples)
-    buffer_right = np.copy(labeled_samples)
-    idx_buffer = np.inf
-    num_labeled = len(labeled_samples)
+    # buffer_left = np.copy(labeled_samples)
+    # buffer_right = np.copy(labeled_samples)
+    # idx_buffer = np.inf
+    # num_labeled = len(labeled_samples)
+    # while True:
+    #   num_added = 0
+    #   while num_added < self.batch_size:
+    #     if idx_buffer >= num_labeled:
+    #       idx_buffer = 0
+    #       self.rng.shuffle(buffer_left)
+    #       self.rng.shuffle(buffer_right)
+    #     pair = (buffer_left[idx_buffer], buffer_right[idx_buffer])
+    #     idx_buffer += 1
+    #     if pair[0] == pair[1]:
+    #       continue
+    #     ordered_pair = ((pair[0], pair[1]) if pair[0] < pair[1] else
+    #                     (pair[1], pair[0]))
+    #     if ordered_pair in neighbors_val:
+    #       continue
+    #     agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
+    #     if ratio_pos_to_neg is not None:
+    #       # To keep the positive and negatives balanced, do rejection sampling
+    #       # according to their ratio.
+    #       if ratio_pos_to_neg < 1 and not agreement:
+    #         # Reject a negative sample with some probability.
+    #         random_number = self.rng.rand(1)[0]
+    #         if random_number > ratio_pos_to_neg:
+    #           continue
+    #       elif ratio_pos_to_neg > 1 and agreement:
+    #         # Reject a positive sample with some probability.
+    #         random_number = self.rng.random()
+    #         if random_number > 1.0 / ratio_pos_to_neg:
+    #           continue
+    #     neighbors_batch[num_added][0] = pair[0]
+    #     neighbors_batch[num_added][1] = pair[1]
+    #     agreement_batch[num_added] = agreement
+    #     num_added += 1
+    #   yield neighbors_batch, agreement_batch
     while True:
       num_added = 0
       while num_added < self.batch_size:
-        if idx_buffer >= num_labeled:
-          idx_buffer = 0
-          self.rng.shuffle(buffer_left)
-          self.rng.shuffle(buffer_right)
-        pair = (buffer_left[idx_buffer], buffer_right[idx_buffer])
-        idx_buffer += 1
-        if pair[0] == pair[1]:
-          continue
-        ordered_pair = ((pair[0], pair[1]) if pair[0] < pair[1] else
-                        (pair[1], pair[0]))
+        pair = self.rng.choice(labeled_samples, 2)
+        ordered_pair = (pair[0], pair[1]) if pair[0] < pair[1] else \
+                       (pair[1], pair[0])
         if ordered_pair in neighbors_val:
           continue
         agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
         if ratio_pos_to_neg is not None:
-          # To keep the positive and negatives balanced, do rejection sampling
-          # according to their ratio.
+          # Keep positives and negatives balanced.
           if ratio_pos_to_neg < 1 and not agreement:
-            # Reject a negative sample with some probability.
             random_number = self.rng.rand(1)[0]
             if random_number > ratio_pos_to_neg:
               continue
           elif ratio_pos_to_neg > 1 and agreement:
-            # Reject a positive sample with some probability.
-            random_number = self.rng.random()
+            random_number = self.rng.rand(1)[0]
             if random_number > 1.0 / ratio_pos_to_neg:
               continue
         neighbors_batch[num_added][0] = pair[0]
@@ -475,6 +498,7 @@ class TrainerAgreement(Trainer):
         agreement_batch[num_added] = agreement
         num_added += 1
       yield neighbors_batch, agreement_batch
+
 
   def _select_val_set(self, labeled_samples, num_samples, data,
                       ratio_pos_to_neg=None):
@@ -559,7 +583,7 @@ class TrainerAgreement(Trainer):
     labeled_samples = data.get_indices_train()
     num_labeled_samples = len(labeled_samples)
     num_samples_train = num_labeled_samples * num_labeled_samples
-    num_samples_val = min(int(num_samples_train * self.percent_val),
+    num_samples_val = min(int(num_samples_train * self.ratio_val),
                           self.max_num_samples_val)
 
     if num_samples_train == 0:
@@ -601,10 +625,9 @@ class TrainerAgreement(Trainer):
       feed_dict = self._construct_feed_dict(data_iterator_train, is_train=True)
 
       if self.enable_summaries and step % self.summary_step == 0:
-        loss_val, summary, _ = session.run(
-            [self.loss_op, self.summary_op, self.train_op],
+        loss_val, summary, iter_total, _ = session.run(
+            [self.loss_op, self.summary_op, self.iter_agr_total, self.train_op],
             feed_dict=feed_dict)
-        iter_total = session.run(self.iter_agr_total)
         summary_writer.add_summary(summary, iter_total)
         summary_writer.flush()
       else:
@@ -630,13 +653,15 @@ class TrainerAgreement(Trainer):
         feed_dict_val = self._construct_feed_dict(
             data_iterator_val, is_train=False)
         cummulative_val_acc = 0.0
+        samples_seen = 0
         while feed_dict_val is not None:
           val_acc, batch_size_actual = session.run(
               (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
           cummulative_val_acc += val_acc * batch_size_actual
+          samples_seen += batch_size_actual
           feed_dict_val = self._construct_feed_dict(
               data_iterator_val, is_train=False)
-        cummulative_val_acc /= num_samples_val
+        cummulative_val_acc /= samples_seen
 
         # Evaluate over a random choice of sample pairs, either labeled or not.
         acc_random = self._eval_random_pairs(data, session)
@@ -698,8 +723,7 @@ class TrainerAgreement(Trainer):
 
     return best_val_acc
 
-  def predict(self, session, src_features, tgt_features, src_indices,
-              tgt_indices):
+  def predict(self, session, src_features, tgt_features, **unused_kwargs):
     """Predict agreement for the provided pairs of samples.
 
     Note that here we don't need to use the src_indices and tgt_indices, but

@@ -185,6 +185,9 @@ class TrainerCotraining(Trainer):
     num_neighbors_pred_by_agr: An integer representing the number of neighbors
       to use when predicting by agreement. Note that this needs to be at least
       as much as the number of classes.
+    load_from_checkpoint: A boolean specifying whethe the trained models are
+      loaded from checkpoint, if one is available. If False, the models are
+      always trained from scratch.
   """
 
   def __init__(self,
@@ -246,7 +249,8 @@ class TrainerCotraining(Trainer):
                lr_decay_rate_cls=None,
                lr_decay_steps_cls=None,
                lr_decay_rate_agr=None,
-               lr_decay_steps_agr=None):
+               lr_decay_steps_agr=None,
+               load_from_checkpoint=False):
     assert not enable_summaries or (enable_summaries and
                                     summary_dir is not None)
     assert checkpoints_step is None or (checkpoints_step is not None and
@@ -312,6 +316,7 @@ class TrainerCotraining(Trainer):
     self.lr_decay_steps_cls = lr_decay_steps_cls
     self.lr_decay_rate_agr = lr_decay_rate_agr
     self.lr_decay_steps_agr = lr_decay_steps_agr
+    self.load_from_checkpoint = load_from_checkpoint
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -405,7 +410,7 @@ class TrainerCotraining(Trainer):
         keep_label_proportions=self.keep_label_proportions,
         inductive=self.inductive)
 
-    if os.path.exists(self.data_dir):
+    if os.path.exists(self.data_dir) and self.load_from_checkpoint:
       # If this session is restored from a previous run, then we load the
       # self-labeled data from the last checkpoint.
       logging.info('Number of labeled samples before restoring: %d',
