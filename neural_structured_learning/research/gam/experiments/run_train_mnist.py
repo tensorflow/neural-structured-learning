@@ -433,6 +433,7 @@ def main(argv):
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
   model_name += '-inductive' if FLAGS.inductive else ''
   model_name += '-L2Loss' if FLAGS.use_l2_cls else '-CELoss'
+  model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
   logging.info('Model name: %s', model_name)
 
