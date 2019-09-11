@@ -279,8 +279,9 @@ flags.DEFINE_string(
     'Which optimizer to use. Valid options are `adam`, `amsgrad`.')
 flags.DEFINE_bool(
   'load_from_checkpoint', False,
-  'Whether to load the data that has been self-labeled from a previous run, if '
-  'available. This is useful if a process can get preempted or interrupted.')
+  'Whether to load the trained model and the data that has been self-labeled '
+  'from a previous run, if available. This is useful if a process can get '
+  'preempted or interrupted.')
 
 
 def parse_layers_string(layers_string):

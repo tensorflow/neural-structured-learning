@@ -536,7 +536,8 @@ class TrainerCotraining(Trainer):
     if self.checkpoints_dir:
       checkpts_path_cotrain = os.path.join(self.checkpoints_dir, 'cotrain.ckpt')
       if os.path.exists(checkpts_path_cotrain):
-        saver.restore(session, checkpts_path_cotrain)
+        if self.load_from_checkpoint:
+          saver.restore(session, checkpts_path_cotrain)
       else:
         os.makedirs(checkpts_path_cotrain)
     else:
