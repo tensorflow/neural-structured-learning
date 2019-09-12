@@ -423,10 +423,6 @@ class TrainerCotraining(Trainer):
     # Build graph.
     logging.info('Building graph...')
 
-    # Create the parts that are common to the classification and agreement
-    # model.
-    is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
-
     # Create a iteration counter.
     iter_cotrain, iter_cotrain_update = self._create_counter()
 
@@ -437,7 +433,6 @@ class TrainerCotraining(Trainer):
       with tf.variable_scope('AgreementModel'):
         trainer_agr = TrainerAgreement(
             model=self.model_agr,
-            is_train=is_train,
             data=data,
             optimizer=self.optimizer,
             gradient_clip=self.gradient_clip,
@@ -474,7 +469,6 @@ class TrainerCotraining(Trainer):
       with tf.variable_scope('ClassificationModel'):
         trainer_cls = TrainerClassification(
             model=self.model_cls,
-            is_train=is_train,
             data=data,
             trainer_agr=trainer_agr,
             optimizer=self.optimizer,

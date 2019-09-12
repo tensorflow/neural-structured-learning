@@ -107,7 +107,6 @@ class TrainerClassification(Trainer):
 
   def __init__(self,
                model,
-               is_train,
                data,
                trainer_agr,
                optimizer,
@@ -187,6 +186,8 @@ class TrainerClassification(Trainer):
     input_labels = tf.placeholder(tf.int64, shape=(None,), name='input_labels')
     one_hot_labels = tf.one_hot(input_labels, data.num_classes,
                                 name='input_labels_one_hot')
+    # Create a placeholder specifying if this is train time.
+    is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
 
     # Create variables and predictions.
     with tf.variable_scope('predictions'):
