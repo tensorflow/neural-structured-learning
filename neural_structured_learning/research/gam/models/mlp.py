@@ -73,24 +73,23 @@ class MLP(Model):
       dictionary of regularization parameters.
     """
     reg_params = {}
-    with tf.variable_scope('hidden'):
-      # Reshape inputs in case they are not of shape (batch_size, features).
-      num_features = np.prod(inputs.shape[1:])
-      inputs = tf.reshape(inputs, [-1, num_features])
-      hidden = inputs
-      for layer_index, output_size in enumerate(self.hidden_sizes):
-        input_size = hidden.get_shape().dims[-1].value
-        weights_name = 'W_' + str(layer_index)
-        weights = tf.get_variable(
-            name=weights_name,
-            initializer=glorot((input_size, output_size)),
-            use_resource=True)
-        reg_params[weights_name] = weights
-        biases = tf.get_variable(
-            'b_' + str(layer_index),
-            initializer=tf.zeros([output_size], dtype=tf.float32),
-            use_resource=True)
-        hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
+    # Reshape inputs in case they are not of shape (batch_size, features).
+    num_features = np.prod(inputs.shape[1:])
+    inputs = tf.reshape(inputs, [-1, num_features])
+    hidden = inputs
+    for layer_index, output_size in enumerate(self.hidden_sizes):
+      input_size = hidden.get_shape().dims[-1].value
+      weights_name = 'W_' + str(layer_index)
+      weights = tf.get_variable(
+          name=weights_name,
+          initializer=glorot((input_size, output_size)),
+          use_resource=True)
+      reg_params[weights_name] = weights
+      biases = tf.get_variable(
+          'b_' + str(layer_index),
+          initializer=tf.zeros([output_size], dtype=tf.float32),
+          use_resource=True)
+      hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
     return hidden, reg_params
 
   def get_encoding_and_params(self, inputs, is_train, **kwargs):
@@ -115,7 +114,7 @@ class MLP(Model):
         parameters which will be used for regularization.
     """
     # Build layers.
-    with tf.variable_scope(self.name + '/encoding'):
+    with tf.variable_scope(self.name):
       if isinstance(inputs, (tuple, list)):
         with tf.variable_scope('encoding'):
           hidden1, reg_params = self._construct_layers(inputs[0])
@@ -217,7 +216,7 @@ class MLP(Model):
       loss: The cummulated loss value.
     """
     reg_params = reg_params if reg_params is not None else {}
-    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else 0.0
+    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else None
 
     with tf.name_scope(name_scope):
       # Cross entropy error.
@@ -228,8 +227,9 @@ class MLP(Model):
       else:
         loss = tf.losses.softmax_cross_entropy(targets, predictions)
       # Weight decay loss.
-      for var in reg_params.values():
-        loss += weight_decay * tf.nn.l2_loss(var)
+      if weight_decay is not None:
+        for var in reg_params.values():
+          loss += weight_decay * tf.nn.l2_loss(var)
     return loss
 
   def normalize_predictions(self, predictions):

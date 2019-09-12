@@ -104,7 +104,7 @@ class ImageCNNAgreement(Model):
           initializer=tf.constant_initializer(0.0),
           dtype=tf.float32)
       pre_activation = tf.nn.bias_add(conv, biases)
-      conv1 = tf.nn.leaky_relu(pre_activation, name=scope.name)
+      conv1 = tf.nn.relu(pre_activation, name=scope.name)
 
     # Max pooling 1.
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
@@ -127,7 +127,7 @@ class ImageCNNAgreement(Model):
           initializer=tf.constant_initializer(0.1),
           dtype=tf.float32)
       pre_activation = tf.nn.bias_add(conv, biases)
-      conv2 = tf.nn.leaky_relu(pre_activation, name=scope.name)
+      conv2 = tf.nn.relu(pre_activation, name=scope.name)
 
     # Local Response Normalization 2.
     norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
@@ -196,21 +196,20 @@ class ImageCNNAgreement(Model):
         parameters which will be used for regularization.
     """
     # Build layers.
-    scope = self.name + '/encoding'
-    with tf.variable_scope(scope):
+    with tf.variable_scope(self.name):
       if isinstance(inputs, (list, tuple)):
         # If we have multiple inputs (e.g., in the case of the agreement model),
         # split into left and right inputs, compute the hidden representation of
         # each branch, then aggregate.
         left = inputs[0]
         right = inputs[1]
-        with tf.variable_scope('hidden'):
+        with tf.variable_scope('encoding'):
           hidden1, reg_params = self._construct_layers(left)
-        with tf.variable_scope('hidden', reuse=True):
+        with tf.variable_scope('encoding', reuse=True):
           hidden2, _ = self._construct_layers(right)
         hidden = self._aggregate((hidden1, hidden2))
       else:
-        with tf.variable_scope('hidden'):
+        with tf.variable_scope('encoding'):
           hidden, reg_params = self._construct_layers(inputs)
 
       # Store model variables for easy access.
@@ -255,8 +254,9 @@ class ImageCNNAgreement(Model):
       weights = tf.get_variable(
         'W_outputs',
         shape=(input_size, self.output_dim),
-        initializer=tf.truncated_normal_initializer(stddev=1.0/input_size,
-                                                    dtype=tf.float32),
+        initializer=tf.truncated_normal_initializer(
+            stddev=1.0/float(input_size),
+            dtype=tf.float32),
         use_resource=True)
       biases = tf.get_variable(
         'b_outputs',
@@ -308,7 +308,7 @@ class ImageCNNAgreement(Model):
       loss: The cummulated loss value.
     """
     reg_params = reg_params if reg_params is not None else {}
-    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else None
+    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else 0.004
 
     with tf.name_scope(name_scope):
       # Cross entropy error.
