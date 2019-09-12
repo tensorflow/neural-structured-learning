@@ -392,6 +392,20 @@ class AdversarialRegularization(keras.Model):
   # The model minimizes (mean_squared_error + 0.2 * adversarial_regularization).
   adv_model.fit(x={'input': x_train, 'label': y_train}, batch_size=32)
   ```
+
+  It is recommended to use `tf.data.Dataset` to handle the dictionary format
+  requirement of the input, especially when using the `validation_data` argument
+  in `fit()`.
+
+  ```python
+  train_data = tf.data.Dataset.from_tensor_slices(
+      {'input': x_train, 'label': y_train}).batch(batch_size)
+  val_data = tf.data.Dataset.from_tensor_slices(
+      {'input': x_val, 'label': y_val}).batch(batch_size)
+  val_steps = x_val.shape[0] / batch_size
+  adv_model.fit(train_data, validation_data=val_data,
+                validation_steps=val_steps, epochs=2, verbose=1)
+  ```
   """
 
   def __init__(self,
