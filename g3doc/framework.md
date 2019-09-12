@@ -15,7 +15,7 @@ Convolutional NNs and Recurrent NNs).
 
 Note that the generalized neighbor loss equation is flexible and can have other
 forms besides the one illustrated above. For example, we can also select
-\\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j)\\) to be the
+\\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j))\\) to be the
 neighbor loss, which calculates the distance between the ground truth \\(y_i\\)
 and the prediction from the neighbor \\(g_\theta(x_j)\\). This is commonly used
 in adversarial learning
