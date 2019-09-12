@@ -5,7 +5,6 @@ from neural_structured_learning.lib.adversarial_neighbor import gen_adv_neighbor
 from neural_structured_learning.lib.distances import jensen_shannon_divergence
 from neural_structured_learning.lib.distances import kl_divergence
 from neural_structured_learning.lib.distances import pairwise_distance_wrapper
-from neural_structured_learning.lib.multimodal_lib import bimodal_integration
 from neural_structured_learning.lib.regularizer import adv_regularizer
 from neural_structured_learning.lib.regularizer import virtual_adv_regularizer
 from neural_structured_learning.lib.utils import apply_feature_mask
@@ -19,7 +18,6 @@ from neural_structured_learning.lib.utils import unpack_neighbor_features
 __all__ = [
     'adv_regularizer',
     'apply_feature_mask',
-    'bimodal_integration',
     'decay_over_time',
     'GenNeighbor',
     'gen_adv_neighbor',

@@ -32,7 +32,6 @@ py_library(
         ":abstract_gen_neighbor",
         ":adversarial_neighbor",
         ":distances",
-        ":multimodal_lib",
         ":regularizer",
         ":utils",
     ],
@@ -100,32 +99,6 @@ py_test(
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow
-    ],
-)
-
-py_library(
-    name = "multimodal_lib",
-    srcs = [
-        "multimodal_lib.py",
-    ],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//neural_structured_learning/configs",
-        # package tensorflow
-    ],
-)
-
-py_test(
-    name = "multimodal_lib_test",
-    srcs = [
-        "multimodal_lib_test.py",
-    ],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":multimodal_lib",
-        "//neural_structured_learning/configs",
-        # package tensorflow
-        # package tensorflow framework_test_lib,
     ],
 )
 
