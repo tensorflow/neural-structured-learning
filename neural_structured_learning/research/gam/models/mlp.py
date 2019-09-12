@@ -74,7 +74,6 @@ class MLP(Model):
     """
     reg_params = {}
     with tf.variable_scope('hidden'):
-      inputs = self._aggregate(inputs)
       # Reshape inputs in case they are not of shape (batch_size, features).
       num_features = np.prod(inputs.shape[1:])
       inputs = tf.reshape(inputs, [-1, num_features])
@@ -117,7 +116,15 @@ class MLP(Model):
     """
     # Build layers.
     with tf.variable_scope(self.name + '/encoding'):
-      hidden, reg_params = self._construct_layers(inputs)
+      if isinstance(inputs, (tuple, list)):
+        with tf.variable_scope('encoding'):
+          hidden1, reg_params = self._construct_layers(inputs[0])
+        with tf.variable_scope('encoding', reuse=True):
+          hidden2, _ = self._construct_layers(inputs[1])
+        hidden = self._aggregate((hidden1, hidden2))
+      else:
+        with tf.variable_scope('encoding'):
+          hidden, reg_params = self._construct_layers(inputs)
 
       # Store model variables for easy access.
       variables = tf.get_collection(
@@ -126,25 +133,6 @@ class MLP(Model):
       all_vars = {var.name: var for var in variables}
 
     return hidden, all_vars, reg_params
-
-  def _construct_prediction(self, inputs):
-    """Creates the last layer of the model and returns its predictions."""
-    with tf.variable_scope('outputs'):
-      reg_params = {}
-      input_size = inputs.get_shape().dims[-1].value
-      weights = tf.get_variable(
-          'W_outputs',
-          initializer=glorot((input_size, self.output_dim)),
-          use_resource=True)
-      reg_params['W_outputs'] = weights
-      biases = tf.get_variable(
-          'b_outputs',
-          initializer=tf.zeros([self.output_dim], dtype=tf.float32),
-          use_resource=True)
-      predictions = tf.nn.xw_plus_b(inputs, weights, biases, name='predictions')
-      if self.is_binary_classification:
-        predictions = predictions[:, 0]
-    return predictions, reg_params
 
   def get_predictions_and_params(self, encoding, is_train, **kwargs):
     """Creates the model prediction op.
@@ -170,9 +158,24 @@ class MLP(Model):
       reg_params: A dictionary mapping from a variable name to a Tensor of
         parameters which will be used for regularization.
     """
+    reg_params = {}
+
     # Build layers.
     with tf.variable_scope(self.name + '/prediction'):
-      predictions, reg_params = self._construct_prediction(encoding)
+      input_size = encoding.get_shape().dims[-1].value
+      weights = tf.get_variable(
+        'W_outputs',
+        initializer=glorot((input_size, self.output_dim)),
+        use_resource=True)
+      reg_params['W_outputs'] = weights
+      biases = tf.get_variable(
+        'b_outputs',
+        initializer=tf.zeros([self.output_dim], dtype=tf.float32),
+        use_resource=True)
+      predictions = tf.nn.xw_plus_b(encoding, weights, biases,
+                                    name='predictions')
+      if self.is_binary_classification:
+        predictions = predictions[:, 0]
 
       # Store model variables for easy access.
       variables = tf.get_collection(

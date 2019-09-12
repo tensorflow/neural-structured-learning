@@ -227,7 +227,7 @@ class TrainerAgreement(Trainer):
       variab = [elem[1] for elem in grads_and_vars]
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
-      grads_and_vars = zip(gradients, variab)
+      grads_and_vars = tuple(zip(gradients, variab))
     train_op = self.optimizer.apply_gradients(
         grads_and_vars, global_step=self.global_step)
 
