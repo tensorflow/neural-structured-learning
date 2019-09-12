@@ -194,7 +194,7 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'batch_size_cls', 512, 'Batch size for classification model.')
 flags.DEFINE_float(
-    'gradient_clip', None,
+    'gradient_clip', 10,
     'The gradient clipping global norm value. If None, no clipping is done.')
 flags.DEFINE_integer(
     'logging_step_cls', 200,
@@ -278,10 +278,10 @@ flags.DEFINE_string(
     'optimizer', 'adam',
     'Which optimizer to use. Valid options are `adam`, `amsgrad`.')
 flags.DEFINE_bool(
-  'load_from_checkpoint', False,
-  'Whether to load the trained model and the data that has been self-labeled '
-  'from a previous run, if available. This is useful if a process can get '
-  'preempted or interrupted.')
+    'load_from_checkpoint', False,
+    'Whether to load the trained model and the data that has been self-labeled '
+    'from a previous run, if available. This is useful if a process can get '
+    'preempted or interrupted.')
 
 
 def parse_layers_string(layers_string):
