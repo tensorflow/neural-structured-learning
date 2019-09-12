@@ -320,7 +320,7 @@ class ImageCNNAgreement(Model):
         loss = tf.losses.softmax_cross_entropy(targets, predictions)
 
       # Weight decay loss.
-      if weight_decay:
+      if weight_decay is not None:
         for var in reg_params.values():
           loss += weight_decay * tf.nn.l2_loss(var)
     return loss
