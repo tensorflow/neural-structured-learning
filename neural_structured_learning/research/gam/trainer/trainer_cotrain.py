@@ -505,11 +505,8 @@ class TrainerCotraining(Trainer):
 
     # Create a saver which saves only the variables that we would need to
     # restore in case the training process is restarted.
-    vars_to_save = [iter_cotrain]
-    if self.warm_start_agr:
-      vars_to_save.extend(trainer_agr.vars_to_save)
-    if self.warm_start_cls:
-      vars_to_save.extend(trainer_cls.vars_to_save)
+    vars_to_save = [iter_cotrain] + trainer_agr.vars_to_save + \
+                   trainer_cls.vars_to_save
     saver = tf.train.Saver(vars_to_save)
 
     # Create a TensorFlow session. We allow soft placement in order to place

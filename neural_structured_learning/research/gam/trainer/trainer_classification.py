@@ -287,7 +287,9 @@ class TrainerClassification(Trainer):
 
     # Put together all variables that need to be saved in case the process is
     # interrupted and needs to be restarted.
-    self.vars_to_save = [weight_decay_var, iter_cls_total, self.global_step]
+    self.vars_to_save = [iter_cls_total, self.global_step]
+    if isinstance(weight_decay_var, tf.Variable):
+      self.vars_to_save.append(weight_decay_var)
     if self.warm_start:
       self.vars_to_save.extend([v for v in variables])
 

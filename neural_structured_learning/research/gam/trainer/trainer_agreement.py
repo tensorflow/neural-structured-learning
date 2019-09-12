@@ -622,10 +622,10 @@ class TrainerAgreement(Trainer):
     # data_iterator_train = self._train_iterator(
     #     labeled_samples, neighbors_val, data, ratio_pos_to_neg=ratio_pos_to_neg)
 
-    labeled_nodes_train, labeled_nodes_val = self._select_val_set_v2(
+    labeled_samples_train, labeled_nodes_val = self._select_val_samples(
       labeled_samples, self.ratio_val)
-    data_iterator_train = self._pair_iterator_v2(labeled_nodes_train, data,
-                                                 ratio_pos_neg=ratio_pos_to_neg)
+    data_iterator_train = self._pair_iterator(labeled_samples_train, data,
+                                              ratio_pos_neg=ratio_pos_to_neg)
 
     # Start training.
     best_val_acc = -1
@@ -667,7 +667,7 @@ class TrainerAgreement(Trainer):
         #     shuffle=False,
         #     allow_smaller_batch=True,
         #     repeat=False)
-        data_iterator_val = self._pair_iterator_v2(labeled_nodes_val, data)
+        data_iterator_val = self._pair_iterator(labeled_nodes_val, data)
         feed_dict_val = self._construct_feed_dict(
             data_iterator_val, is_train=False)
         cummulative_val_acc = 0.0
@@ -883,7 +883,7 @@ class TrainerAgreement(Trainer):
     logging.info('Majority vote accuracy: %.2f.', acc)
     return acc
 
-  def _pair_iterator_v2(self, labeled_nodes, data, ratio_pos_neg=None):
+  def _pair_iterator(self, labeled_nodes, data, ratio_pos_neg=None):
     # TODO: add documentation and rename neighbors to samples.
     neighbors_batch = np.empty(shape=(self.batch_size, 2), dtype=np.int32)
     agreement_batch = np.empty(shape=(self.batch_size,), dtype=np.float32)
@@ -908,14 +908,14 @@ class TrainerAgreement(Trainer):
         num_added += 1
       yield neighbors_batch, agreement_batch
 
-  def _select_val_set_v2(self, labeled_nodes, percent_val):
-    # TODO: rename and add documentation.
-    num_labeled_nodes = labeled_nodes.shape[0]
-    num_labeled_nodes_val = int(num_labeled_nodes * percent_val)
-    self.rng.shuffle(labeled_nodes)
-    labeled_nodes_val = labeled_nodes[:num_labeled_nodes_val]
-    labeled_nodes_train = labeled_nodes[num_labeled_nodes_val:]
-    return labeled_nodes_train, labeled_nodes_val
+  def _select_val_samples(self, labeled_samples, ratio_val):
+    # TODO: add documentation.
+    num_labeled_samples = labeled_samples.shape[0]
+    num_labeled_samples_val = int(num_labeled_samples * ratio_val)
+    self.rng.shuffle(labeled_samples)
+    labeled_samples_val = labeled_samples[:num_labeled_samples_val]
+    labeled_samples_train = labeled_samples[num_labeled_samples_val:]
+    return labeled_samples_train, labeled_samples_val
 
 
 class TrainerPerfectAgreement(object):
