@@ -378,6 +378,58 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     self.assertEqual(history.history['mean_squared_error'],
                      history.history['mean_squared_error_2'])
 
+  def test_train_with_metric_object(self):
+    w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
+
+    inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
+    model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(
+        optimizer=keras.optimizers.SGD(lr),
+        loss='MSE',
+        metrics=[tf.keras.metrics.MeanAbsoluteError()])
+    history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    actual_metric = history.history['mean_absolute_error'][0]
+    expected_metric = np.abs(y0 - np.dot(x0, w)).mean()
+    self.assertAllClose(expected_metric, actual_metric)
+
+  def test_train_with_2_outputs(self):
+    w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
+    inputs = {
+        'feature': tf.constant(x0),
+        'label1': tf.constant(y0),
+        'label2': tf.constant(-y0)
+    }
+
+    input_layer = keras.Input(shape=(2,), name='feature')
+    layer1 = keras.layers.Dense(
+        w.shape[-1],
+        use_bias=False,
+        kernel_initializer=keras.initializers.Constant(w))
+    layer2 = keras.layers.Dense(
+        w.shape[-1],
+        use_bias=False,
+        kernel_initializer=keras.initializers.Constant(-w))
+    model = keras.Model(
+        inputs={'feature': input_layer},
+        outputs=[layer1(input_layer), layer2(input_layer)])
+
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label1', 'label2'], adv_config=adv_config)
+    adv_model.compile(
+        optimizer=keras.optimizers.SGD(lr),
+        loss='MSE',
+        metrics=[tf.keras.metrics.MeanAbsoluteError()])
+    history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    expected_metric = np.abs(y0 - np.dot(x0, w)).mean()
+    self.assertAllClose(expected_metric,
+                        history.history['mean_absolute_error_label1'][0])
+    self.assertAllClose(expected_metric,
+                        history.history['mean_absolute_error_label2'][0])
+
   def test_evaluate_binary_classification_metrics(self):
     # multi-label binary classification model
     w = np.array([[4.0, 1.0, -5.0], [-3.0, 1.0, 2.0]])

@@ -262,6 +262,32 @@ def _prepare_loss_weights(loss_weights, output_names):
                   'got {}'.format(str(loss_weights)))
 
 
+def _clone_metrics(metrics):
+  """Creates a copy of the maybe-nested metric specification.
+
+  Args:
+    metrics: A collection of metric specifications. Supports the same set of
+      formats as the `metrics` argument in `tf.keras.Model.compile`.
+
+  Returns:
+    The same format as the `metrics` argument, with all `tf.keras.metric.Metric`
+    objects replaced by their copies.
+  """
+
+  def clone(metric):
+    # A `Metric` object is stateful and can only be used in 1 model on 1 output.
+    # Cloning the object allows the same metric to be applied in both base and
+    # adversarial-regularized models, and also on multiple outputs in one model.
+    # The cloning logic is the same as the `clone_metric` function in
+    # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py
+    if not isinstance(metric, keras.metrics.Metric):
+      return metric
+    with tf.init_scope():
+      return metric.__class__.from_config(metric.get_config())
+
+  return tf.nest.map_structure(clone, metrics)
+
+
 def _prepare_metric_fns(metrics, output_names, loss_wrappers):
   """Converts `metrics` into a list of per-output list of metrics.
 
@@ -290,16 +316,16 @@ def _prepare_metric_fns(metrics, output_names, loss_wrappers):
   to_list = lambda x: x if isinstance(x, list) else [x]
 
   if isinstance(metrics, collections.Mapping):
-    # If `metrics` is a dictionary mapping output name to a list of metric fns,
-    # coverts it to a list of lists using the order in `output_names`.
+    # Converts `metrics` from a dictionary to a list of lists using the order
+    # specified in `output_names`.
     metrics = [to_list(metrics.get(name, [])) for name in output_names]
 
   if not any(isinstance(m, list) for m in metrics):
-    # If `metrics` is a list of metric fns, replicates them to be a list of
-    # lists so that all metric fns can be applied to each output.
-    metrics = [metrics for _ in output_names]
+    # Replicates `metrics` to be a list of lists if it is a plain list of
+    # metrics, so that all metrics can be applied to each output.
+    metrics = [metrics] + [_clone_metrics(metrics) for _ in output_names[1:]]
 
-  # Here `metrics` is a list of lists, each sub-list corresponds to metric fns
+  # Here `metrics` is a list of lists, and each sub-list corresponds to metrics
   # to be applied on an output.
   if len(metrics) != len(output_names):
     raise ValueError('The number of sub-lists in `metrics` should be the '
@@ -326,6 +352,7 @@ def _compute_loss_and_metrics(losses,
       outputs. Must have the same length as `labels` and `outputs`.
     metrics: List of list of (metric fn, metric name) pairs, for additional
       metrics to report for each output. Must have the same length as `outputs`.
+      If set to `None`, no additional metrics will be reported.
     labels: List of `Tensor` objects of ground truth targets. Must have the same
       length as `losses` and `outputs`.
     outputs: List of `Tensor` objects of predicted targets. Must have the same
@@ -334,17 +361,26 @@ def _compute_loss_and_metrics(losses,
 
   Returns:
     total_loss: Weighted sum of losses on all outputs.
-    metrics: List of (value, name) pairs for metric reporting.
+    metrics: List of (value, aggregation, name) tuples for metric reporting.
   """
   outputs = tf.nest.flatten(outputs)
   total_loss, output_metrics = [], []
+  if metrics is None:
+    metrics = [[]] * len(losses)
   for (label, output, loss, per_output_metrics) in zip(labels, outputs, losses,
                                                        metrics):
     loss_value = loss(label, output, sample_weights)
     total_loss.append(loss.weight * loss_value)
-    output_metrics.append((loss_value, loss.name))
+    output_metrics.append((loss_value, 'mean', loss.name))
     for metric_fn, metric_name in per_output_metrics:
-      output_metrics.append((metric_fn(label, output), metric_name))
+      value = metric_fn(label, output)
+      # Metric objects always return an aggregated result, and shouldn't be
+      # aggregated again.
+      if isinstance(metric_fn, keras.metrics.Metric):
+        aggregation = None
+      else:
+        aggregation = 'mean'
+      output_metrics.append((value, aggregation, metric_name))
   return tf.add_n(total_loss), output_metrics
 
 
@@ -451,7 +487,7 @@ class AdversarialRegularization(keras.Model):
     self.base_model.compile(
         optimizer,
         loss=self._compile_arg_loss,
-        metrics=self._compile_arg_metrics,
+        metrics=_clone_metrics(self._compile_arg_metrics),
         loss_weights=self._compile_arg_loss_weights,
         **kwargs)
 
@@ -517,6 +553,9 @@ class AdversarialRegularization(keras.Model):
       per_output_metrics = []
       for metric_fn in metric_fns:
         metric_name = self._make_metric_name(metric_fn, label_key)
+        if isinstance(metric_fn, keras.metrics.Metric):
+          # Updates the name of the Metric object to make sure it is unique.
+          metric_fn._name = metric_name  # pylint: disable=protected-access
         per_output_metrics.append((metric_fn, metric_name))
       self._labeled_metrics.append(per_output_metrics)
 
@@ -526,9 +565,10 @@ class AdversarialRegularization(keras.Model):
                    ['output_%d' % i for i in range(1, num_output + 1)])
 
   def _compute_total_loss(self, labels, outputs, sample_weights=None):
-    loss, _ = _compute_loss_and_metrics(self._labeled_losses,
-                                        self._labeled_metrics, labels, outputs,
-                                        sample_weights)
+    # `None` is passed instead of the actual metrics in order to skip computing
+    # metric values and updating metric states.
+    loss, _ = _compute_loss_and_metrics(self._labeled_losses, None, labels,
+                                        outputs, sample_weights)
     return loss
 
   def _split_inputs(self, inputs):
@@ -575,8 +615,8 @@ class AdversarialRegularization(keras.Model):
     outputs, labeled_loss, metrics, tape = self._forward_pass(
         inputs, labels, sample_weights, kwargs)
     self.add_loss(labeled_loss)
-    for value, name in metrics:
-      self.add_metric(value, aggregation='mean', name=name)
+    for value, aggregation, name in metrics:
+      self.add_metric(value, aggregation=aggregation, name=name)
 
     # Adversarial loss.
     base_model_fn = lambda inputs: self.base_model(inputs, **kwargs)
