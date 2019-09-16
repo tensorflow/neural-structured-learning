@@ -201,8 +201,8 @@ class _LossWrapper(tf.keras.losses.Loss):
     # classification tasks with index labels. In such scenario the loss
     # function can help deduce the desired metric function since they share the
     # same input `(y_true, y_pred)`.
-    # The list of such metrics is here:
-    # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/engine/training_utils.py#L1018
+    # The list of such metrics is defined in `get_metric_function()` in
+    # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/engine/training_utils.py
     if metric not in ('accuracy', 'acc', 'crossentropy', 'ce'):
       return metric
     if self._is_binary_classification_loss():
