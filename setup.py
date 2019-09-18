@@ -61,7 +61,7 @@ NSL_OVERVIEW = textwrap.dedent("""\
 
 setuptools.setup(
     name="neural-structured-learning",
-    version="1.0.0",
+    version="1.0.1",
     author="Google LLC",
     description="Neural Structured Learning is an open-source TensorFlow "
     "framework to train neural networks with structured signals",

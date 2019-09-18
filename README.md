@@ -81,6 +81,10 @@ for tracking requests and bugs. For questions, please direct them to [Stack Over
 ["nsl"](https://stackoverflow.com/questions/tagged/nsl)
 tag.
 
+## Release Notes
+
+Please see the [release notes](RELEASE.md) for detailed version updates.
+
 ## References
 
 [[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
