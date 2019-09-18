@@ -756,6 +756,7 @@ class TrainerPerfectClassification(Trainer):
 
   def __init__(self, data):
     self.data = data
+    self.vars_to_save = []
 
   def train(self, unused_data, unused_session=None, **unused_kwargs):
     logging.info('Perfect classifier, no need to train...')
