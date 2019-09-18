@@ -920,6 +920,7 @@ class TrainerPerfectAgreement(object):
   def __init__(self, data):
     self.data = data
     self.model = None
+    self.vars_to_save = []
 
     # Save the true labels in a TensorFlow variable, which is used in the
     # create_agreement_prediction function.
