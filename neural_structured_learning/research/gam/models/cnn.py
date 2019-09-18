@@ -174,7 +174,7 @@ class ImageCNNAgreement(Model):
 
     return local4, reg_params
 
-  def get_encoding_and_params(self, inputs, is_train, **kwargs):
+  def get_encoding_and_params(self, inputs, **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
     For this model, the hidden representation is the last layer
@@ -183,9 +183,7 @@ class ImageCNNAgreement(Model):
     Args:
       inputs: A tensor containing the model inputs. The first dimension is the
         batch size.
-      is_train: A placeholder representing a boolean value that specifies if
-        this model will be used for training or for test.
-      **kwargs: Other keyword arguments.
+      **unused_kwargs: Other unused keyword arguments.
 
     Returns:
       encoding: A tensor containing an encoded batch of samples. The first
@@ -256,12 +254,10 @@ class ImageCNNAgreement(Model):
         shape=(input_size, self.output_dim),
         initializer=tf.truncated_normal_initializer(
             stddev=1.0/float(input_size),
-            dtype=tf.float32),
-        use_resource=True)
+            dtype=tf.float32))
       biases = tf.get_variable(
         'b_outputs',
-        initializer=tf.zeros([self.output_dim], dtype=tf.float32),
-        use_resource=True)
+        initializer=tf.zeros([self.output_dim], dtype=tf.float32))
       predictions = tf.add(tf.matmul(encoding, weights), biases,
                            name='predictions')
 

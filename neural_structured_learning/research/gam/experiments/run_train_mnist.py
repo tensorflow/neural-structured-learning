@@ -138,7 +138,7 @@ flags.DEFINE_integer(
     'max_num_iter_agr', 100000,
     'Maximum number of iterations to train the agreement model for.')
 flags.DEFINE_integer(
-    'num_iter_after_best_val_agr', 5000,
+    'num_iter_after_best_val_agr', 2000,
     'Minimum number of iterations to train the agreement model for after '
     'the best validation accuracy is improved.')
 flags.DEFINE_integer(
@@ -194,7 +194,7 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'batch_size_cls', 512, 'Batch size for classification model.')
 flags.DEFINE_float(
-    'gradient_clip', 10,
+    'gradient_clip', None,
     'The gradient clipping global norm value. If None, no clipping is done.')
 flags.DEFINE_integer(
     'logging_step_cls', 200,
@@ -252,7 +252,7 @@ flags.DEFINE_bool(
     'penalize_neg_agr', True,
     'Whether to encourage differences when agreement is negative.')
 flags.DEFINE_bool(
-    'use_l2_cls', True,
+    'use_l2_cls', False,
     'Whether to use L2 loss for the classifier, not cross entropy.')
 flags.DEFINE_bool(
     'first_iter_original', True,
@@ -424,10 +424,10 @@ def main(argv):
   # Put together parameters to create a model name.
   model_name = FLAGS.model_cls + (('_' + FLAGS.hidden_cls)
                                   if FLAGS.model_cls == 'mlp' else '')
-  model_name += '-' + FLAGS.model_agr + (('_' + FLAGS.hidden_agr)
-                                         if FLAGS.model_agr == 'mlp' else '')
-  model_name += ('-aggr_' + FLAGS.aggregation_agr_inputs + '_' +
-                 FLAGS.hidden_aggreg)
+  model_name += '-' + FLAGS.model_agr
+  model_name += ('_' + FLAGS.hidden_agr) if FLAGS.model_agr == 'mlp' else ''
+  model_name += '-aggr_' + FLAGS.aggregation_agr_inputs
+  model_name += ('_' + FLAGS.hidden_aggreg) if FLAGS.hidden_aggreg else ''
   model_name += ('-add_%d-conf_%.2f-iter_cls_%d-iter_agr_%d-batch_cls_%d' %
                  (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
                   FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr,
@@ -436,7 +436,7 @@ def main(argv):
   model_name += '-perfectCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
-  model_name += '-inductive' if FLAGS.inductive else ''
+  model_name += '-transduct' if not FLAGS.inductive else ''
   model_name += '-L2Loss' if FLAGS.use_l2_cls else '-CELoss'
   model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix

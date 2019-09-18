@@ -92,7 +92,7 @@ class MLP(Model):
       hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
     return hidden, reg_params
 
-  def get_encoding_and_params(self, inputs, is_train, **kwargs):
+  def get_encoding_and_params(self, inputs, **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
     For this model, the hidden representation is the last layer of the MLP,
@@ -101,9 +101,7 @@ class MLP(Model):
     Args:
       inputs: A tensor containing the model inputs. The first dimension is the
         batch size.
-      is_train: A placeholder representing a boolean value that specifies if
-        this model will be used for training or for test.
-      **kwargs: Other keyword arguments.
+      **unused_kwargs: Other unused keyword arguments.
 
     Returns:
       encoding: A tensor containing an encoded batch of samples. The first

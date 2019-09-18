@@ -754,10 +754,6 @@ class TrainerAgreement(Trainer):
         features of the first element of the pair.
       tgt_features: An array of shape (num_samples, num_features) containing the
         features of the second element of the pair.
-      src_indices: An array of integers containing the index of each sample in
-        self.data of the samples in src_features.
-      tgt_indices: An array of integers containing the index of each sample in
-        self.data of the samples in tgt_features.
 
     Returns:
       An array containing the predicted agreement value for each pair of
