@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Classes for configuring modules in Neural Structured Learning."""
+"""Classes for configuring modules in Neural Structured Learning (NSL)."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -38,14 +38,14 @@ class AdvNeighborConfig(object):
   """Contains configuration for generating adversarial neighbors.
 
   Attributes:
-    feature_mask: mask (w/ 0-1 values) applied on gradient. The shape should be
-      the same as (or broadcastable to) input features. If set to None, no
+    feature_mask: mask (w/ 0-1 values) applied on the gradient. The shape should
+      be the same as (or broadcastable to) input features. If set to `None`, no
       feature mask will be applied.
     adv_step_size: step size to find the adversarial sample. Default set to
       0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
-      converted to `NormType` when applicable (e.g., 'l2' -> NormType.L2).
-      Default set to L2 norm.
+      converted to `nsl.configs.NormType` when applicable (e.g., `'l2'` ->
+      `NormType.L2`). Default set to L2 norm.
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
@@ -59,8 +59,8 @@ class AdvRegConfig(object):
   Attributes:
     multiplier: multiplier to adversarial regularization loss. Default set to
       0.2.
-    adv_neighbor_config: an AdvNeighborConfig object for generating adversarial
-      neighbor examples.
+    adv_neighbor_config: an `nsl.configs.AdvNeighborConfig` object for
+      generating adversarial neighbor examples.
   """
   multiplier = attr.ib(default=0.2)
   adv_neighbor_config = attr.ib(default=AdvNeighborConfig())
