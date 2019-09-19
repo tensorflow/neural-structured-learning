@@ -422,8 +422,8 @@ def main(argv):
       logging.info('Preprocessed data saved to %s.', path)
 
   # Put together parameters to create a model name.
-  model_name = FLAGS.model_cls + (('_' + FLAGS.hidden_cls)
-                                  if FLAGS.model_cls == 'mlp' else '')
+  model_name = FLAGS.model_cls
+  model_name += ('_' + FLAGS.hidden_cls) if FLAGS.model_cls == 'mlp' else ''
   model_name += '-' + FLAGS.model_agr
   model_name += ('_' + FLAGS.hidden_agr) if FLAGS.model_agr == 'mlp' else ''
   model_name += '-aggr_' + FLAGS.aggregation_agr_inputs
@@ -432,12 +432,14 @@ def main(argv):
                  (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
                   FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr,
                   FLAGS.batch_size_cls))
-  model_name += '-perfectAgr' if FLAGS.use_perfect_agreement else ''
-  model_name += '-perfectCls' if FLAGS.use_perfect_classifier else ''
+  model_name += '-LL_%s_LU_%s_UU_%s' % (str(FLAGS.reg_weight_ll),
+                str(FLAGS.reg_weight_lu), str(FLAGS.reg_weight_uu))
+  model_name += '-perfAgr' if FLAGS.use_perfect_agreement else ''
+  model_name += '-perfCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
   model_name += '-transduct' if not FLAGS.inductive else ''
-  model_name += '-L2Loss' if FLAGS.use_l2_cls else '-CELoss'
+  model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
   model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
   logging.info('Model name: %s', model_name)
