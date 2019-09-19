@@ -763,4 +763,8 @@ class TrainerPerfectClassification(Trainer):
     return 1.0, 1.0
 
   def predict(self, unused_session, indices_unlabeled):
-    return self.data.get_original_labels(indices_unlabeled)
+    labels = self.data.get_original_labels(indices_unlabeled)
+    num_samples = len(indices_unlabeled)
+    predictions = np.zeros((num_samples, self.data.num_classes))
+    predictions[np.arange(num_samples), labels] = 1.0
+    return predictions
