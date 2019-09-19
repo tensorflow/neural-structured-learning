@@ -42,15 +42,11 @@ class ImageCNNAgreement(Model):
     output_dim: Integer representing the number of classes.
     channels: Integer representing the number of channels in the input images
       (e.g., 1 for black and white, 3 for RGB).
-    aggregation: String representing an aggregation operation that could be
-      applied to the inputs. See superclass attributes for details.
-    hidden_prediction: A tuple or list of integers representing the number of
-      units in each layer of output multilayer percepron. After the inputs are
-      passed through the convolution layers (and potentially aggregated), they
-      are passed through a fully connected network with these numbers of hidden
-      units in each layer.
+    aggregation: String representing an aggregation operation, that is applied
+      on the two inputs of the agreement model, after they are encoded through
+      the convolution layers. See superclass attributes for details.
     activation: An activation function to be applied to the outputs of each
-      fully connected layer.
+      fully connected layer of the aggregation network.
     is_binary_classification: Boolean specifying if this is model for
       binary classification. If so, it uses a different loss function and
       returns predictions with a single dimension, batch size.

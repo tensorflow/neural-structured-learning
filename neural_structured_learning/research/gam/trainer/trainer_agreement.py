@@ -614,16 +614,12 @@ class TrainerAgreement(Trainer):
     # Compute ratio of positives to negative samples.
     labeled_samples_labels = data.get_labels(labeled_samples)
     ratio_pos_to_neg = self._compute_ratio_pos_neg(labeled_samples_labels)
-    # Select a validation set out of all pairs of labeled samples.
-    # TODO: remove this.
-    # neighbors_val, agreement_labels_val = self._select_val_set(
-    #     labeled_samples, num_samples_val, data, ratio_pos_to_neg)
-    # Create a train iterator that potentially excludes the validation samples.
-    # data_iterator_train = self._train_iterator(
-    #     labeled_samples, neighbors_val, data, ratio_pos_to_neg=ratio_pos_to_neg)
 
+    # Split data into train and validation.
     labeled_samples_train, labeled_nodes_val = self._select_val_samples(
       labeled_samples, self.ratio_val)
+
+    # Create an iterator over training data pairs.
     data_iterator_train = self._pair_iterator(labeled_samples_train, data,
                                               ratio_pos_neg=ratio_pos_to_neg)
 
@@ -659,14 +655,6 @@ class TrainerAgreement(Trainer):
         if num_samples_val == 0:
           logging.info('Skipping validation. No validation samples available.')
           break
-        # TODO: remove this.
-        # data_iterator_val = batch_iterator(
-        #     neighbors_val,
-        #     agreement_labels_val,
-        #     self.batch_size,
-        #     shuffle=False,
-        #     allow_smaller_batch=True,
-        #     repeat=False)
         data_iterator_val = self._pair_iterator(labeled_nodes_val, data)
         feed_dict_val = self._construct_feed_dict(
             data_iterator_val, is_train=False)
@@ -880,7 +868,28 @@ class TrainerAgreement(Trainer):
     return acc
 
   def _pair_iterator(self, labeled_nodes, data, ratio_pos_neg=None):
-    # TODO: add documentation and rename neighbors to samples.
+    """An iterator over pairs of samples for training the agreement model.
+
+    Provides batches of node pairs, including their features and the agreement
+    label (i.e. whether their labels agree).
+
+    Arguments:
+      labeled_nodes:  An array of integers representing the indices of the
+        labeled samples.
+      data: A Dataset object used to provided the labels of the labeled samples.
+      ratio_pos_neg: A float representing the ratio of positive to negative
+        samples in the training set. If this is provided, the train iterator
+        will do rejection sampling based on this ratio to keep the training
+        data balanced. If None, we sample uniformly.
+
+    Yields:
+      neighbors_batch: An array of shape (batch_size, 2), where each row
+        represents a pair of sample indices used for training. It will not
+        include pairs of samples that are in the provided neighbors_val.
+      agreement_batch: An array of shape (batch_size,) with binary values,
+        where each row represents whether the labels of the corresponding
+        neighbor pair agree (1.0) or not (0.0).
+    """
     neighbors_batch = np.empty(shape=(self.batch_size, 2), dtype=np.int32)
     agreement_batch = np.empty(shape=(self.batch_size,), dtype=np.float32)
     while True:
@@ -905,7 +914,23 @@ class TrainerAgreement(Trainer):
       yield neighbors_batch, agreement_batch
 
   def _select_val_samples(self, labeled_samples, ratio_val):
-    # TODO: add documentation.
+    """Split the labeled samples into a train and a validation set.
+
+    The agreement model is trained using pairs of labeled samples from the train
+    set, and is evaluated on pairs of labeled samples from the validation set.
+
+    Arguments:
+      labeled_samples:
+      ratio_val: A number between (0, 1) representing the ratio of all labeled
+        samples to be set aside for validation.
+
+    Returns:
+      labeled_samples_train: An array containig a subset of the provided
+        labeled_samples which will be used for training.
+      labeled_samples_val: An array containig a subset of the provided
+        labeled_samples which will be used for validation. The train and
+        validation indices are non-overlapping.
+    """
     num_labeled_samples = labeled_samples.shape[0]
     num_labeled_samples_val = int(num_labeled_samples * ratio_val)
     self.rng.shuffle(labeled_samples)
