@@ -45,7 +45,7 @@ pip install neural-structured-learning
 For more detailed instructions on how to install NSL as a package or to build it
 from source in various environments, please see the [installation guide](g3doc/install.md)
 
-Note that NSL requires a TensorFlow version of 1.15 or higher.
+Note that NSL requires a TensorFlow version of 1.15 or higher. NSL also supports TensorFlow 2.0.
 
 ## Contributing to NSL
 

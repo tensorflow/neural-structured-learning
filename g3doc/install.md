@@ -119,7 +119,7 @@ Note: To exit the virtual environment, run `deactivate`.
 
 #### 5. Install Tensorflow
 
-Neural Structured Learning requires TensorFlow 1.15 or higher.
+Note that NSL requires a TensorFlow version of 1.15 or higher. NSL also supports TensorFlow 2.0.
 
 CPU support:
 
