@@ -45,7 +45,7 @@ class AdvNeighborConfig(object):
       0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
       converted to `nsl.configs.NormType` when applicable (e.g., `'l2'` ->
-      `NormType.L2`). Default set to L2 norm.
+      `nls.configs.NormType.L2`). Default set to L2 norm.
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
@@ -112,7 +112,8 @@ class AdvTargetConfig(object):
 
   Attributes:
     target_method: type of adversarial targeting method. The value needs to be
-      one of the enums from AdvTargetType (e.g., AdvTargetType.LEAST).
+      one of the enums from `nsl.configs.AdvTargetType` (e.g.,
+      `nsl.configs.AdvTargetType.LEAST`).
     random_seed: a Python integer as seed in 'random_uniform' op.
   """
   target_method = attr.ib(default=AdvTargetType.GROUND_TRUTH)
@@ -176,16 +177,17 @@ class DecayType(enum.Enum):
 
 @attr.s
 class DecayConfig(object):
-  """Contains configuration for computing decayed value.
+  """Contains configuration for decaying a value during training.
 
   Attributes:
-    decay_steps: A scalar int32 or int64 Tensor or a Python number. How often to
-      apply decay. Must be positive.
-    decay_rate: A scalar float32 or float64 Tensor or a Python number. Default
-      set to 0.96.
-    min_value: minimal acceptable value after applying decay. Default set to 0.0
-    decay_type: Type of decay function to apply. Default set to
-      DecayType.EXPONENTIAL_DECAY.
+    decay_steps: A scalar `int32` or `int64` Tensor or a Python number that
+      specifies the decay frequency, specied in units of training steps. Must be
+      positive.
+    decay_rate: A scalar `float32` or `float64` Tensor or a Python number.
+      Defaults to 0.96.
+    min_value: minimal acceptable value after applying decay. Defaults to 0.0.
+    decay_type: Type of decay function to apply. Defaults to
+      `nsl.configs.DecayType.EXPONENTIAL_DECAY`.
   """
   decay_steps = attr.ib()
   decay_rate = attr.ib(default=0.96)
@@ -224,17 +226,18 @@ class VirtualAdvConfig(object):
   """Contains configuration for virtual adversarial training.
 
   Attributes:
-    adv_neighbor_config: an AdvNeighborConfig object for generating virtual
-      adversarial examples. Default set to AdvNeighborConfig.
-    distance_config: a DistanceConfig object for calculating virtual adversarial
-      loss. Default set to DistanceConfig.
+    adv_neighbor_config: an `nsl.configs.AdvNeighborConfig` object for
+      generating virtual adversarial examples. Defaults to
+      `nsl.configs.AdvNeighborConfig()`.
+    distance_config: a `nsl.configs.DistanceConfig` object for calculating
+      virtual adversarial loss. Defaults to `nsl.configs.DistanceConfig()`.
     num_approx_steps: number of steps used to approximate the calculation of
-      Hessian matrix required for creating virtual adversarial examples. Default
-      set to 1.
+      Hessian matrix required for creating virtual adversarial examples.
+      Defaults to 1.
     approx_difference: the finite difference to approximate the calculation of
-      Hessian matrix required for creating virtual adversarial examples. (The
-      `xi` in Equation 12 in the paper: https://arxiv.org/pdf/1704.03976.pdf)
-        Default set to 1e-6.
+      the Hessian matrix required for creating virtual adversarial examples,
+      namely, the `xi` in Equation 12 in the paper:
+      https://arxiv.org/pdf/1704.03976.pdf. Defaults to 1e-6.
   """
   adv_neighbor_config = attr.ib(default=AdvNeighborConfig())
   distance_config = attr.ib(default=DistanceConfig())
@@ -270,8 +273,9 @@ class GraphRegConfig(object):
   """Contains the configuration for graph regularization.
 
   Attributes:
-    neighbor_config: An instance of `GraphNeighborConfig` that describes
-      neighbor attributes for graph regularization.
+    neighbor_config: A `nsl.configs.GraphNeighborConfig` instance that describes
+      neighbor attributes for graph regularization. Defaults to
+      `nsl.configs.GraphNeighborConfig()`.
     multiplier: The multiplier or weight factor applied on the graph
       regularization loss term. This value has to be non-negative. Defaults to
       0.01.

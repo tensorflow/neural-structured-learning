@@ -23,25 +23,26 @@ import tensorflow as tf
 
 
 def normalize(tensor, norm_type, epsilon=1e-6):
-  """Normalizes the values in tensor with respect to the specified vector norm.
+  """Normalizes the values in `tensor` with respect to a specified vector norm.
 
-  This op takes into account the first axis being the batch dimension, and
-  calculates the norm over all other axises. For example: assuming 'tensor' =
-  tf.constant(1.0, shape=[2, 3, 4]), its L2 norm (calculated along all the dims
-  other than the first dim) will be [[sqrt(12)], [sqrt(12)]]; therefore, this
-  tensor will be normalized by dividing [[sqrt(12)], [sqrt(12)]].
+  This op assumes that the first axis of `tensor` is the batch dimension, and
+  calculates the norm over all other axes. For example, if `tensor` is
+  `tf.constant(1.0, shape=[2, 3, 4])`, its L2 norm (calculated along all the
+  dimensions other than the first dimension) will be `[[sqrt(12)], [sqrt(12)]]`.
+  Hence, this tensor will be normalized by dividing by
+  `[[sqrt(12)], [sqrt(12)]]`.
 
-  Note that tf.norm is not used here since it only allows the norm to be
+  Note that `tf.norm` is not used here since it only allows the norm to be
   calculated over one axis, not multiple axes.
 
   Args:
     tensor: a tensor to be normalized. Can have any shape with the first axis
       being the batch dimension that will not be normalized across.
-    norm_type: one of configs.NormType, the type of vector norm.
+    norm_type: one of `nsl.configs.NormType`, the type of vector norm.
     epsilon: a lower bound value for the norm to avoid division by 0.
 
   Returns:
-    A normalized tensor with the same shape and type as 'tensor'.
+    A normalized tensor with the same shape and type as `tensor`.
   """
   if isinstance(norm_type, str):  # Allows string to be converted into NormType.
     norm_type = configs.NormType(norm_type)
@@ -68,26 +69,26 @@ def normalize(tensor, norm_type, epsilon=1e-6):
 def maximize_within_unit_norm(weights, norm_type):
   """Solves the maximization problem weights^T*x with the constraint norm(x)=1.
 
-  This op solves a batch of maximization problems at one time. The first axis is
-  considered as the batch dimension, and each 'row' is treated as an independent
-  maximization problem.
+  This op solves a batch of maximization problems at one time. The first axis of
+  `weights` is assumed to be the batch dimension, and each "row" is treated as
+  an independent maximization problem.
 
   This op is mainly used to generate adversarial examples (e.g., FGSM proposed
-  by Goodfellow et al.). Specifically, the 'weights' are gradients, and 'x' is
+  by Goodfellow et al.). Specifically, the `weights` are gradients, and `x` is
   the adversarial perturbation. The desired perturbation is the one causing the
   largest loss increase. In this op, the loss increase is approximated by the
-  dot product between gradient and perturbation, as in the first-order Taylor
-  approximation of the loss function.
+  dot product between the gradient and the perturbation, as in the first-order
+  Taylor approximation of the loss function.
 
   Args:
-    weights: tensor representing a batch of weights to define maximization
+    weights: tensor representing a batch of weights to define the maximization
       objective.
-    norm_type: one of configs.NormType, the type of vector norm.
+    norm_type: one of `nsl.configs.NormType`, the type of vector norm.
 
   Returns:
-    A tensor representing a batch of adversarial perturbation as the solution to
-    the maximization problems. The returned tensor has the same shape and type
-    as 'weights'.
+    A tensor representing a batch of adversarial perturbations as the solution
+    to the maximization problems. The returned tensor has the same shape and
+    type as the input `weights`.
   """
   if isinstance(norm_type, str):  # Allows string to be converted into NormType.
     norm_type = configs.NormType(norm_type)
@@ -121,12 +122,14 @@ def get_target_indices(logits, labels, adv_target_config):
   """Selects targeting classes for adversarial attack (classification only).
 
   Args:
-    logits: tensor of shape=[batch_size, num_classes], dtype=tf.float32.
-    labels: int tensor for ground truth, shape=[batch_size].
-    adv_target_config: contains types of adversarial targeting.
+    logits: tensor of shape `[batch_size, num_classes]` and dtype=`tf.float32`.
+    labels: `int` tensor with a shape of `[batch_size]` containing the ground
+      truth labels.
+    adv_target_config: instance of `nsl.configs.AdvTargetConfig` specifying
+      the adversarial target configuration.
 
   Returns:
-    Tensor of shape [batch_size] and dtype=tf.int32 of indices of targets.
+    Tensor of shape `[batch_size]` and dtype=`tf.int32` of indices of targets.
   """
   num_classes = tf.shape(input=logits)[-1]
   if adv_target_config.target_method == configs.AdvTargetType.SECOND:
@@ -175,7 +178,7 @@ def _replicate_index(index_array, replicate_times):
 
 
 def replicate_embeddings(embeddings, replicate_times):
-  """Replicates the embeddings by `replicate_times`.
+  """Replicates the given `embeddings` by `replicate_times`.
 
   This function is useful when comparing the same instance with multiple other
   instances. For example, given a seed and its neighbors, this function can be
@@ -183,23 +186,42 @@ def replicate_embeddings(embeddings, replicate_times):
   such that the distances between the seed and its neighbors can be computed
   efficiently.
 
-  The replicate_times is either a scalar, or a 1-D tensor.
-  For example, given `embeddings = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]`,
-  and `replicate_times = 2`, the returned tensor is
-  `[[0, 1, 2], [0, 1, 2], [3, 4, 5], [3, 4, 5], [6, 7, 8], [6, 7, 8]]`.
-  When `replicate_times = [3, 0, 1]`, the returned tensor is
-  `[[0, 1, 2], [0, 1, 2], [0, 1, 2], [6, 7, 8]]`.
+  The `replicate_times` argument is either a scalar, or a 1-D tensor.
+  For example, if
+
+  ```
+  embeddings = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+  ```
+
+  then we would have the following results for different `replicate_times`
+  arguments:
+
+  ```
+  replicate_times = 2
+  result = [[0, 1, 2], [0, 1, 2], [3, 4, 5], [3, 4, 5], [6, 7, 8], [6, 7, 8]]
+  ```
+
+  and
+
+  ```
+  replicate_times = [3, 0, 1]
+  result = [[0, 1, 2], [0, 1, 2], [0, 1, 2], [6, 7, 8]]
+  ```
 
   Args:
-    embeddings: A Tensor of shape {batch size, d1, ..., dN}.
-    replicate_times: A sclar or a 1-D Tensor of shape {batch size}. Each element
-      indicates the number of times the corresponding row should be replicated.
+    embeddings: A Tensor of shape `[batch_size, d1, ..., dN]`.
+    replicate_times: An integer scalar or an integer 1-D Tensor of shape `[batch
+      size]`. Each element indicates the number of times the corresponding row
+      in `embeddings` should be replicated.
 
   Returns:
-    A Tensor of shape {sum of replicate_times, d1, ..., dN}.
+    A Tensor of shape `[N, d1, ..., dN]`, where `N` is the sum of all elements
+      in `replicate_times`.
+
   Raises:
-    InvalidArgumentError: If `replicate_times` contain any negative value.
-    TypeError: If `replicate_times` cannot be cast to the `int32`.
+    InvalidArgumentError: If any value in `replicate_times` is negative.
+    TypeError: If `replicate_times` contains any value that cannot be cast to
+      the `int32` type.
   """
   with tf.control_dependencies(
       [tf.debugging.assert_greater_equal(replicate_times, 0)]):
@@ -227,37 +249,33 @@ def _select_decay_fn(key):
 
 
 def decay_over_time(global_step, decay_config, init_value=1.0):
-  r"""Returns a decayed value of init_value over time.
+  r"""Returns a decayed value of `init_value` over time.
 
   When training a model with a regularizer, the objective function can be
   formulated as the following:
   $$objective = \lambda_1 * loss + \lambda_2 * regularization$$
 
   This function can be used for three cases:
-  (1) Incrementally diminish the importance of loss, by applying a decay
-  function to the `\lambda_1` over time.
-  (2) Incrementally increase the importance of regularization, by setting the
-  `\lambda_2` = init_value - decay_over_time(init_value).
-  (3) Combine the above two cases. Let `\lambda_1` = decay_over_time(init_value)
-  and `\lambda_2` = init_value - decay_over_time(init_value).
 
-  This function requires a global_step value to compute the decayed value.
+  1. Incrementally diminishing the importance of the loss term, by applying a
+     decay function to the $$\lambda_1$$ over time. We'll denote this by writing
+     $$\lambda_1$$ = decay_over_time(`init_value`).
+  2. Incrementally increasing the importance of the regularization term, by
+     setting $$\lambda_2$$ = `init_value` - decay_over_time(`init_value`).
+  3. Combining the above two cases, namely, setting $$\lambda_1$$ =
+     decay_over_time(`init_value`) and $$\lambda_2$$ = `init_value` -
+     decay_over_time(`init_value`).
+
+  This function requires a `global_step` value to compute the decayed value.
 
   Args:
     global_step: A scalar `int32` or `int64` Tensor or a Python number. Must be
       positive.
-    decay_config: DecayConfig contains the following configs (or
-      hyper-parameters) for computing the decay value:
-      (a) decay_type: Type of decay function to apply.
-      (b) decay_steps: A scalar int32 or int64 Tensor or a Python number. Must
-        be positive. The decay will be applied every 'decay_steps'.
-      (c) decay_rate: A scalar float32 or float64 Tensor or a Python number.
-      (d) min_value: minimal acceptable value after applying decay to
-        `init_value`.
-    init_value: A scalar Tensor to set the init value to be decayed.
+    decay_config: A `nsl.configs.DecayConfig` for computing the decay value.
+    init_value: A scalar Tensor to set the initial value to be decayed.
 
   Returns:
-    A scalar float Tensor.
+    A scalar `float` Tensor.
   """
   decayed_value = tf.cast(init_value, tf.dtypes.float32)
   decay_fn = _select_decay_fn(decay_config.decay_type)
@@ -271,16 +289,16 @@ def decay_over_time(global_step, decay_config, init_value=1.0):
 
 
 def apply_feature_mask(features, feature_mask=None):
-  """Applies a feature mask on features if the mask is not None.
+  """Applies a feature mask on `features` if the `feature_mask` is not `None`.
 
   Args:
     features: A dense tensor representing features.
-    feature_mask: A dense tensor with values in [0, 1] and a broadcastable shape
-      to 'features'. If not set, or set to None, the 'features' will be returned
-      untouched.
+    feature_mask: A dense tensor with values in `[0, 1]` and a broadcastable
+      shape to `features`. If not set, or set to `None`, the `features` are
+      returned unchanged.
 
   Returns:
-    A dense tensor has the same shape as 'features'.
+    A dense tensor having the same shape as `features`.
   """
   if feature_mask is None:
     return features
@@ -298,33 +316,34 @@ def _interleave_and_merge(tensors,
                           is_sparse=False):
   """Concatenates a list of tensors in an interleaved manner.
 
-  For example, suppose `pre_merge_static_shape` is `[B, D_1, D_2, ...D_d]`,
-  where `B` is the batch size. For sparse tensors, the interleaving is
-  obtained by first expanding the dimension of each tensor on `axis 1` and
-  then concatenating the tensors along `axis 1`. For dense tensors, the
-  interleaving is obtained by stacking tensors along `axis 1`. In both cases,
-  the resulting shape of the interleaved tensor will be
-  `[B, N, D_1, D_2, ...D_d]`. If `keep_rank` is True, the original rank and the
-  original sizes of all dimensions except for the first dimension are retained;
-  the interleaved tensor is reshaped to `[(BxN), D_1, D_2, ...D_d]`. If
-  `keep_rank` is False, then the interleaved tensor is returned as is.
+  For example, suppose `pre_merge_dynamic_shape_tensor` is `[B, D_1, D_2, ...,
+  D_d]`, where `B` is the batch size. For sparse tensors (i.e., when `is_sparse`
+  is `True`), the interleaving is obtained by first expanding the dimension of
+  each tensor on axis 1 and then concatenating the tensors along axis 1. For
+  dense tensors (i.e., when `is_sparse` is `False`), the interleaving is
+  obtained by stacking tensors along axis 1. In both cases, the resulting shape
+  of the interleaved tensor will be `[B, N, D_1, D_2, ...D_d]`, where `N` is the
+  number of entries in `tensors`. If `keep_rank` is `True`, the original rank
+  and the original sizes of all dimensions except for the first dimension are
+  retained; the interleaved tensor is reshaped to `[(BxN), D_1, D_2, ...D_d]`.
+  If `keep_rank` is `False`, then the interleaved tensor is returned as is.
 
   Args:
     tensors: List of tensors with compatible shapes. Either all of them should
       be dense or all of them should be sparse.
     pre_merge_dynamic_shape_tensor: A 1-D tensor representing the dynamic shape
       of each tensor in `tensors`.
-    keep_rank: Boolean indicating whether to retrain the rank from the input or
+    keep_rank: Boolean indicating whether to retain the rank from the input or
       to introduce a new dimension (axis 1).
     is_sparse: (optional) Boolean indicating if entries in `tensors` are sparse
       or not.
 
   Returns:
-    An interleaved concatenation of `tensors`. If `keep_rank` is True, the rank
-    is the same compared to entries in `tensors`, but the size of its first
+    An interleaved concatenation of `tensors`. If `keep_rank` is `True`, the
+    rank is the same compared to entries in `tensors`, but the size of its first
     dimension is multiplied by a factor of the number of entries in `tensors`.
-    Otherwise, `merged_tensor` will have rank one more than the rank of entries
-    in `tensors, where the size of the new dimension (axis 1) is equal to the
+    Otherwise, the result will have rank one more than the rank of `tensors`,
+    where the size of the new dimension (axis 1) is equal to the
     number of entries in `tensors`.  Note that if `tensors` is empty, then a
     value of `None` is returned.
 
@@ -353,8 +372,8 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
   """Extracts sample features, neighbor features, and neighbor weights.
 
   For example, suppose `features` contains a single sample feature named
-  'F0', the batch size is 2, and each sample has 3 neighbors, then `features`
-  would look like the following:
+  'F0', the batch size is 2, and each sample has 3 neighbors. Then `features`
+  might look like the following:
 
   ```
   features = {
@@ -367,38 +386,39 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
       'NL_nbr_2_weight': tf.constant(1.0, shape=[2, 1]),
   },
   ```
-  where `NL_nbr_<i>_F0` represents corresponding neighbor features for the
-  sample feature 'F0', and `NL_nbr_<i>_weight` represents neighbor weights. The
-  specific values for each key (tensors) in this dictionary are for
+
+  where `NL_nbr_<i>_F0` represents the corresponding neighbor features for the
+  sample feature 'F0', and `NL_nbr_<i>_weight` represents its neighbor weights.
+  The specific values for each key (tensors) in this dictionary are for
   illustrative purposes only. The first dimension of all tensors is the batch
   size.
 
   Example invocation:
 
   ```
-  neighbor_config = GraphNeighborConfig('NL_nbr_', '_weight', 3)
-  sample_features, nbr_features, nbr_weights = unpack_neighbor_features(
+  neighbor_config = nsl.configs.make_graph_reg_config(max_neighbors=3)
+  sample_features, nbr_features, nbr_weights = nsl.lib.unpack_neighbor_features(
       features, neighbor_config)
   ```
 
-  where `sample_features` is:
+  After performing these calls, we would have `sample_features` set to:
 
   ```
-  { 'F0': tf.constant(11.0, shape=[2, 2]) }
+  { 'F0': tf.constant(11.0, shape=[2, 4]) },
   ```
 
-  , `neighbor_features` is:
+  `neighbor_features` set to:
 
   ```
-  # The key in this dictionary will contain the original sample's feature name
-  # The shape of the corresponding tensor will be 6x2, which is the result of
-  # doing an interleaved merge of three 2x2 tensors along axis 0.
+  # The key in this dictionary will contain the original sample's feature name.
+  # The shape of the corresponding tensor will be 6x4, which is the result of
+  # doing an interleaved merge of three 2x4 tensors along axis 0.
   {
-    'F0': tf.constant([[22, 22], [33, 33], [44, 44], [22, 22], [33, 33],
-                      [44, 44]]),
-  }
+    'F0': tf.constant([[22, 22, 22, 22], [33, 33, 33, 33], [44, 44, 44, 44],
+                       [22, 22, 22, 22], [33, 33, 33, 33], [44, 44, 44, 44]]),
+  },
   ```
-  , and `neighbor_weights` is:
+  and `neighbor_weights` set to:
 
   ```
   # The shape of this tensor is 6x1, which is the result of doing an
@@ -418,20 +438,20 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
       tensors.
     neighbor_config: An instance of `nsl.configs.GraphNeighborConfig`.
     keep_rank: Whether to preserve the neighborhood size dimension. Defaults to
-      False.
+      `False`.
 
   Returns:
     sample_features: a dictionary mapping feature names to tensors. The shape
       of these tensors remains unchanged from the input.
-    neighbor_features: a dictionary mapping feature names to tensors where
-      these feature names are identical to corresponding feature names in
+    neighbor_features: a dictionary mapping feature names to tensors, where
+      these feature names are identical to the corresponding feature names in
       `sample_features`. Further, for each feature in this dictionary, the
       resulting tensor represents an interleaved concatenated version of all
       corresponding neighbor feature tensors that exist. So, if the original
       sample feature has a shape `[B, D_1, D_2, ...., D_d]`, then the shape of
       the returned `neighbor_features` will be `[(BxN), D_1, D_2, ..., D_d]` if
-      `keep_rank` is True, and `[B, N, D_1, D_2, ..., D_d]` if `keep_rank` is
-      False. If `num_neighbors` is 0, then an empty dictionary is returned.
+      `keep_rank` is `True`, and `[B, N, D_1, D_2, ..., D_d]` if `keep_rank` is
+      `False`. If `num_neighbors` is 0, then an empty dictionary is returned.
     neighbor_weights: a tensor containing floating point weights. If `keep_rank`
       is True, `neighbor_weights` will have shape `[(BxN), 1]`. Otherwise, it
       will have shape `[B, N, 1]` This also represents an interleaved

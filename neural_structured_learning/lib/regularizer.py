@@ -23,17 +23,17 @@ def adv_regularizer(adv_neighbors, target_scores, model_fn, loss_fn):
   """Calculates adversarial loss from generated adversarial samples.
 
   Args:
-    adv_neighbors: dense (float32) tensor, with two possible shapes: (a)
-      pointwise samples: batch_size x feat_len, or (b) sequence samples:
-        batch_size x seq_len x feat_len
+    adv_neighbors: dense `float32` tensor, with two possible shapes: (a)
+      `[batch_size, feat_len]` for pointwise samples, or (b)
+      `[batch_size, seq_len, feat_len]` for sequence samples.
     target_scores: target tensor used to compute loss.
-    model_fn: a method that has input tensor (same shape as adv_neighbors),
-      is_train and reuse as input, returns predicted logits.
-    loss_fn: a loss function that has target and predction as input, and returns
-      a float scalar
+    model_fn: a method that has input tensor (same shape as `adv_neighbors`),
+      `is_train` and `reuse` as inputs, and returns predicted logits.
+    loss_fn: a loss function that has `target` and `prediction` as inputs, and
+      returns a `float32` scalar.
 
   Returns:
-    adv_loss: a scalar (float32) for adversarial loss.
+    adv_loss: a `float32` denoting the adversarial loss.
   """
   adv_predictions = model_fn(
       adv_neighbors, is_train=tf.constant(False), reuse=True)
@@ -84,25 +84,28 @@ def virtual_adv_regularizer(input_layer,
                             embedding_fn,
                             virtual_adv_config,
                             embedding=None):
-  """API to calculate virtual adversarial loss for given input.
+  """Calculates virtual adversarial loss for the given input.
 
   Virtual adversarial loss is defined as the distance between the embedding of
-  input and that of slightly perturbed input. Optimizing this loss helps
-  smoothen models locally.
+  the input and that of a slightly perturbed input. Optimizing this loss helps
+  smooth models locally.
 
   Reference paper: https://arxiv.org/pdf/1704.03976.pdf
 
   Args:
-    input_layer: a dense tensor for input features, with batch_size as the 1st
-      dimension.
-    embedding_fn: a unary function that takes the input layer to compute and
-      return its embedding.
-    virtual_adv_config: a VirtualAdvConfig object.
-    embedding: (optional) a dense tensor for embedding of the input_layer. If
-      not provided, it will be calculated by `embedding_fn(input_layer)`.
+    input_layer: a dense tensor for input features whose first dimension is the
+      training batch size.
+    embedding_fn: a unary function that computes the embedding for the given
+      `input_layer` input.
+    virtual_adv_config: an `nsl.configs.VirtualAdvConfig` object that specifies
+      parameters for generating adversarial examples and computing the the
+      adversarial loss.
+    embedding: (optional) a dense tensor representing the embedding of
+      `input_layer`. If not provided, it will be calculated as
+      `embedding_fn(input_layer)`.
 
   Returns:
-    virtual_adv_loss: a scalar (float32) for virtural adversarial loss.
+    virtual_adv_loss: a `float32` denoting the virtural adversarial loss.
   """
 
   if embedding is None:
