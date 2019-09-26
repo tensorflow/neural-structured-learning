@@ -121,7 +121,7 @@ class WideResnet(Model):
                               inputs,
                               is_train,
                               update_batch_stats=True,
-                              **kwargs):
+                              **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
     For this model, the hidden representation is the last layer
@@ -134,7 +134,7 @@ class WideResnet(Model):
         this model will be used for training or for test.
       update_batch_stats: Boolean specifying whether to update the batch norm
         statistics.
-      **kwargs: Other keyword arguments.
+      **unused_kwargs: Other unused keyword arguments.
 
     Returns:
       encoding: A tensor containing an encoded batch of samples. The first

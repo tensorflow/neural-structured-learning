@@ -185,6 +185,9 @@ class TrainerCotraining(Trainer):
     num_neighbors_pred_by_agr: An integer representing the number of neighbors
       to use when predicting by agreement. Note that this needs to be at least
       as much as the number of classes.
+    load_from_checkpoint: A boolean specifying whethe the trained models are
+      loaded from checkpoint, if one is available. If False, the models are
+      always trained from scratch.
   """
 
   def __init__(self,
@@ -246,7 +249,8 @@ class TrainerCotraining(Trainer):
                lr_decay_rate_cls=None,
                lr_decay_steps_cls=None,
                lr_decay_rate_agr=None,
-               lr_decay_steps_agr=None):
+               lr_decay_steps_agr=None,
+               load_from_checkpoint=False):
     assert not enable_summaries or (enable_summaries and
                                     summary_dir is not None)
     assert checkpoints_step is None or (checkpoints_step is not None and
@@ -312,6 +316,7 @@ class TrainerCotraining(Trainer):
     self.lr_decay_steps_cls = lr_decay_steps_cls
     self.lr_decay_rate_agr = lr_decay_rate_agr
     self.lr_decay_steps_agr = lr_decay_steps_agr
+    self.load_from_checkpoint = load_from_checkpoint
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -405,7 +410,7 @@ class TrainerCotraining(Trainer):
         keep_label_proportions=self.keep_label_proportions,
         inductive=self.inductive)
 
-    if os.path.exists(self.data_dir):
+    if os.path.exists(self.data_dir) and self.load_from_checkpoint:
       # If this session is restored from a previous run, then we load the
       # self-labeled data from the last checkpoint.
       logging.info('Number of labeled samples before restoring: %d',
@@ -418,10 +423,6 @@ class TrainerCotraining(Trainer):
     # Build graph.
     logging.info('Building graph...')
 
-    # Create the parts that are common to the classification and agreement
-    # model.
-    is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
-
     # Create a iteration counter.
     iter_cotrain, iter_cotrain_update = self._create_counter()
 
@@ -432,7 +433,6 @@ class TrainerCotraining(Trainer):
       with tf.variable_scope('AgreementModel'):
         trainer_agr = TrainerAgreement(
             model=self.model_agr,
-            is_train=is_train,
             data=data,
             optimizer=self.optimizer,
             gradient_clip=self.gradient_clip,
@@ -469,7 +469,6 @@ class TrainerCotraining(Trainer):
       with tf.variable_scope('ClassificationModel'):
         trainer_cls = TrainerClassification(
             model=self.model_cls,
-            is_train=is_train,
             data=data,
             trainer_agr=trainer_agr,
             optimizer=self.optimizer,
@@ -506,11 +505,8 @@ class TrainerCotraining(Trainer):
 
     # Create a saver which saves only the variables that we would need to
     # restore in case the training process is restarted.
-    vars_to_save = [iter_cotrain]
-    if self.warm_start_agr:
-      vars_to_save.extend(trainer_agr.vars_to_save)
-    if self.warm_start_cls:
-      vars_to_save.extend(trainer_cls.vars_to_save)
+    vars_to_save = [iter_cotrain] + trainer_agr.vars_to_save + \
+                   trainer_cls.vars_to_save
     saver = tf.train.Saver(vars_to_save)
 
     # Create a TensorFlow session. We allow soft placement in order to place
@@ -531,7 +527,8 @@ class TrainerCotraining(Trainer):
     if self.checkpoints_dir:
       checkpts_path_cotrain = os.path.join(self.checkpoints_dir, 'cotrain.ckpt')
       if os.path.exists(checkpts_path_cotrain):
-        saver.restore(session, checkpts_path_cotrain)
+        if self.load_from_checkpoint:
+          saver.restore(session, checkpts_path_cotrain)
       else:
         os.makedirs(checkpts_path_cotrain)
     else:

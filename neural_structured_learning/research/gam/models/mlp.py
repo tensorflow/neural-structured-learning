@@ -73,28 +73,26 @@ class MLP(Model):
       dictionary of regularization parameters.
     """
     reg_params = {}
-    with tf.variable_scope('hidden'):
-      inputs = self._aggregate(inputs)
-      # Reshape inputs in case they are not of shape (batch_size, features).
-      num_features = np.prod(inputs.shape[1:])
-      inputs = tf.reshape(inputs, [-1, num_features])
-      hidden = inputs
-      for layer_index, output_size in enumerate(self.hidden_sizes):
-        input_size = hidden.get_shape().dims[-1].value
-        weights_name = 'W_' + str(layer_index)
-        weights = tf.get_variable(
-            name=weights_name,
-            initializer=glorot((input_size, output_size)),
-            use_resource=True)
-        reg_params[weights_name] = weights
-        biases = tf.get_variable(
-            'b_' + str(layer_index),
-            initializer=tf.zeros([output_size], dtype=tf.float32),
-            use_resource=True)
-        hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
+    # Reshape inputs in case they are not of shape (batch_size, features).
+    num_features = np.prod(inputs.shape[1:])
+    inputs = tf.reshape(inputs, [-1, num_features])
+    hidden = inputs
+    for layer_index, output_size in enumerate(self.hidden_sizes):
+      input_size = hidden.get_shape().dims[-1].value
+      weights_name = 'W_' + str(layer_index)
+      weights = tf.get_variable(
+          name=weights_name,
+          initializer=glorot((input_size, output_size)),
+          use_resource=True)
+      reg_params[weights_name] = weights
+      biases = tf.get_variable(
+          'b_' + str(layer_index),
+          initializer=tf.zeros([output_size], dtype=tf.float32),
+          use_resource=True)
+      hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
     return hidden, reg_params
 
-  def get_encoding_and_params(self, inputs, is_train, **kwargs):
+  def get_encoding_and_params(self, inputs, **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
     For this model, the hidden representation is the last layer of the MLP,
@@ -103,9 +101,7 @@ class MLP(Model):
     Args:
       inputs: A tensor containing the model inputs. The first dimension is the
         batch size.
-      is_train: A placeholder representing a boolean value that specifies if
-        this model will be used for training or for test.
-      **kwargs: Other keyword arguments.
+      **unused_kwargs: Other unused keyword arguments.
 
     Returns:
       encoding: A tensor containing an encoded batch of samples. The first
@@ -116,8 +112,16 @@ class MLP(Model):
         parameters which will be used for regularization.
     """
     # Build layers.
-    with tf.variable_scope(self.name + '/encoding'):
-      hidden, reg_params = self._construct_layers(inputs)
+    with tf.variable_scope(self.name):
+      if isinstance(inputs, (tuple, list)):
+        with tf.variable_scope('encoding'):
+          hidden1, reg_params = self._construct_layers(inputs[0])
+        with tf.variable_scope('encoding', reuse=True):
+          hidden2, _ = self._construct_layers(inputs[1])
+        hidden = self._aggregate((hidden1, hidden2))
+      else:
+        with tf.variable_scope('encoding'):
+          hidden, reg_params = self._construct_layers(inputs)
 
       # Store model variables for easy access.
       variables = tf.get_collection(
@@ -126,25 +130,6 @@ class MLP(Model):
       all_vars = {var.name: var for var in variables}
 
     return hidden, all_vars, reg_params
-
-  def _construct_prediction(self, inputs):
-    """Creates the last layer of the model and returns its predictions."""
-    with tf.variable_scope('outputs'):
-      reg_params = {}
-      input_size = inputs.get_shape().dims[-1].value
-      weights = tf.get_variable(
-          'W_outputs',
-          initializer=glorot((input_size, self.output_dim)),
-          use_resource=True)
-      reg_params['W_outputs'] = weights
-      biases = tf.get_variable(
-          'b_outputs',
-          initializer=tf.zeros([self.output_dim], dtype=tf.float32),
-          use_resource=True)
-      predictions = tf.nn.xw_plus_b(inputs, weights, biases, name='predictions')
-      if self.is_binary_classification:
-        predictions = predictions[:, 0]
-    return predictions, reg_params
 
   def get_predictions_and_params(self, encoding, is_train, **kwargs):
     """Creates the model prediction op.
@@ -170,9 +155,24 @@ class MLP(Model):
       reg_params: A dictionary mapping from a variable name to a Tensor of
         parameters which will be used for regularization.
     """
+    reg_params = {}
+
     # Build layers.
     with tf.variable_scope(self.name + '/prediction'):
-      predictions, reg_params = self._construct_prediction(encoding)
+      input_size = encoding.get_shape().dims[-1].value
+      weights = tf.get_variable(
+          'W_outputs',
+          initializer=glorot((input_size, self.output_dim)),
+          use_resource=True)
+      reg_params['W_outputs'] = weights
+      biases = tf.get_variable(
+          'b_outputs',
+          initializer=tf.zeros([self.output_dim], dtype=tf.float32),
+          use_resource=True)
+      predictions = tf.nn.xw_plus_b(encoding, weights, biases,
+                                    name='predictions')
+      if self.is_binary_classification:
+        predictions = predictions[:, 0]
 
       # Store model variables for easy access.
       variables = tf.get_collection(
@@ -214,7 +214,7 @@ class MLP(Model):
       loss: The cummulated loss value.
     """
     reg_params = reg_params if reg_params is not None else {}
-    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else 0.0
+    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else None
 
     with tf.name_scope(name_scope):
       # Cross entropy error.
@@ -225,8 +225,9 @@ class MLP(Model):
       else:
         loss = tf.losses.softmax_cross_entropy(targets, predictions)
       # Weight decay loss.
-      for var in reg_params.values():
-        loss += weight_decay * tf.nn.l2_loss(var)
+      if weight_decay is not None:
+        for var in reg_params.values():
+          loss += weight_decay * tf.nn.l2_loss(var)
     return loss
 
   def normalize_predictions(self, predictions):

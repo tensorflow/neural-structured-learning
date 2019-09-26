@@ -49,13 +49,13 @@ flags.DEFINE_string(
     'data_source', 'tensorflow_datasets', 'Data source. Valid options are: '
     '`tensorflow_datasets`, `realistic_ssl`')
 flags.DEFINE_integer(
-    'target_num_train_per_class', 20,
+    'target_num_train_per_class', 400,
     'Number of samples per class to use for training.')
 flags.DEFINE_integer(
-    'target_num_val', 10000,
+    'target_num_val', 1000,
     'Number of samples to be used for validation.')
 flags.DEFINE_integer(
-    'seed', 1234,
+    'seed', 123,
     'Seed used by the random number generators.')
 flags.DEFINE_bool(
     'load_preprocessed', False,
@@ -142,7 +142,7 @@ flags.DEFINE_integer(
     'Minimum number of iterations to train the agreement model for after '
     'the best validation accuracy is improved.')
 flags.DEFINE_integer(
-    'num_samples_to_label', 200,
+    'num_samples_to_label', 500,
     'Number of samples to label after each co-train iteration.')
 flags.DEFINE_float(
     'min_confidence_new_label', 0.4,
@@ -156,7 +156,7 @@ flags.DEFINE_integer(
     'Minimum number of co-train iterations the agreement must be trained '
     'before it is used in the classifier.')
 flags.DEFINE_float(
-    'ratio_valid_agr', 0.2,
+    'ratio_valid_agr', 0.1,
     'Ratio of edges used for validating the agreement model.')
 flags.DEFINE_integer(
     'max_samples_valid_agr', 10000,
@@ -190,9 +190,9 @@ flags.DEFINE_string(
     'Schedule for decaying the weight decay in the agreement model. Choose '
     'between None or linear.')
 flags.DEFINE_integer(
-    'batch_size_agr', 32, 'Batch size for agreement model.')
+    'batch_size_agr', 512, 'Batch size for agreement model.')
 flags.DEFINE_integer(
-    'batch_size_cls', 32, 'Batch size for classification model.')
+    'batch_size_cls', 512, 'Batch size for classification model.')
 flags.DEFINE_float(
     'gradient_clip', None,
     'The gradient clipping global norm value. If None, no clipping is done.')
@@ -240,7 +240,7 @@ flags.DEFINE_float(
     'reg_weight_uu', 0.05,
     'Regularization weight for unlabeled-unlabeled edges.')
 flags.DEFINE_integer(
-    'num_pairs_reg', 512,
+    'num_pairs_reg', 128,
     'Number of pairs of nodes to use in the agreement loss term of the '
     'classification model.')
 flags.DEFINE_string(
@@ -252,14 +252,14 @@ flags.DEFINE_bool(
     'penalize_neg_agr', True,
     'Whether to encourage differences when agreement is negative.')
 flags.DEFINE_bool(
-    'use_l2_cls', True,
+    'use_l2_cls', False,
     'Whether to use L2 loss for the classifier, not cross entropy.')
 flags.DEFINE_bool(
     'first_iter_original', True,
     'Whether to use the original model in the first iteration, without self '
     'labeling or agreement loss.')
 flags.DEFINE_bool(
-    'inductive', False,
+    'inductive', True,
     'Whether to use an inductive or transductive SSL setting.')
 flags.DEFINE_string(
     'experiment_suffix', '',
@@ -277,6 +277,11 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     'optimizer', 'adam',
     'Which optimizer to use. Valid options are `adam`, `amsgrad`.')
+flags.DEFINE_bool(
+    'load_from_checkpoint', False,
+    'Whether to load the trained model and the data that has been self-labeled '
+    'from a previous run, if available. This is useful if a process can get '
+    'preempted or interrupted.')
 
 
 def parse_layers_string(layers_string):
@@ -306,11 +311,12 @@ def pick_model(data):
   """Picks the models depending on the provided configuration flags."""
   # Create model classification.
   if FLAGS.model_cls == 'mlp':
-    hidden_classif = (parse_layers_string(FLAGS.hidden_cls)
-                      if FLAGS.hidden_cls is not None else [])
+    hidden_cls = (
+        parse_layers_string(FLAGS.hidden_cls)
+        if FLAGS.hidden_cls is not None else [])
     model_cls = MLP(
         output_dim=data.num_classes,
-        hidden_sizes=hidden_classif,
+        hidden_sizes=hidden_cls,
         activation=tf.nn.leaky_relu,
         name='mlp_cls')
   elif FLAGS.model_cls == 'cnn':
@@ -417,22 +423,25 @@ def main(argv):
       logging.info('Preprocessed data saved to %s.', path)
 
   # Put together parameters to create a model name.
-  model_name = FLAGS.model_cls + (('_' + FLAGS.hidden_cls)
-                                  if FLAGS.model_cls == 'mlp' else '')
-  model_name += '-' + FLAGS.model_agr + (('_' + FLAGS.hidden_agr)
-                                         if FLAGS.model_agr == 'mlp' else '')
-  model_name += ('-aggr_' + FLAGS.aggregation_agr_inputs + '_' +
-                 FLAGS.hidden_aggreg)
+  model_name = FLAGS.model_cls
+  model_name += ('_' + FLAGS.hidden_cls) if FLAGS.model_cls == 'mlp' else ''
+  model_name += '-' + FLAGS.model_agr
+  model_name += ('_' + FLAGS.hidden_agr) if FLAGS.model_agr == 'mlp' else ''
+  model_name += '-aggr_' + FLAGS.aggregation_agr_inputs
+  model_name += ('_' + FLAGS.hidden_aggreg) if FLAGS.hidden_aggreg else ''
   model_name += ('-add_%d-conf_%.2f-iter_cls_%d-iter_agr_%d-batch_cls_%d' %
                  (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
                   FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr,
                   FLAGS.batch_size_cls))
-  model_name += '-perfectAgr' if FLAGS.use_perfect_agreement else ''
-  model_name += '-perfectCls' if FLAGS.use_perfect_classifier else ''
+  model_name += '-LL_%s_LU_%s_UU_%s' % (str(
+      FLAGS.reg_weight_ll), str(FLAGS.reg_weight_lu), str(FLAGS.reg_weight_uu))
+  model_name += '-perfAgr' if FLAGS.use_perfect_agreement else ''
+  model_name += '-perfCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
-  model_name += '-inductive' if FLAGS.inductive else ''
-  model_name += '-L2Loss' if FLAGS.use_l2_cls else '-CELoss'
+  model_name += '-transduct' if not FLAGS.inductive else ''
+  model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
+  model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
   logging.info('Model name: %s', model_name)
 
@@ -451,7 +460,6 @@ def main(argv):
   model_cls, model_agr = pick_model(data)
 
   # Train.
-  optimizer = tf.train.AdamOptimizer
   trainer = TrainerCotraining(
       model_cls=model_cls,
       model_agr=model_agr,
@@ -466,7 +474,7 @@ def main(argv):
       min_confidence_new_label=FLAGS.min_confidence_new_label,
       keep_label_proportions=FLAGS.keep_label_proportions,
       num_warm_up_iter_agr=FLAGS.num_warm_up_iter_agr,
-      optimizer=optimizer,
+      optimizer=tf.train.AdamOptimizer,
       gradient_clip=FLAGS.gradient_clip,
       batch_size_agr=FLAGS.batch_size_agr,
       batch_size_cls=FLAGS.batch_size_cls,
@@ -511,7 +519,8 @@ def main(argv):
       lr_decay_rate_cls=FLAGS.lr_decay_rate_cls,
       lr_decay_steps_cls=FLAGS.lr_decay_steps_cls,
       lr_decay_rate_agr=FLAGS.lr_decay_rate_agr,
-      lr_decay_steps_agr=FLAGS.lr_decay_steps_agr)
+      lr_decay_steps_agr=FLAGS.lr_decay_steps_agr,
+      load_from_checkpoint=FLAGS.load_from_checkpoint)
 
   trainer.train(data)
 

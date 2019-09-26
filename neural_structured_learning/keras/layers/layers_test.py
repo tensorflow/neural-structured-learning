@@ -30,7 +30,7 @@ from tensorflow.python.framework import test_util  # pylint: disable=g-direct-te
 _ERR_TOL = 3e-5  # Tolerance when comparing floats.
 
 
-# TODO(pp): Update models to use NeighborFeatures
+# TODO(ppham27): Update models to use NeighborFeatures
 def _make_functional_regularized_model(distance_config):
   """Makes a model with `PairwiseDistance` and the functional API."""
 

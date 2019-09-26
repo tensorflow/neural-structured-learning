@@ -145,11 +145,9 @@ class FixedDataset(Dataset):
   def num_val(self):
     return self.indices_val.shape[0]
 
-  @property
   def num_test(self):
     return self.indices_test.shape[0]
 
-  @property
   def num_unlabeled(self):
     return self.indices_unlabeled.shape[0]
 

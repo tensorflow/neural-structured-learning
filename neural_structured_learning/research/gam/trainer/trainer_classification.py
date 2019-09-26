@@ -107,7 +107,6 @@ class TrainerClassification(Trainer):
 
   def __init__(self,
                model,
-               is_train,
                data,
                trainer_agr,
                optimizer,
@@ -187,6 +186,8 @@ class TrainerClassification(Trainer):
     input_labels = tf.placeholder(tf.int64, shape=(None,), name='input_labels')
     one_hot_labels = tf.one_hot(input_labels, data.num_classes,
                                 name='input_labels_one_hot')
+    # Create a placeholder specifying if this is train time.
+    is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
 
     # Create variables and predictions.
     with tf.variable_scope('predictions'):
@@ -270,17 +271,25 @@ class TrainerClassification(Trainer):
       variab = [elem[1] for elem in grads_and_vars]
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
-      grads_and_vars = zip(gradients, variab)
+      grads_and_vars = tuple(zip(gradients, variab))
     train_op = self.optimizer.apply_gradients(
         grads_and_vars, global_step=self.global_step)
 
     # Create a saver for model variables.
     trainable_vars = [v for _, v in grads_and_vars]
-    saver = tf.train.Saver(trainable_vars)
+
+    # Put together the subset of variables to save and restore from the best
+    # validation accuracy as we train the agreement model in one cotrain round.
+    vars_to_save = trainable_vars + []
+    if isinstance(weight_decay_var, tf.Variable):
+      vars_to_save.append(weight_decay_var)
+    saver = tf.train.Saver(vars_to_save)
 
     # Put together all variables that need to be saved in case the process is
     # interrupted and needs to be restarted.
-    self.vars_to_save = [weight_decay_var, iter_cls_total, self.global_step]
+    self.vars_to_save = [iter_cls_total, self.global_step]
+    if isinstance(weight_decay_var, tf.Variable):
+      self.vars_to_save.append(weight_decay_var)
     if self.warm_start:
       self.vars_to_save.extend([v for v in variables])
 
@@ -747,10 +756,15 @@ class TrainerPerfectClassification(Trainer):
 
   def __init__(self, data):
     self.data = data
+    self.vars_to_save = []
 
   def train(self, unused_data, unused_session=None, **unused_kwargs):
     logging.info('Perfect classifier, no need to train...')
     return 1.0, 1.0
 
   def predict(self, unused_session, indices_unlabeled):
-    return self.data.get_original_labels(indices_unlabeled)
+    labels = self.data.get_original_labels(indices_unlabeled)
+    num_samples = len(indices_unlabeled)
+    predictions = np.zeros((num_samples, self.data.num_classes))
+    predictions[np.arange(num_samples), labels] = 1.0
+    return predictions
