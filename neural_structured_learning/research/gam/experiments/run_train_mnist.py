@@ -429,17 +429,21 @@ def main(argv):
   model_name += ('_' + FLAGS.hidden_agr) if FLAGS.model_agr == 'mlp' else ''
   model_name += '-aggr_' + FLAGS.aggregation_agr_inputs
   model_name += ('_' + FLAGS.hidden_aggreg) if FLAGS.hidden_aggreg else ''
-  model_name += ('-add_%d-conf_%.2f-iter_cls_%d-iter_agr_%d-batch_cls_%d' %
+  model_name += ('-add_%d-conf_%.2f-iterCls_%d-iterAgr_%d-batchCls_%d' %
                  (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
                   FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr,
                   FLAGS.batch_size_cls))
+  model_name += (('-wdecayCls_%.4f' % FLAGS.weight_decay_cls)
+                 if FLAGS.weight_decay_cls else '')
+  model_name += (('-wdecayAgr_%.4f' % FLAGS.weight_decay_agr)
+                 if FLAGS.weight_decay_agr else '')
   model_name += '-LL_%s_LU_%s_UU_%s' % (str(
       FLAGS.reg_weight_ll), str(FLAGS.reg_weight_lu), str(FLAGS.reg_weight_uu))
   model_name += '-perfAgr' if FLAGS.use_perfect_agreement else ''
   model_name += '-perfCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
-  model_name += '-transduct' if not FLAGS.inductive else ''
+  model_name += '-transd' if not FLAGS.inductive else ''
   model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
   model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
