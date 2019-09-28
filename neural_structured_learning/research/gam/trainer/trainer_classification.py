@@ -738,12 +738,6 @@ class TrainerClassification(Trainer):
       logging.info('Restoring best model...')
       self.saver.restore(session, self.checkpoint_path)
 
-    ########################
-    # TEST
-    test_acc = self._evaluate(test_indices, 'test', session, summary_writer)
-    print('\n\nTest acc after restoration: %f. Test at best val: %f \n\n' % (test_acc, best_test_acc))
-    ##########################
-
     return best_test_acc, best_val_acc
 
   def predict(self, session, indices, is_train):
