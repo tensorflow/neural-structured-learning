@@ -127,7 +127,7 @@ class TrainerAgreement(Trainer):
                weight_decay_schedule=None,
                num_pairs_eval_random=1000,
                agree_by_default=False,
-               percent_val=0.2,
+               percent_val=0.1,
                max_num_samples_val=10000,
                seed=None,
                lr_decay_steps=None,
@@ -484,103 +484,6 @@ class TrainerAgreement(Trainer):
         data_iterator_val, is_train=False)
     cummulative_val_acc /= samples_seen
     return cummulative_val_acc
-
-  def _train_iterator(self, labeled_samples, neighbors_val, data,
-                      ratio_pos_to_neg=None):
-    """An iterator over pairs of samples for training the agreement model.
-
-    Provides batches of node pairs, including their features and the agreement
-    label (i.e. whether their labels agree). A set of validation pairs
-    is also provided to make sure those samples are not included in train.
-
-    Arguments:
-      labeled_samples: An array of integers representing the indices of the
-        labeled nodes.
-      neighbors_val: An array of shape (num_samples, 2), where each row
-        represents a pair of sample indices used for validation.
-      data: A Dataset object used to provided the labels of the labeled samples.
-      ratio_pos_to_neg: A float representing the ratio of positive to negative
-        samples in the training set. If this is provided, the train iterator
-        will do rejection sampling based on this ratio to keep the training
-        data balanced. If None, we sample uniformly.
-    Yields:
-      neighbors_batch: An array of shape (batch_size, 2), where each row
-        represents a pair of sample indices used for training. It will not
-        include pairs of samples that are in the provided neighbors_val.
-      agreement_batch: An array of shape (batch_size,) with binary values,
-        where each row represents whether the labels of the corresponding
-        neighbor pair agree (1.0) or not (0.0).
-    """
-    neighbors_val = set([(pair[0], pair[1]) if pair[0] < pair[1] else
-                         (pair[1], pair[0]) for pair in neighbors_val])
-    neighbors_batch = np.empty(shape=(self.batch_size, 2), dtype=np.int32)
-    agreement_batch = np.empty(shape=(self.batch_size,), dtype=np.float32)
-    # TODO(otilastr): remove this. Temporary while fixing something.
-    # For sampling random pairs of samples very fast, we create two buffers,
-    # one containing elements for the left side of the pair, the other for the
-    # right side, and we go through them in parallel.
-    # buffer_left = np.copy(labeled_samples)
-    # buffer_right = np.copy(labeled_samples)
-    # idx_buffer = np.inf
-    # num_labeled = len(labeled_samples)
-    # while True:
-    #   num_added = 0
-    #   while num_added < self.batch_size:
-    #     if idx_buffer >= num_labeled:
-    #       idx_buffer = 0
-    #       self.rng.shuffle(buffer_left)
-    #       self.rng.shuffle(buffer_right)
-    #     pair = (buffer_left[idx_buffer], buffer_right[idx_buffer])
-    #     idx_buffer += 1
-    #     if pair[0] == pair[1]:
-    #       continue
-    #     ordered_pair = ((pair[0], pair[1]) if pair[0] < pair[1] else
-    #                     (pair[1], pair[0]))
-    #     if ordered_pair in neighbors_val:
-    #       continue
-    #     agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
-    #     if ratio_pos_to_neg is not None:
-    #       # To keep the positive and negatives balanced, do rejection sampling
-    #       # according to their ratio.
-    #       if ratio_pos_to_neg < 1 and not agreement:
-    #         # Reject a negative sample with some probability.
-    #         random_number = self.rng.rand(1)[0]
-    #         if random_number > ratio_pos_to_neg:
-    #           continue
-    #       elif ratio_pos_to_neg > 1 and agreement:
-    #         # Reject a positive sample with some probability.
-    #         random_number = self.rng.random()
-    #         if random_number > 1.0 / ratio_pos_to_neg:
-    #           continue
-    #     neighbors_batch[num_added][0] = pair[0]
-    #     neighbors_batch[num_added][1] = pair[1]
-    #     agreement_batch[num_added] = agreement
-    #     num_added += 1
-    #   yield neighbors_batch, agreement_batch
-    while True:
-      num_added = 0
-      while num_added < self.batch_size:
-        pair = self.rng.choice(labeled_samples, 2)
-        ordered_pair = (pair[0], pair[1]) if pair[0] < pair[1] else \
-                       (pair[1], pair[0])
-        if ordered_pair in neighbors_val:
-          continue
-        agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
-        if ratio_pos_to_neg is not None:
-          # Keep positives and negatives balanced.
-          if ratio_pos_to_neg < 1 and not agreement:
-            random_number = self.rng.rand(1)[0]
-            if random_number > ratio_pos_to_neg:
-              continue
-          elif ratio_pos_to_neg > 1 and agreement:
-            random_number = self.rng.rand(1)[0]
-            if random_number > 1.0 / ratio_pos_to_neg:
-              continue
-        neighbors_batch[num_added][0] = pair[0]
-        neighbors_batch[num_added][1] = pair[1]
-        agreement_batch[num_added] = agreement
-        num_added += 1
-      yield neighbors_batch, agreement_batch
 
   def _select_val_set(self, labeled_samples, num_samples, data,
                       ratio_pos_to_neg=None):
