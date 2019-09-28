@@ -176,14 +176,14 @@ flags.DEFINE_string(
     'String representing the number of units of the hidden layers of the '
     'aggregation network of the agreement model.')
 flags.DEFINE_float(
-    'weight_decay_cls', 0,
+    'weight_decay_cls', None,
     'Weight of the L2 penalty on the classification model weights.')
 flags.DEFINE_string(
     'weight_decay_schedule_cls', None,
     'Schedule for decaying the weight decay in the classification model. '
     'Choose bewteen None or linear.')
 flags.DEFINE_float(
-    'weight_decay_agr', 0,
+    'weight_decay_agr', None,
     'Weight of the L2 penalty on the agreement model weights.')
 flags.DEFINE_string(
     'weight_decay_schedule_agr', None,

@@ -289,7 +289,7 @@ class ImageCNNAgreement(Model):
         weight decay is applied.
       **kwargs: Keyword arguments, potentially containing the weight of the
         regularization term, passed under the name `weight_decay`. If this is
-        not provided, it defaults to 0.0.
+        not provided, it defaults to 0.004.
 
     Returns:
       loss: The cummulated loss value.

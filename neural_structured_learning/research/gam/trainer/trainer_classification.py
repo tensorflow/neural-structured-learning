@@ -217,7 +217,8 @@ class TrainerClassification(Trainer):
         loss_supervised = tf.reduce_mean(loss_supervised)
       else:
         loss_supervised = self.model.get_loss(predictions=predictions,
-                                              targets=one_hot_labels)
+                                              targets=one_hot_labels,
+                                              weight_decay=None)
 
       # Agreement regularization loss.
       loss_agr = self._get_agreement_reg_loss(data, is_train, features_shape)
@@ -229,8 +230,9 @@ class TrainerClassification(Trainer):
 
       # Weight decay loss.
       loss_reg = 0.0
-      for var in reg_params.values():
-        loss_reg += weight_decay_var * tf.nn.l2_loss(var)
+      if weight_decay_var is not None:
+        for var in reg_params.values():
+          loss_reg += weight_decay_var * tf.nn.l2_loss(var)
 
       # Total loss.
       loss_op = loss_supervised + loss_agr + loss_reg
@@ -272,8 +274,11 @@ class TrainerClassification(Trainer):
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
       grads_and_vars = tuple(zip(gradients, variab))
-    train_op = self.optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step)
+    with tf.control_dependencies(
+        tf.get_collection(tf.GraphKeys.UPDATE_OPS,
+                          scope=tf.get_default_graph().get_name_scope())):
+      train_op = self.optimizer.apply_gradients(
+          grads_and_vars, global_step=self.global_step)
 
     # Create a saver for model variables.
     trainable_vars = [v for _, v in grads_and_vars]
@@ -320,8 +325,11 @@ class TrainerClassification(Trainer):
     weight_decay_var = None
     weight_decay_update = None
     if weight_decay_schedule is None:
-      weight_decay_var = tf.constant(
+      if weight_decay_initial is not None:
+        weight_decay_var = tf.constant(
           weight_decay_initial, dtype=tf.float32, name='weight_decay')
+      else:
+        weight_decay_var = None
     elif weight_decay_schedule == 'linear':
       weight_decay_var = tf.get_variable(
           name='weight_decay',

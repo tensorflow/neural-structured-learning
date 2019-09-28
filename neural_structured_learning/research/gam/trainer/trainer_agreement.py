@@ -221,15 +221,18 @@ class TrainerAgreement(Trainer):
     # Create train op.
     grads_and_vars = self.optimizer.compute_gradients(
         loss_op,
-        tf.trainable_variables())
+        tf.trainable_variables(scope=tf.get_default_graph().get_name_scope()))
     # Clip gradients.
     if self.gradient_clip:
       variab = [elem[1] for elem in grads_and_vars]
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
       grads_and_vars = tuple(zip(gradients, variab))
-    train_op = self.optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step)
+    with tf.control_dependencies(
+        tf.get_collection(tf.GraphKeys.UPDATE_OPS,
+                          scope=tf.get_default_graph().get_name_scope())):
+      train_op = self.optimizer.apply_gradients(
+          grads_and_vars, global_step=self.global_step)
 
     # Create Tensorboard summaries.
     if self.enable_summaries:
@@ -333,8 +336,11 @@ class TrainerAgreement(Trainer):
     weight_decay_var = None
     weight_decay_update = None
     if weight_decay_schedule is None:
-      weight_decay_var = tf.constant(
-          weight_decay_initial, dtype=tf.float32, name='weight_decay')
+      if weight_decay_initial is None:
+        weight_decay_var = None
+      else:
+        weight_decay_var = tf.constant(
+            weight_decay_initial, dtype=tf.float32, name='weight_decay')
     elif weight_decay_schedule == 'linear':
       weight_decay_var = tf.get_variable(
           name='weight_decay',
@@ -409,6 +415,75 @@ class TrainerAgreement(Trainer):
     # Evaluate agreement.
     acc = session.run(self.accuracy, feed_dict=feed_dict)
     return acc
+
+
+  def _eval_train(self, session, feed_dict):
+    """Computes the accuracy of the predictions for the provided batch.
+
+    This calculates the accuracy for both class 1 (agreement) and class 0
+    (disagreement).
+
+    Arguments:
+      session: A TensorFlow session.
+      feed_dict: A train feed dictionary.
+    Returns:
+      The computed train accuracy.
+    """
+    train_acc, pred, targ = session.run(
+      (self.accuracy, self.normalized_predictions, self.labels),
+      feed_dict=feed_dict)
+    # Assume the threshold is at 0.5, and binarize the predictions.
+    binary_pred = pred > 0.5
+    targ = targ.astype(np.int32)
+    acc_per_sample = binary_pred == targ
+    acc_1 = acc_per_sample[targ == 1]
+    if acc_1.shape[0] > 0:
+      acc_1 = sum(acc_1) / np.float32(len(acc_1))
+    else:
+      acc_1 = -1
+    acc_0 = acc_per_sample[targ == 0]
+    if acc_0.shape[0] > 0:
+      acc_0 = sum(acc_0) / np.float32(len(acc_0))
+    else:
+      acc_0 = -1
+    logging.info('Train acc: %.2f. Acc class 1: %.2f. Acc class 0: %.2f',
+                 train_acc, acc_1, acc_0)
+    return train_acc
+
+
+  def _eval_validation(self, data, labeled_nodes_val, ratio_pos_to_neg,
+                       num_samples_val, session):
+    """Evaluate the current model on validation data.
+
+    Args:
+      data: A CotrainDataset object.
+      labeled_nodes_val: An array of indices of labeled nodes from which to
+        sample validation pairs.
+      ratio_pos_to_neg: The ratio of positive to negative samples, which is
+        used to keep the samples agreement pairs balanced.
+      num_samples_val: Number of sample pairs to use for validation. Since the
+        number of combinations of samples in `labeled_nodes_val` can be very
+        high, for validation we use only `num_samples_val` pairs.
+      session: A TensorFlow session.
+
+    Returns:
+      Total accuracy on random pairs of samples.
+    """
+    data_iterator_val = self._pair_iterator(labeled_nodes_val, data,
+                                            ratio_pos_neg=ratio_pos_to_neg)
+    feed_dict_val = self._construct_feed_dict(
+      data_iterator_val, is_train=False)
+    cummulative_val_acc = 0.0
+    samples_seen = 0
+    while feed_dict_val is not None and samples_seen < num_samples_val:
+      val_acc, batch_size_actual = session.run(
+        (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
+      cummulative_val_acc += val_acc * batch_size_actual
+      samples_seen += batch_size_actual
+      feed_dict_val = self._construct_feed_dict(
+        data_iterator_val, is_train=False)
+    cummulative_val_acc /= samples_seen
+    return cummulative_val_acc
 
   def _train_iterator(self, labeled_samples, neighbors_val, data,
                       ratio_pos_to_neg=None):
@@ -653,19 +728,10 @@ class TrainerAgreement(Trainer):
         if num_samples_val == 0:
           logging.info('Skipping validation. No validation samples available.')
           break
-        data_iterator_val = self._pair_iterator(labeled_nodes_val, data)
-        feed_dict_val = self._construct_feed_dict(
-            data_iterator_val, is_train=False)
-        cummulative_val_acc = 0.0
-        samples_seen = 0
-        while feed_dict_val is not None and samples_seen < num_samples_val:
-          val_acc, batch_size_actual = session.run(
-              (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
-          cummulative_val_acc += val_acc * batch_size_actual
-          samples_seen += batch_size_actual
-          feed_dict_val = self._construct_feed_dict(
-              data_iterator_val, is_train=False)
-        cummulative_val_acc /= samples_seen
+
+        # Evaluate on the selected validation data.
+        val_acc = self._eval_validation(
+          data, labeled_nodes_val, ratio_pos_to_neg, num_samples_val, session)
 
         # Evaluate over a random choice of sample pairs, either labeled or not.
         acc_random = self._eval_random_pairs(data, session)
@@ -680,20 +746,20 @@ class TrainerAgreement(Trainer):
           summary.value.add(tag='AgreementModel/train_acc',
                             simple_value=acc_train)
           summary.value.add(tag='AgreementModel/val_acc',
-                            simple_value=cummulative_val_acc)
+                            simple_value=val_acc)
           if acc_random is not None:
             summary.value.add(tag='AgreementModel/random_acc',
                               simple_value=acc_random)
           iter_total = session.run(self.iter_agr_total)
           summary_writer.add_summary(summary, iter_total)
           summary_writer.flush()
-        if step % self.logging_step == 0 or cummulative_val_acc > best_val_acc:
+        if step % self.logging_step == 0 or val_acc > best_val_acc:
           logging.info(
               'Agreement step %6d | Loss: %10.4f | val_acc: %10.4f |'
               'random_acc: %10.4f | acc_train: %10.4f', step, loss_val,
-              cummulative_val_acc, acc_random, acc_train)
-        if cummulative_val_acc > best_val_acc:
-          best_val_acc = cummulative_val_acc
+            val_acc, acc_random, acc_train)
+        if val_acc > best_val_acc:
+          best_val_acc = val_acc
           if self.checkpoint_path:
             self.saver.save(
                 session, self.checkpoint_path, write_meta_graph=False)
@@ -758,39 +824,6 @@ class TrainerAgreement(Trainer):
       return np.ones(shape=(len(src_features),), dtype=np.float32)
     # Predict always disagreement.
     return np.zeros(shape=(len(src_features),), dtype=np.float32)
-
-  def _eval_train(self, session, feed_dict):
-    """Computes the accuracy of the predictions for the provided batch.
-
-    This calculates the accuracy for both class 1 (agreement) and class 0
-    (disagreement).
-
-    Arguments:
-      session: A TensorFlow session.
-      feed_dict: A train feed dictionary.
-    Returns:
-      The computed train accuracy.
-    """
-    train_acc, pred, targ = session.run(
-        (self.accuracy, self.normalized_predictions, self.labels),
-        feed_dict=feed_dict)
-    # Assume the threshold is at 0.5, and binarize the predictions.
-    binary_pred = pred > 0.5
-    targ = targ.astype(np.int32)
-    acc_per_sample = binary_pred == targ
-    acc_1 = acc_per_sample[targ == 1]
-    if acc_1.shape[0] > 0:
-      acc_1 = sum(acc_1) / np.float32(len(acc_1))
-    else:
-      acc_1 = -1
-    acc_0 = acc_per_sample[targ == 0]
-    if acc_0.shape[0] > 0:
-      acc_0 = sum(acc_0) / np.float32(len(acc_0))
-    else:
-      acc_0 = -1
-    logging.info('Train acc: %.2f. Acc class 1: %.2f. Acc class 0: %.2f',
-                 train_acc, acc_1, acc_0)
-    return train_acc
 
   def predict_label_by_agreement(self, session, indices, num_neighbors=100):
     """Predict class labels using agreement with other labeled samples.
