@@ -461,7 +461,7 @@ class TrainerClassification(Trainer):
     if self.penalize_neg_agr:
       # Since the agreement is predicting scores between [0, 1], anything
       # under 0.5 should represent disagreement. Therefore, we want to encourage
-      # agreement whenever the score is > 0.5, otherwise don't incurr any loss.
+      # agreement whenever the score is > 0.5, otherwise don't incur any loss.
       agreement = tf.nn.relu(agreement - 0.5)
 
       # Create a Tensor containing the weights assigned to each pair in the
@@ -497,7 +497,7 @@ class TrainerClassification(Trainer):
 
   def _construct_feed_dict(self,
                            data_iterator,
-                           is_train,
+                           split,
                            pair_ll_iterator=None,
                            pair_lu_iterator=None,
                            pair_uu_iterator=None):
@@ -506,12 +506,12 @@ class TrainerClassification(Trainer):
       input_indices = next(data_iterator)
       # Select the labels. Use the true, correct labels, at test time, and the
       # self-labeled ones at train time.
-      labels = (self.data.get_labels(input_indices) if is_train else
-                self.data.get_original_labels(input_indices))
+      labels = (self.data.get_original_labels(input_indices) if split == 'test'
+                else self.data.get_labels(input_indices))
       feed_dict = {
           self.input_features: self.data.get_features(input_indices),
           self.input_labels: labels,
-          self.is_train: is_train
+          self.is_train: split == 'train'
       }
       if pair_ll_iterator is not None:
         _, _, _, features_tgt, labels_src, labels_tgt = next(pair_ll_iterator)
@@ -584,6 +584,37 @@ class TrainerClassification(Trainer):
       yield (indices_src, indices_tgt, features_src, features_tgt,
              labels_src, labels_tgt)
 
+  def _evaluate(self, indices, split, session, summary_writer):
+    """Evaluates the samples with the provided indices."""
+    data_iterator_val = batch_iterator(
+      indices,
+      batch_size=self.batch_size,
+      shuffle=False,
+      allow_smaller_batch=True,
+      repeat=False)
+    feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
+    cummulative_acc = 0.0
+    num_samples = 0
+    while feed_dict_val is not None:
+      val_acc, batch_size_actual = session.run(
+        (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
+      cummulative_acc += val_acc * batch_size_actual
+      num_samples += batch_size_actual
+      feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
+    if num_samples > 0:
+      cummulative_acc /= num_samples
+
+    if self.enable_summaries:
+      summary = tf.Summary()
+      summary.value.add(
+        tag='ClassificationModel/' + split + '_acc',
+        simple_value=cummulative_acc)
+      iter_cls_total = session.run(self.iter_cls_total)
+      summary_writer.add_summary(summary, iter_cls_total)
+      summary_writer.flush()
+
+    return cummulative_acc
+
   def train(self, data, session=None, **kwargs):
     """Train the classification model on the provided dataset.
 
@@ -646,68 +677,37 @@ class TrainerClassification(Trainer):
     best_val_acc = -1
     checkpoint_saved = False
     while not has_converged:
-      feed_dict = self._construct_feed_dict(data_iterator_train, True,
-                                            pair_ll_iterator, pair_lu_iterator,
-                                            pair_uu_iterator)
+      feed_dict = self._construct_feed_dict(
+        data_iterator=data_iterator_train,
+        split='train',
+        pair_ll_iterator=pair_ll_iterator,
+        pair_lu_iterator=pair_lu_iterator,
+        pair_uu_iterator=pair_uu_iterator)
       if self.enable_summaries and step % self.summary_step == 0:
-        loss_val, summary, _ = session.run(
-            [self.loss_op, self.summary_op, self.train_op],
+        loss_val, summary, iter_cls_total, _ = session.run(
+            [self.loss_op, self.summary_op, self.iter_cls_total, self.train_op],
             feed_dict=feed_dict)
-        iter_cls_total = session.run(self.iter_cls_total)
         summary_writer.add_summary(summary, iter_cls_total)
         summary_writer.flush()
       else:
-        loss_val, _ = session.run((self.loss_op, self.train_op),
-                                  feed_dict=feed_dict)
+        loss_val, _ = session.run(
+          (self.loss_op, self.train_op), feed_dict=feed_dict)
 
       # Log the loss, if necessary.
       if step % self.logging_step == 0:
         logging.info('Classification step %6d | Loss: %10.4f', step, loss_val)
 
       # Evaluate, if necessary.
-      def _evaluate(indices, name):
-        """Evaluates the samples with the provided indices."""
-        data_iterator_val = batch_iterator(
-            indices,
-            batch_size=self.batch_size,
-            shuffle=False,
-            allow_smaller_batch=True,
-            repeat=False)
-        feed_dict_val = self._construct_feed_dict(data_iterator_val, False)
-        cummulative_acc = 0.0
-        num_samples = 0
-        while feed_dict_val is not None:
-          val_acc, batch_size_actual = session.run(
-              (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
-          cummulative_acc += val_acc * batch_size_actual
-          num_samples += batch_size_actual
-          feed_dict_val = self._construct_feed_dict(data_iterator_val, False)
-        if num_samples > 0:
-          cummulative_acc /= num_samples
-
-        if self.enable_summaries:
-          summary = tf.Summary()
-          summary.value.add(
-              tag='ClassificationModel/' + name + '_acc',
-              simple_value=cummulative_acc)
-          iter_cls_total = session.run(self.iter_cls_total)
-          summary_writer.add_summary(summary, iter_cls_total)
-          summary_writer.flush()
-
-        return cummulative_acc
-
-      # Run validation, if necessary.
       if step % self.eval_step == 0:
         logging.info('Evaluating on %d validation samples...', len(val_indices))
-        val_acc = _evaluate(val_indices, 'val_acc')
+        val_acc = self._evaluate(val_indices, 'val', session, summary_writer)
         logging.info('Evaluating on %d test samples...', len(test_indices))
-        test_acc = _evaluate(test_indices, 'test_acc')
+        test_acc = self._evaluate(test_indices, 'test', session, summary_writer)
 
         if step % self.logging_step == 0 or val_acc > best_val_acc:
           logging.info(
-              'Classification step %6d | Loss: %10.4f | '
-              'val_acc: %10.4f | test_acc: %10.4f', step, loss_val, val_acc,
-              test_acc)
+              'Classification step %6d | Loss: %10.4f | val_acc: %10.4f | '
+              'test_acc: %10.4f', step, loss_val, val_acc, test_acc)
         if val_acc > best_val_acc:
           best_val_acc = val_acc
           best_test_acc = test_acc
@@ -738,9 +738,15 @@ class TrainerClassification(Trainer):
       logging.info('Restoring best model...')
       self.saver.restore(session, self.checkpoint_path)
 
+    ########################
+    # TEST
+    test_acc = self._evaluate(test_indices, 'test', session, summary_writer)
+    print('\n\nTest acc after restoration: %f. Test at best val: %f \n\n' % (test_acc, best_test_acc))
+    ##########################
+
     return best_test_acc, best_val_acc
 
-  def predict(self, session, indices):
+  def predict(self, session, indices, is_train):
     """Make predictions for the provided sample indices."""
     num_inputs = len(indices)
     idx_start = 0
@@ -751,7 +757,8 @@ class TrainerClassification(Trainer):
       input_features = self.data.get_features(batch_indices)
       batch_predictions = session.run(
           self.normalized_predictions,
-          feed_dict={self.input_features: input_features})
+          feed_dict={self.input_features: input_features,
+                     self.is_train:is_train})
       predictions.append(batch_predictions)
       idx_start = idx_end
     if not predictions:
@@ -770,7 +777,7 @@ class TrainerPerfectClassification(Trainer):
     logging.info('Perfect classifier, no need to train...')
     return 1.0, 1.0
 
-  def predict(self, unused_session, indices_unlabeled):
+  def predict(self, unused_session, indices_unlabeled, **unused_kwargs):
     labels = self.data.get_original_labels(indices_unlabeled)
     num_samples = len(indices_unlabeled)
     predictions = np.zeros((num_samples, self.data.num_classes))
