@@ -327,6 +327,7 @@ class TrainerCotraining(Trainer):
     self.load_from_checkpoint = load_from_checkpoint
     self.use_graph = use_graph
     self.always_agree = always_agree
+    self.add_negative_edges_agr = add_negative_edges_agr
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -472,7 +473,8 @@ class TrainerCotraining(Trainer):
             lr_decay_rate=self.lr_decay_rate_agr,
             lr_decay_steps=self.lr_decay_steps_agr,
             lr_initial=self.learning_rate_agr,
-            use_graph=self.use_graph)
+            use_graph=self.use_graph,
+            add_negative_edges=self.add_negative_edges_agr)
 
     if self.use_perfect_cls:
       # A perfect classification model used for debugging purposes.
