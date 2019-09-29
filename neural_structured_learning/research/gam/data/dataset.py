@@ -253,9 +253,8 @@ class PlanetoidDataset(GraphDataset):
     # Extract node features.
     if row_normalize:
       features = self.preprocess_features(features)
-    else:
-      features = features.todense()
-    features = np.float32(features)
+
+    features = np.float32(features.todense())
 
     # Extract labels.
     labels = np.argmax(labels, axis=-1)
@@ -287,7 +286,7 @@ class PlanetoidDataset(GraphDataset):
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = scipy.sparse.diags(r_inv)
     features = r_mat_inv.dot(features)
-    return features.todense()
+    return features
 
 
 class CotrainDataset(object):
