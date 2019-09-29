@@ -320,6 +320,7 @@ def main(argv):
   model_name += '-transd' if not FLAGS.inductive else ''
   model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
   model_name += '-graph' if FLAGS.use_graph else '-noGraph'
+  model_name += '-rowNorm' if FLAGS.row_normalize else ''
   model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
   logging.info('Model name: %s', model_name)
