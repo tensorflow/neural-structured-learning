@@ -28,6 +28,30 @@ def convert_image(image):
   image *= 2.
   return image
 
+def split_train_val(indices, ratio_val, rng, max_num_val=None):
+  """Split the train sample indices into train and validation.
+
+  Args:
+    indices: A numpy array containing the indices of the training samples.
+    ratio_val: A float number between (0, 1) representing the ratio of samples
+      to use for validation.
+    rng: A random number generator.
+    max_num_val: An integer representing the maximum number of samples to
+      include in the validation set.
+
+  Returns:
+    Two numpy arrays containing the subset of indices used for training, and
+    validation, respectively.
+  """
+  num_samples = indices.shape[0]
+  num_val = int(ratio_val * num_samples)
+  if max_num_val and num_val > max_num_val:
+    num_val = max_num_val
+  ind = np.arange(0, num_samples)
+  rng.shuffle(ind)
+  ind_val = ind[:num_val]
+  ind_train = ind[num_val:]
+  return ind_train, ind_val
 
 def split_train_val_unlabeled(train_inputs, train_labels,
                               target_num_train_per_class, target_num_val,

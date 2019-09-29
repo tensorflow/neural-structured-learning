@@ -188,6 +188,11 @@ class TrainerCotraining(Trainer):
     load_from_checkpoint: A boolean specifying whethe the trained models are
       loaded from checkpoint, if one is available. If False, the models are
       always trained from scratch.
+    use_graph: Boolean specifying whether to use to apply the agreement model
+      on the graph edges, or otherwise use random pairs of samples.
+    always_agree: Whether the agreement model should return 1.0 always (i.e.
+      the samples always agree), to simulate the Neural Graph Machines model.
+    add_negative_edges_agr:
   """
 
   def __init__(self,
@@ -250,7 +255,10 @@ class TrainerCotraining(Trainer):
                lr_decay_steps_cls=None,
                lr_decay_rate_agr=None,
                lr_decay_steps_agr=None,
-               load_from_checkpoint=False):
+               load_from_checkpoint=False,
+               use_graph=False,
+               always_agree=False,
+               add_negative_edges_agr=False):
     assert not enable_summaries or (enable_summaries and
                                     summary_dir is not None)
     assert checkpoints_step is None or (checkpoints_step is not None and
@@ -317,6 +325,8 @@ class TrainerCotraining(Trainer):
     self.lr_decay_rate_agr = lr_decay_rate_agr
     self.lr_decay_steps_agr = lr_decay_steps_agr
     self.load_from_checkpoint = load_from_checkpoint
+    self.use_graph = use_graph
+    self.always_agree = always_agree
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -461,7 +471,8 @@ class TrainerCotraining(Trainer):
             seed=self.seed,
             lr_decay_rate=self.lr_decay_rate_agr,
             lr_decay_steps=self.lr_decay_steps_agr,
-            lr_initial=self.learning_rate_agr)
+            lr_initial=self.learning_rate_agr,
+            use_graph=self.use_graph)
 
     if self.use_perfect_cls:
       # A perfect classification model used for debugging purposes.
@@ -502,7 +513,8 @@ class TrainerCotraining(Trainer):
             iter_cotrain=iter_cotrain,
             lr_decay_rate=self.lr_decay_rate_cls,
             lr_decay_steps=self.lr_decay_steps_cls,
-            lr_initial=self.learning_rate_cls)
+            lr_initial=self.learning_rate_cls,
+            use_graph=self.use_graph)
 
     # Create a saver which saves only the variables that we would need to
     # restore in case the training process is restarted.

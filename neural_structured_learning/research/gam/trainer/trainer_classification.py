@@ -37,7 +37,7 @@ class TrainerClassification(Trainer):
     is_train: A placeholder for a boolean value specyfing if the model is used
       for train or evaluation.
     data: A CotrainDataset object.
-    trainer_agr: A TrainerArgeement or TrainerPerfectAgreement object.
+    trainer_agr: A TrainerAgreement or TrainerPerfectAgreement object.
     optimizer: Optimizer used for training the classification model.
     batch_size: Batch size for used when training and evaluating the
       classification model.
@@ -103,6 +103,8 @@ class TrainerClassification(Trainer):
       iteration trains the original classification model (with no agreement
       term).
     seed: Seed used by all the random number generators in this class.
+    use_graph: Boolean specifying whether the agreement loss is applied to graph
+      edges, as opposed to random pairs of samples.
   """
 
   def __init__(self,
@@ -139,7 +141,8 @@ class TrainerClassification(Trainer):
                use_l2_classif=True,
                seed=None,
                lr_decay_steps=None,
-               lr_decay_rate=None):
+               lr_decay_rate=None,
+               use_graph=False):
     super(TrainerClassification, self).__init__(
         model=model,
         abs_loss_chg_tol=abs_loss_chg_tol,
@@ -174,6 +177,8 @@ class TrainerClassification(Trainer):
     self.lr_initial = lr_initial
     self.lr_decay_steps = lr_decay_steps
     self.lr_decay_rate = lr_decay_rate
+    self.use_graph = use_graph
+
     # Build TensorFlow graph.
     logging.info('Building classification TensorFlow graph...')
 
@@ -584,6 +589,50 @@ class TrainerClassification(Trainer):
       yield (indices_src, indices_tgt, features_src, features_tgt,
              labels_src, labels_tgt)
 
+  def edge_iterator(self, data, batch_size, labeling):
+    """An iterator over graph edges.
+
+    Args:
+      data: A CotrainDataset object used to extract the features and labels.
+      batch_size:  An integer representing the desired batch size.
+      labeling: A string which can be `ll`, `lu` or `uu`, that is used to
+        represent the type of edges to return, where `ll` refers to
+        labeled-labeled, `lu` refers to labeled-unlabeled, and `uu` refers to
+        unlabeled-unlabeled.
+
+    Yields:
+      indices_src, indices_tgt, features_src, features_tgt, labels_src,
+      labels_tgt
+    """
+    if labeling == 'll':
+      edges = data.get_edges(src_labeled=True, tgt_labeled=True,
+                             label_must_match=True)
+    elif labeling == 'lu':
+      edges = (data.get_edges(src_labeled=True, tgt_labeled=False) +
+               data.get_edges(src_labeled=False, tgt_labeled=True))
+    elif labeling == 'uu':
+      edges = data.get_edges(src_labeled=False, tgt_labeled=False)
+    else:
+      raise ValueError('Unsupported value for parameter `labeling`.')
+
+    edges = np.stack([(e.src, e.tgt) for e in edges])
+    iterator = batch_iterator(
+      inputs=edges,
+      batch_size=batch_size,
+      shuffle=True,
+      allow_smaller_batch=False,
+      repeat=True)
+
+    for edge in iterator:
+      indices_src = edge[:, 0]
+      indices_tgt = edge[:, 1]
+      features_src = data.get_features(indices_src)
+      features_tgt = data.get_features(indices_tgt)
+      labels_src = data.get_labels(indices_src)
+      labels_tgt = data.get_labels(indices_tgt)
+      yield (indices_src, indices_tgt, features_src, features_tgt,
+             labels_src, labels_tgt)
+
   def _evaluate(self, indices, split, session, summary_writer):
     """Evaluates the samples with the provided indices."""
     data_iterator_val = batch_iterator(
@@ -632,7 +681,6 @@ class TrainerClassification(Trainer):
 
     if not self.is_initialized:
       self.is_initialized = True
-      logging.info('Weight decay value: %f', session.run(self.weight_decay_var))
     else:
       if self.weight_decay_update is not None:
         session.run(self.weight_decay_update)
@@ -661,12 +709,20 @@ class TrainerClassification(Trainer):
         allow_smaller_batch=False,
         repeat=True)
     # Create iterators for ll, lu, uu pairs of samples for the agreement term.
-    pair_ll_iterator = self.pair_iterator(
-        train_indices, train_indices, self.num_pairs_reg, data)
-    pair_lu_iterator = self.pair_iterator(
-        train_indices, unlabeled_indices, self.num_pairs_reg, data)
-    pair_uu_iterator = self.pair_iterator(
-        unlabeled_indices, unlabeled_indices, self.num_pairs_reg, data)
+    if self.use_graph:
+      pair_ll_iterator = self.edge_iterator(
+        data, batch_size=self.num_pairs_reg, labeling='ll')
+      pair_lu_iterator = self.edge_iterator(
+        data, batch_size=self.num_pairs_reg, labeling='lu')
+      pair_uu_iterator = self.edge_iterator(
+        data, batch_size=self.num_pairs_reg, labeling='uu')
+    else:
+      pair_ll_iterator = self.pair_iterator(
+          train_indices, train_indices, self.num_pairs_reg, data)
+      pair_lu_iterator = self.pair_iterator(
+          train_indices, unlabeled_indices, self.num_pairs_reg, data)
+      pair_uu_iterator = self.pair_iterator(
+          unlabeled_indices, unlabeled_indices, self.num_pairs_reg, data)
 
     step = 0
     iter_below_tol = 0
@@ -699,9 +755,7 @@ class TrainerClassification(Trainer):
 
       # Evaluate, if necessary.
       if step % self.eval_step == 0:
-        logging.info('Evaluating on %d validation samples...', len(val_indices))
         val_acc = self._evaluate(val_indices, 'val', session, summary_writer)
-        logging.info('Evaluating on %d test samples...', len(test_indices))
         test_acc = self._evaluate(test_indices, 'test', session, summary_writer)
 
         if step % self.logging_step == 0 or val_acc > best_val_acc:

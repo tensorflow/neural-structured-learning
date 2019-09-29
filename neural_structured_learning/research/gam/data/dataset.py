@@ -12,106 +12,105 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Data containers for Graph Agreement Models."""
-import abc
 import collections
 import logging
 import os
 import pickle
+import scipy
 
 import numpy as np
 import tensorflow as tf
 
+from gam.data.preprocessing import split_train_val
+
 
 class Dataset(object):
-  """Interface for different types of datasets."""
-  __metaclass__ = abc.ABCMeta
-
-  @abc.abstractmethod
-  def num_train(self):
-    pass
-
-  @abc.abstractmethod
-  def num_val(self):
-    pass
-
-  @abc.abstractmethod
-  def num_test(self):
-    pass
-
-  @abc.abstractmethod
-  def num_unlabeled(self):
-    pass
-
-  @abc.abstractmethod
-  def copy_labels(self):
-    pass
-
-  def save_to_pickle(self, file_path):
-    pickle.dump(self, open(file_path, 'w'))
-
-  @staticmethod
-  def load_from_pickle(file_path):
-    dataset = pickle.load(open(file_path, 'r'))
-    return dataset
-
-
-class FixedDataset(Dataset):
-  """A dataset containing features of fixed size.
+  """A container for datasets.
 
   In this dataset, each sample has the same number of features.
   This class manages different splits of the data for train, validation, test
   and unlabeled. These sets of samples are disjoint.
   """
 
-  def __init__(self,
-               x_train,
-               y_train,
-               x_val,
-               y_val,
-               x_test,
-               y_test,
-               x_unlabeled,
-               y_unlabeled=None,
-               num_classes=None,
+  def __init__(self, name, features, labels, indices_train, indices_test,
+               indices_val, indices_unlabeled, num_classes=None,
                feature_preproc_fn=lambda x: x):
-    n_train = x_train.shape[0]
-    n_val = x_val.shape[0]
-    n_test = x_test.shape[0]
-    n_unlabeled = x_unlabeled.shape[0]
+    self.name = name
+    self.features = features
+    self.labels = labels
 
-    if y_unlabeled is None:
-      y_unlabeled = np.zeros(shape=(n_unlabeled,), dtype=y_train.dtype)
-
-    # Concatenate samples.
-    self.features = np.concatenate((x_train, x_val, x_unlabeled, x_test))
-    self.labels = np.concatenate((y_train, y_val, y_unlabeled, y_test))
-
-    self._num_features = np.prod(self.features.shape[1:])
-    self._num_classes = 1 + max(self.labels) if num_classes is None else \
-                        num_classes
-    self._num_samples = n_train + n_val + n_unlabeled + n_test
-
-    self.indices_train = np.arange(n_train)
-    self.indices_val = np.arange(n_train, n_train+n_val)
-    self.indices_unlabeled = np.arange(n_train+n_val, n_train+n_val+n_unlabeled)
-    self.indices_test = np.arange(n_train+n_val+n_unlabeled, self._num_samples)
-
+    self.indices_train = indices_train
+    self.indices_val = indices_val
+    self.indices_test = indices_test
+    self.indices_unlabeled = indices_unlabeled
     self.feature_preproc_fn = feature_preproc_fn
+
+    self.num_val = self.indices_val.shape[0]
+    self.num_test = self.indices_test.shape[0]
+
+    self.num_samples = labels.shape[0]
+    self.features_shape = features.shape[1:]
+    self.num_features = np.prod(features.shape[1:])
+    self.num_classes = 1 + max(labels) if num_classes is None else num_classes
+
+  @staticmethod
+  def build_from_splits(name, inputs_train, labels_train, inputs_val,
+                        labels_val, inputs_test, labels_test, inputs_unlabeled,
+                        labels_unlabeled=None, num_classes=None,
+                        feature_preproc_fn=lambda x: x):
+    num_train = inputs_train.shape[0]
+    num_val = inputs_val.shape[0]
+    num_unlabeled = inputs_unlabeled.shape[0]
+    num_test = inputs_test.shape[0]
+
+    if labels_unlabeled is None:
+      labels_unlabeled = np.zeros(shape=(num_unlabeled,),
+                                  dtype=labels_train[0].dtype)
+    features = np.concatenate(
+      (inputs_train, inputs_val, inputs_unlabeled, inputs_test))
+    labels = np.concatenate(
+      (labels_train, labels_val, labels_unlabeled, labels_test))
+
+    indices_train = np.arange(num_train)
+    indices_val = np.arange(num_train, num_train+num_val)
+    indices_unlabeled = np.arange(num_train+num_val,
+                                  num_train+num_val+num_unlabeled)
+    indices_test = np.arange(num_train+num_val+num_unlabeled,
+                             num_train+num_val+num_unlabeled+num_test)
+
+    return Dataset(name=name,
+                   features=features,
+                   labels=labels,
+                   indices_train=indices_train,
+                   indices_test=indices_test,
+                   indices_val=indices_val,
+                   indices_unlabeled=indices_unlabeled,
+                   num_classes=num_classes,
+                   feature_preproc_fn=feature_preproc_fn)
+
+  @staticmethod
+  def build_from_features(name, features, labels, indices_train, indices_test,
+                          indices_val=None, indices_unlabeled=None,
+                          percent_val=0.2, seed=None, num_classes=None,
+                          feature_preproc_fn=lambda x: x):
+    if indices_val is None:
+      rng = np.random.RandomState(seed=seed)
+      indices_train, indices_val = split_train_val(
+        np.arange(indices_train.shape[0]), percent_val, rng)
+
+    return Dataset(name=name,
+                   features=features,
+                   labels=labels,
+                   indices_train=indices_train,
+                   indices_test=indices_test,
+                   indices_val=indices_val,
+                   indices_unlabeled=indices_unlabeled,
+                   num_classes=num_classes,
+                   feature_preproc_fn=feature_preproc_fn)
+
 
   def copy_labels(self):
     return np.copy(self.labels)
-
-  def update_labels(self, indices_samples, new_labels):
-    """Updates the labels of the samples with the provided indices.
-
-    Arguments:
-      indices_samples: A list of integers representing sample indices.
-      new_labels: A list of integers representing the new labels of th samples
-        in indices_samples.
-    """
-    indices_samples = np.asarray(indices_samples)
-    new_labels = np.asarray(new_labels)
-    self.labels[indices_samples] = new_labels
 
   def get_features(self, indices):
     """Returns the features of the samples with the provided indices."""
@@ -121,23 +120,6 @@ class FixedDataset(Dataset):
 
   def get_labels(self, indices):
     return self.labels[indices]
-
-  @property
-  def num_features(self):
-    return self._num_features
-
-  @property
-  def features_shape(self):
-    """Returns the shape of the input features, not including batch size."""
-    return self.features.shape[1:]
-
-  @property
-  def num_classes(self):
-    return self._num_classes
-
-  @property
-  def num_samples(self):
-    return self._num_samples
 
   def num_train(self):
     return self.indices_train.shape[0]
@@ -181,13 +163,134 @@ class FixedDataset(Dataset):
     # indices, without checking if they already exist.
     self.indices_train = np.concatenate((self.indices_train, indices_samples),
                                         axis=0)
-    #  Remove the recently labeled samples from the unlabeled set.
+    # Remove the recently labeled samples from the unlabeled set.
     indices_samples = set(indices_samples)
     self.indices_unlabeled = np.asarray(
         [u for u in self.indices_unlabeled if u not in indices_samples])
 
+  def update_labels(self, indices, new_labels):
+    """Updates the labels of the samples with the provided indices.
 
-class CotrainDataset(Dataset):
+    Arguments:
+      indices: A list of integers representing sample indices.
+      new_labels: A list of integers representing the new labels of th samples
+        in indices_samples.
+    """
+    indices = np.asarray(indices)
+    new_labels = np.asarray(new_labels)
+    self.labels[indices] = new_labels
+
+  def save_to_pickle(self, file_path):
+    pickle.dump(self, open(file_path, 'w'))
+
+  @staticmethod
+  def load_from_pickle(file_path):
+    dataset = pickle.load(open(file_path, 'r'))
+    return dataset
+
+
+class GraphDataset(Dataset):
+  """Data container for SSL datasets."""
+  class Edge(object):
+    def __init__(self, src, tgt, weight=None):
+      self.src = src
+      self.tgt = tgt
+      self.weight = weight
+
+  def __init__(self, name, features, labels, edges, indices_train, indices_test,
+               indices_val=None, indices_unlabeled=None, percent_val=0.2,
+               seed=None, num_classes=None, feature_preproc_fn=lambda x: x):
+    self.edges = edges
+
+    if indices_val is None:
+      rng = np.random.RandomState(seed=seed)
+      indices_train, indices_val = split_train_val(
+        np.arange(indices_train.shape[0]), percent_val, rng)
+
+    super().__init__(
+      name=name,
+      features=features,
+      labels=labels,
+      indices_train=indices_train,
+      indices_test=indices_test,
+      indices_val=indices_val,
+      indices_unlabeled=indices_unlabeled,
+      num_classes=num_classes,
+      feature_preproc_fn=feature_preproc_fn)
+
+  def get_edges(self, src_labeled=None, tgt_labeled=None,
+                label_must_match=False):
+    labeled_mask = np.full((self.num_samples,), False)
+    labeled_mask[self.get_indices_train()] = True
+
+    def _labeled_cond(idx, is_labeled):
+      return (is_labeled is None) or (is_labeled == labeled_mask[idx])
+
+    def _agreement_cond(edge):
+      return self.get_labels(edge.src) == self.get_labels(edge.tgt)
+
+    agreement_cond = _agreement_cond if label_must_match else lambda e: True
+
+    return [e for e in self.edges
+            if _labeled_cond(e.src, src_labeled) and \
+            _labeled_cond(e.tgt, tgt_labeled) and \
+            agreement_cond(e)]
+
+
+class PlanetoidDataset(GraphDataset):
+  """Data container for Planetoid datasets."""
+
+  def __init__(self, name, adj, features, train_mask, val_mask, test_mask,
+               labels, row_normalize=False):
+
+    # Extract train, val, test, unlabeled indices.
+    train_indices = np.where(train_mask)[0]
+    test_indices = np.where(test_mask)[0]
+    val_indices = np.where(val_mask)[0]
+    unlabeled_mask = np.logical_not(train_mask | test_mask | val_mask)
+    unlabeled_indices = np.where(unlabeled_mask)[0]
+
+    # Extract node features.
+    if row_normalize:
+      features = self.preprocess_features(features)
+    else:
+      features = features.todense()
+    features = np.float32(features)
+
+    # Extract labels.
+    labels = np.argmax(labels, axis=-1)
+    num_classes = max(labels) + 1
+
+    # Extract edges.
+    adj = scipy.sparse.coo_matrix(adj)
+    edges = [self.Edge(src, tgt, val)
+             for src, tgt, val in zip(adj.row, adj.col, adj.data)]
+
+    # Convert to Dataset format.
+    super().__init__(
+      name=name,
+      features=features,
+      labels=labels,
+      edges=edges,
+      indices_train=train_indices,
+      indices_test=test_indices,
+      indices_val=val_indices,
+      indices_unlabeled=unlabeled_indices,
+      num_classes=num_classes,
+      feature_preproc_fn=lambda x: x)
+
+  @staticmethod
+  def preprocess_features(features):
+    """Row-normalize feature matrix."""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = scipy.sparse.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return features.todense()
+
+
+class CotrainDataset(object):
   """A wrapper around a Dataset object, adding co-training functionality.
 
   Attributes:
@@ -430,3 +533,10 @@ class CotrainDataset(Dataset):
 
   def copy_labels(self):
     return self.dataset.copy_labels()
+
+  def get_edges(self, src_labeled=None, tgt_labeled=None,
+                label_must_match=False):
+    return self.dataset.get_edges(
+      src_labeled=src_labeled,
+      tgt_labeled=tgt_labeled,
+      label_must_match=label_must_match)
