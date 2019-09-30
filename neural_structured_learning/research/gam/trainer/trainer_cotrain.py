@@ -32,6 +32,7 @@ import os
 
 from gam.data.dataset import CotrainDataset
 from gam.trainer.trainer_agreement import TrainerAgreement
+from gam.trainer.trainer_agreement import TrainerAgreementAlwaysAgree
 from gam.trainer.trainer_agreement import TrainerPerfectAgreement
 from gam.trainer.trainer_base import Trainer
 from gam.trainer.trainer_classification import TrainerClassification
@@ -443,38 +444,41 @@ class TrainerCotraining(Trainer):
       trainer_agr = TrainerPerfectAgreement(data=data)
     else:
       with tf.variable_scope('AgreementModel'):
-        trainer_agr = TrainerAgreement(
-            model=self.model_agr,
-            data=data,
-            optimizer=self.optimizer,
-            gradient_clip=self.gradient_clip,
-            min_num_iter=self.min_num_iter_agr,
-            max_num_iter=self.max_num_iter_agr,
-            num_iter_after_best_val=self.num_iter_after_best_val_agr,
-            max_num_iter_cotrain=self.max_num_iter_cotrain,
-            num_warm_up_iter=self.num_warm_up_iter_agr,
-            warm_start=self.warm_start_agr,
-            batch_size=self.batch_size_agr,
-            enable_summaries=self.enable_summaries_per_model,
-            summary_step=self.summary_step_agr,
-            summary_dir=self.summary_dir,
-            logging_step=self.logging_step_agr,
-            eval_step=self.eval_step_agr,
-            abs_loss_chg_tol=self.abs_loss_chg_tol,
-            rel_loss_chg_tol=self.rel_loss_chg_tol,
-            loss_chg_iter_below_tol=self.loss_chg_iter_below_tol,
-            checkpoints_dir=self.checkpoints_dir,
-            weight_decay=self.weight_decay_agr,
-            weight_decay_schedule=self.weight_decay_schedule_agr,
-            agree_by_default=False,
-            percent_val=self.ratio_valid_agr,
-            max_num_samples_val=self.max_samples_valid_agr,
-            seed=self.seed,
-            lr_decay_rate=self.lr_decay_rate_agr,
-            lr_decay_steps=self.lr_decay_steps_agr,
-            lr_initial=self.learning_rate_agr,
-            use_graph=self.use_graph,
-            add_negative_edges=self.add_negative_edges_agr)
+        if self.always_agree:
+          trainer_agr = TrainerAgreementAlwaysAgree(data=data)
+        else:
+          trainer_agr = TrainerAgreement(
+              model=self.model_agr,
+              data=data,
+              optimizer=self.optimizer,
+              gradient_clip=self.gradient_clip,
+              min_num_iter=self.min_num_iter_agr,
+              max_num_iter=self.max_num_iter_agr,
+              num_iter_after_best_val=self.num_iter_after_best_val_agr,
+              max_num_iter_cotrain=self.max_num_iter_cotrain,
+              num_warm_up_iter=self.num_warm_up_iter_agr,
+              warm_start=self.warm_start_agr,
+              batch_size=self.batch_size_agr,
+              enable_summaries=self.enable_summaries_per_model,
+              summary_step=self.summary_step_agr,
+              summary_dir=self.summary_dir,
+              logging_step=self.logging_step_agr,
+              eval_step=self.eval_step_agr,
+              abs_loss_chg_tol=self.abs_loss_chg_tol,
+              rel_loss_chg_tol=self.rel_loss_chg_tol,
+              loss_chg_iter_below_tol=self.loss_chg_iter_below_tol,
+              checkpoints_dir=self.checkpoints_dir,
+              weight_decay=self.weight_decay_agr,
+              weight_decay_schedule=self.weight_decay_schedule_agr,
+              agree_by_default=False,
+              percent_val=self.ratio_valid_agr,
+              max_num_samples_val=self.max_samples_valid_agr,
+              seed=self.seed,
+              lr_decay_rate=self.lr_decay_rate_agr,
+              lr_decay_steps=self.lr_decay_steps_agr,
+              lr_initial=self.learning_rate_agr,
+              use_graph=self.use_graph,
+              add_negative_edges=self.add_negative_edges_agr)
 
     if self.use_perfect_cls:
       # A perfect classification model used for debugging purposes.

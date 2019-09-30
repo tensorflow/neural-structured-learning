@@ -1119,3 +1119,71 @@ class TrainerPerfectAgreement(object):
       acc /= len(indices)
     logging.info('Majority vote accuracy: %.2f.', acc)
     return acc
+
+class TrainerAgreementAlwaysAgree(object):
+  """Trainer for an agreement model that always predicts that samples agree.
+
+  The goal of this class is to simulate the behavior of the Neural Graph
+  Machines model, which assumes that two nodes connected by a graph
+  always have the same label.
+  """
+
+  def __init__(self, data, **unused_kwargs):
+    self.data = data
+    self.vars_to_save = []
+
+  def train(self, *unused_args, **unused_kwargs):
+    logging.info('Using NGM, agreement always returns 1. no need to train...')
+
+  def predict(self, unused_session, unused_src_features, unused_tgt_features,
+              src_indices, tgt_indices):
+    """Predict agreement for the provided pairs of samples.
+
+    The function contains many unused arguments, in order to conform with the
+    interface of the TrainerAgreement class.
+
+    Arguments:
+      unused_session: A TensorFlow session where to run the model.
+      unused_src_features: An array of shape (num_samples, num_features)
+        containing the features of the first element of the pair.
+      unused_tgt_features: An array of shape (num_samples, num_features)
+        containing the features of the second element of the pair.
+      src_indices: An array of integers containing the index of each sample in
+        self.data of the samples in src_features.
+      tgt_indices: An array of integers containing the index of each sample in
+        self.data of the samples in tgt_features.
+
+    Returns:
+      An array containing the predicted agreement value for each pair of
+      provided samples.
+    """
+    num_samples = src_indices.shape[0]
+    return np.ones((num_samples,), dtype=np.float32)
+
+  def create_agreement_prediction(self, src_indices, *unused_args,
+                                  **unused_kwargs):
+    """Creates the agreement prediction TensorFlow subgraph.
+
+    This function is the equivalent of `create_agreement_prediction` in
+    TrainerAgreement, but here we always predict 1.0.
+
+    Arguments:
+      src_indices: A Tensor or Placeholder of shape (batch_size,)
+        containing the indices of the samples that are the sources of the edges.
+      unused_args: Other unused arguments, which we allow in order to
+        create a common interface with TrainerAgreement.
+      unused_kwargs: Other unused keyword arguments, which we allow in order to
+        create a common interface with TrainerAgreement.
+    Returns:
+      predictions: None, because this model doesn't do logits computations, but
+        we still return something in order to keep the same function outputs as
+        TrainerAgreement.
+      normalized_predictions: A Tensor of shape (batch_size,) with values in
+        {0, 1}, containing the agreement prediction probabilities.
+      variables: An empty dictionary of trainable variables, because this model
+        does not have any trainable variables.
+      reg_params: An empty dictionary of variables that are used in the
+        regularization weight decay term, because this model doesn't have
+        regularization variables.
+    """
+    return None, tf.ones((tf.shape(src_indices)[0],), tf.float32), {}, {}
