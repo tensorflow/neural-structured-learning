@@ -69,14 +69,13 @@ class TrainerClassification(Trainer):
     summary_step: Integer representing the summary step size.
     summary_dir: String representing the path to a directory where to save the
       variable summaries.
-    logging_step: Integer representing the number of iterations after which
-      we log the loss of the model.
+    logging_step: Integer representing the number of iterations after which we
+      log the loss of the model.
     eval_step: Integer representing the number of iterations after which we
       evaluate the model.
-    warm_start: Whether the model parameters are initialized at their
-      best value in the previous cotrain iteration. If False, they are
-      reinitialized.
-    gradient_clip=None,
+    warm_start: Whether the model parameters are initialized at their best value
+      in the previous cotrain iteration. If False, they are reinitialized.
+      gradient_clip=None,
     abs_loss_chg_tol: A float representing the absolute tolerance for checking
       if the training loss has converged. If the difference between the current
       loss and previous loss is less than `abs_loss_chg_tol`, we count this
@@ -89,8 +88,8 @@ class TrainerClassification(Trainer):
       iterations that pass the convergence criteria before stopping training.
     checkpoints_dir: Path to the folder where to store TensorFlow model
       checkpoints.
-    weight_decay: Weight for the weight decay term in the classification
-      model loss.
+    weight_decay: Weight for the weight decay term in the classification model
+      loss.
     weight_decay_schedule: Schedule how to adjust the classification weight
       decay weight after every cotrain iteration.
     penalize_neg_agr: Whether to not only encourage agreement between samples
@@ -159,8 +158,9 @@ class TrainerClassification(Trainer):
     self.gradient_clip = gradient_clip
     self.logging_step = logging_step
     self.eval_step = eval_step
-    self.checkpoint_path = (os.path.join(checkpoints_dir, 'classif_best.ckpt')
-                            if checkpoints_dir is not None else None)
+    self.checkpoint_path = (
+        os.path.join(checkpoints_dir, 'classif_best.ckpt')
+        if checkpoints_dir is not None else None)
     self.weight_decay_initial = weight_decay
     self.weight_decay_schedule = weight_decay_schedule
     self.num_pairs_reg = num_pairs_reg
@@ -181,11 +181,11 @@ class TrainerClassification(Trainer):
     # First obtain the features shape from the dataset, and append a batch_size
     # dimension to it (i.e., `None` to allow for variable batch size).
     features_shape = [None] + list(data.features_shape)
-    input_features = tf.placeholder(tf.float32, shape=features_shape,
-                                    name='input_features')
+    input_features = tf.placeholder(
+        tf.float32, shape=features_shape, name='input_features')
     input_labels = tf.placeholder(tf.int64, shape=(None,), name='input_labels')
-    one_hot_labels = tf.one_hot(input_labels, data.num_classes,
-                                name='input_labels_one_hot')
+    one_hot_labels = tf.one_hot(
+        input_labels, data.num_classes, name='input_labels_one_hot')
     # Create a placeholder specifying if this is train time.
     is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
 
@@ -196,8 +196,8 @@ class TrainerClassification(Trainer):
       self.variables = variables
       self.reg_params = reg_params
       predictions, variables, reg_params = (
-          self.model.get_predictions_and_params(encoding=encoding,
-                                                is_train=is_train))
+          self.model.get_predictions_and_params(
+              encoding=encoding, is_train=is_train))
       self.variables.update(variables)
       self.reg_params.update(reg_params)
       normalized_predictions = self.model.normalize_predictions(predictions)
@@ -216,8 +216,8 @@ class TrainerClassification(Trainer):
         loss_supervised = tf.reduce_sum(loss_supervised, axis=-1)
         loss_supervised = tf.reduce_mean(loss_supervised)
       else:
-        loss_supervised = self.model.get_loss(predictions=predictions,
-                                              targets=one_hot_labels)
+        loss_supervised = self.model.get_loss(
+            predictions=predictions, targets=one_hot_labels, weight_decay=None)
 
       # Agreement regularization loss.
       loss_agr = self._get_agreement_reg_loss(data, is_train, features_shape)
@@ -229,8 +229,9 @@ class TrainerClassification(Trainer):
 
       # Weight decay loss.
       loss_reg = 0.0
-      for var in reg_params.values():
-        loss_reg += weight_decay_var * tf.nn.l2_loss(var)
+      if weight_decay_var is not None:
+        for var in reg_params.values():
+          loss_reg += weight_decay_var * tf.nn.l2_loss(var)
 
       # Total loss.
       loss_op = loss_supervised + loss_agr + loss_reg
@@ -272,8 +273,12 @@ class TrainerClassification(Trainer):
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
       grads_and_vars = tuple(zip(gradients, variab))
-    train_op = self.optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step)
+    with tf.control_dependencies(
+        tf.get_collection(
+            tf.GraphKeys.UPDATE_OPS,
+            scope=tf.get_default_graph().get_name_scope())):
+      train_op = self.optimizer.apply_gradients(
+          grads_and_vars, global_step=self.global_step)
 
     # Create a saver for model variables.
     trainable_vars = [v for _, v in grads_and_vars]
@@ -320,8 +325,11 @@ class TrainerClassification(Trainer):
     weight_decay_var = None
     weight_decay_update = None
     if weight_decay_schedule is None:
-      weight_decay_var = tf.constant(
-          weight_decay_initial, dtype=tf.float32, name='weight_decay')
+      if weight_decay_initial is not None:
+        weight_decay_var = tf.constant(
+            weight_decay_initial, dtype=tf.float32, name='weight_decay')
+      else:
+        weight_decay_var = None
     elif weight_decay_schedule == 'linear':
       weight_decay_var = tf.get_variable(
           name='weight_decay',
@@ -393,32 +401,28 @@ class TrainerClassification(Trainer):
 
     with tf.variable_scope('predictions', reuse=True):
       encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_ll_right, is_train=is_train,
-          update_batch_stats=False)
+          inputs=features_ll_right, is_train=is_train, update_batch_stats=False)
       predictions_ll_right, _, _ = self.model.get_predictions_and_params(
           encoding=encoding, is_train=is_train)
       predictions_ll_right = self.model.normalize_predictions(
           predictions_ll_right)
 
       encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_lu_right, is_train=is_train,
-          update_batch_stats=False)
+          inputs=features_lu_right, is_train=is_train, update_batch_stats=False)
       predictions_lu_right, _, _ = self.model.get_predictions_and_params(
           encoding=encoding, is_train=is_train)
       predictions_lu_right = self.model.normalize_predictions(
           predictions_lu_right)
 
       encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_uu_left, is_train=is_train,
-          update_batch_stats=False)
+          inputs=features_uu_left, is_train=is_train, update_batch_stats=False)
       predictions_uu_left, _, _ = self.model.get_predictions_and_params(
           encoding=encoding, is_train=is_train)
       predictions_uu_left = self.model.normalize_predictions(
           predictions_uu_left)
 
       encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_uu_right, is_train=is_train,
-          update_batch_stats=False)
+          inputs=features_uu_right, is_train=is_train, update_batch_stats=False)
       predictions_uu_right, _, _ = self.model.get_predictions_and_params(
           encoding=encoding, is_train=is_train)
       predictions_uu_right = self.model.normalize_predictions(
@@ -429,8 +433,8 @@ class TrainerClassification(Trainer):
     # Stop gradients need to be added
     # The case where there are no more uu or lu
     # edges at the end of training, so the shapes don't match needs fixing.
-    left = tf.concat(
-        (labels_ll_left, labels_lu_left, predictions_uu_left), axis=0)
+    left = tf.concat((labels_ll_left, labels_lu_left, predictions_uu_left),
+                     axis=0)
     right = tf.concat(
         (predictions_ll_right, predictions_lu_right, predictions_uu_right),
         axis=0)
@@ -442,18 +446,22 @@ class TrainerClassification(Trainer):
     agreement_ll = tf.cast(
         tf.equal(labels_ll_left_idx, labels_ll_right_idx), dtype=tf.float32)
     _, agreement_lu, _, _ = self.trainer_agr.create_agreement_prediction(
-        src_features=features_lu_left, tgt_features=features_lu_right,
-        is_train=is_train, src_indices=indices_lu_left,
+        src_features=features_lu_left,
+        tgt_features=features_lu_right,
+        is_train=is_train,
+        src_indices=indices_lu_left,
         tgt_indices=indices_lu_right)
     _, agreement_uu, _, _ = self.trainer_agr.create_agreement_prediction(
-        src_features=features_uu_left, tgt_features=features_uu_right,
-        is_train=is_train, src_indices=indices_uu_left,
+        src_features=features_uu_left,
+        tgt_features=features_uu_right,
+        is_train=is_train,
+        src_indices=indices_uu_left,
         tgt_indices=indices_uu_right)
     agreement = tf.concat((agreement_ll, agreement_lu, agreement_uu), axis=0)
     if self.penalize_neg_agr:
       # Since the agreement is predicting scores between [0, 1], anything
       # under 0.5 should represent disagreement. Therefore, we want to encourage
-      # agreement whenever the score is > 0.5, otherwise don't incurr any loss.
+      # agreement whenever the score is > 0.5, otherwise don't incur any loss.
       agreement = tf.nn.relu(agreement - 0.5)
 
       # Create a Tensor containing the weights assigned to each pair in the
@@ -463,10 +471,10 @@ class TrainerClassification(Trainer):
     num_ll = tf.shape(predictions_ll_right)[0]
     num_lu = tf.shape(predictions_lu_right)[0]
     num_uu = tf.shape(predictions_uu_left)[0]
-    weights = tf.concat((self.reg_weight_ll * tf.ones(num_ll,),
-                         self.reg_weight_lu * tf.ones(num_lu,),
-                         self.reg_weight_uu * tf.ones(num_uu,)),
-                        axis=0)
+    weights = tf.concat(
+        (self.reg_weight_ll * tf.ones(num_ll,), self.reg_weight_lu *
+         tf.ones(num_lu,), self.reg_weight_uu * tf.ones(num_uu,)),
+        axis=0)
 
     # Scale each distance by its agreement weight and regularzation weight.
     loss = tf.reduce_mean(dists * weights * agreement)
@@ -489,7 +497,7 @@ class TrainerClassification(Trainer):
 
   def _construct_feed_dict(self,
                            data_iterator,
-                           is_train,
+                           split,
                            pair_ll_iterator=None,
                            pair_lu_iterator=None,
                            pair_uu_iterator=None):
@@ -498,12 +506,13 @@ class TrainerClassification(Trainer):
       input_indices = next(data_iterator)
       # Select the labels. Use the true, correct labels, at test time, and the
       # self-labeled ones at train time.
-      labels = (self.data.get_labels(input_indices) if is_train else
-                self.data.get_original_labels(input_indices))
+      labels = (
+          self.data.get_original_labels(input_indices)
+          if split == 'test' else self.data.get_labels(input_indices))
       feed_dict = {
           self.input_features: self.data.get_features(input_indices),
           self.input_labels: labels,
-          self.is_train: is_train
+          self.is_train: split == 'train'
       }
       if pair_ll_iterator is not None:
         _, _, _, features_tgt, labels_src, labels_tgt = next(pair_ll_iterator)
@@ -573,8 +582,39 @@ class TrainerClassification(Trainer):
     while True:
       indices_src, features_src, labels_src = _select_from_pool(src_indices)
       indices_tgt, features_tgt, labels_tgt = _select_from_pool(tgt_indices)
-      yield (indices_src, indices_tgt, features_src, features_tgt,
-             labels_src, labels_tgt)
+      yield (indices_src, indices_tgt, features_src, features_tgt, labels_src,
+             labels_tgt)
+
+  def _evaluate(self, indices, split, session, summary_writer):
+    """Evaluates the samples with the provided indices."""
+    data_iterator_val = batch_iterator(
+        indices,
+        batch_size=self.batch_size,
+        shuffle=False,
+        allow_smaller_batch=True,
+        repeat=False)
+    feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
+    cummulative_acc = 0.0
+    num_samples = 0
+    while feed_dict_val is not None:
+      val_acc, batch_size_actual = session.run(
+          (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
+      cummulative_acc += val_acc * batch_size_actual
+      num_samples += batch_size_actual
+      feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
+    if num_samples > 0:
+      cummulative_acc /= num_samples
+
+    if self.enable_summaries:
+      summary = tf.Summary()
+      summary.value.add(
+          tag='ClassificationModel/' + split + '_acc',
+          simple_value=cummulative_acc)
+      iter_cls_total = session.run(self.iter_cls_total)
+      summary_writer.add_summary(summary, iter_cls_total)
+      summary_writer.flush()
+
+    return cummulative_acc
 
   def train(self, data, session=None, **kwargs):
     """Train the classification model on the provided dataset.
@@ -583,6 +623,7 @@ class TrainerClassification(Trainer):
       data: A CotrainDataset object.
       session: A TensorFlow session or None.
       **kwargs: Other keyword arguments.
+
     Returns:
       best_test_acc: A float representing the test accuracy at the iteration
         where the validation accuracy is maximum.
@@ -622,12 +663,12 @@ class TrainerClassification(Trainer):
         allow_smaller_batch=False,
         repeat=True)
     # Create iterators for ll, lu, uu pairs of samples for the agreement term.
-    pair_ll_iterator = self.pair_iterator(
-        train_indices, train_indices, self.num_pairs_reg, data)
-    pair_lu_iterator = self.pair_iterator(
-        train_indices, unlabeled_indices, self.num_pairs_reg, data)
-    pair_uu_iterator = self.pair_iterator(
-        unlabeled_indices, unlabeled_indices, self.num_pairs_reg, data)
+    pair_ll_iterator = self.pair_iterator(train_indices, train_indices,
+                                          self.num_pairs_reg, data)
+    pair_lu_iterator = self.pair_iterator(train_indices, unlabeled_indices,
+                                          self.num_pairs_reg, data)
+    pair_uu_iterator = self.pair_iterator(unlabeled_indices, unlabeled_indices,
+                                          self.num_pairs_reg, data)
 
     step = 0
     iter_below_tol = 0
@@ -638,14 +679,16 @@ class TrainerClassification(Trainer):
     best_val_acc = -1
     checkpoint_saved = False
     while not has_converged:
-      feed_dict = self._construct_feed_dict(data_iterator_train, True,
-                                            pair_ll_iterator, pair_lu_iterator,
-                                            pair_uu_iterator)
+      feed_dict = self._construct_feed_dict(
+          data_iterator=data_iterator_train,
+          split='train',
+          pair_ll_iterator=pair_ll_iterator,
+          pair_lu_iterator=pair_lu_iterator,
+          pair_uu_iterator=pair_uu_iterator)
       if self.enable_summaries and step % self.summary_step == 0:
-        loss_val, summary, _ = session.run(
-            [self.loss_op, self.summary_op, self.train_op],
+        loss_val, summary, iter_cls_total, _ = session.run(
+            [self.loss_op, self.summary_op, self.iter_cls_total, self.train_op],
             feed_dict=feed_dict)
-        iter_cls_total = session.run(self.iter_cls_total)
         summary_writer.add_summary(summary, iter_cls_total)
         summary_writer.flush()
       else:
@@ -657,49 +700,16 @@ class TrainerClassification(Trainer):
         logging.info('Classification step %6d | Loss: %10.4f', step, loss_val)
 
       # Evaluate, if necessary.
-      def _evaluate(indices, name):
-        """Evaluates the samples with the provided indices."""
-        data_iterator_val = batch_iterator(
-            indices,
-            batch_size=self.batch_size,
-            shuffle=False,
-            allow_smaller_batch=True,
-            repeat=False)
-        feed_dict_val = self._construct_feed_dict(data_iterator_val, False)
-        cummulative_acc = 0.0
-        num_samples = 0
-        while feed_dict_val is not None:
-          val_acc, batch_size_actual = session.run(
-              (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
-          cummulative_acc += val_acc * batch_size_actual
-          num_samples += batch_size_actual
-          feed_dict_val = self._construct_feed_dict(data_iterator_val, False)
-        if num_samples > 0:
-          cummulative_acc /= num_samples
-
-        if self.enable_summaries:
-          summary = tf.Summary()
-          summary.value.add(
-              tag='ClassificationModel/' + name + '_acc',
-              simple_value=cummulative_acc)
-          iter_cls_total = session.run(self.iter_cls_total)
-          summary_writer.add_summary(summary, iter_cls_total)
-          summary_writer.flush()
-
-        return cummulative_acc
-
-      # Run validation, if necessary.
       if step % self.eval_step == 0:
         logging.info('Evaluating on %d validation samples...', len(val_indices))
-        val_acc = _evaluate(val_indices, 'val_acc')
+        val_acc = self._evaluate(val_indices, 'val', session, summary_writer)
         logging.info('Evaluating on %d test samples...', len(test_indices))
-        test_acc = _evaluate(test_indices, 'test_acc')
+        test_acc = self._evaluate(test_indices, 'test', session, summary_writer)
 
         if step % self.logging_step == 0 or val_acc > best_val_acc:
           logging.info(
-              'Classification step %6d | Loss: %10.4f | '
-              'val_acc: %10.4f | test_acc: %10.4f', step, loss_val, val_acc,
-              test_acc)
+              'Classification step %6d | Loss: %10.4f | val_acc: %10.4f | '
+              'test_acc: %10.4f', step, loss_val, val_acc, test_acc)
         if val_acc > best_val_acc:
           best_val_acc = val_acc
           best_test_acc = test_acc
@@ -732,7 +742,7 @@ class TrainerClassification(Trainer):
 
     return best_test_acc, best_val_acc
 
-  def predict(self, session, indices):
+  def predict(self, session, indices, is_train):
     """Make predictions for the provided sample indices."""
     num_inputs = len(indices)
     idx_start = 0
@@ -743,7 +753,10 @@ class TrainerClassification(Trainer):
       input_features = self.data.get_features(batch_indices)
       batch_predictions = session.run(
           self.normalized_predictions,
-          feed_dict={self.input_features: input_features})
+          feed_dict={
+              self.input_features: input_features,
+              self.is_train: is_train
+          })
       predictions.append(batch_predictions)
       idx_start = idx_end
     if not predictions:
@@ -762,7 +775,7 @@ class TrainerPerfectClassification(Trainer):
     logging.info('Perfect classifier, no need to train...')
     return 1.0, 1.0
 
-  def predict(self, unused_session, indices_unlabeled):
+  def predict(self, unused_session, indices_unlabeled, **unused_kwargs):
     labels = self.data.get_original_labels(indices_unlabeled)
     num_samples = len(indices_unlabeled)
     predictions = np.zeros((num_samples, self.data.num_classes))

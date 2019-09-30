@@ -68,8 +68,8 @@ class TrainerAgreement(Trainer):
     summary_step: Integer representing the summary step size.
     summary_dir: String representing the path to a directory where to save the
       variable summaries.
-    logging_step: Integer representing the number of iterations after which
-      we log the loss of the model.
+    logging_step: Integer representing the number of iterations after which we
+      log the loss of the model.
     eval_step: Integer representing the number of iterations after which we
       evaluate the model.
     abs_loss_chg_tol: A float representing the absolute tolerance for checking
@@ -89,10 +89,10 @@ class TrainerAgreement(Trainer):
       checkpoints.
     weight_decay: Weight decay value.
     weight_decay_schedule: Schedule for the weight decay variable.
-    num_pairs_eval_random: Integer representing the number of pairs to use
-      for evaluation. These pairs are randomly drawn from all datasets,
-      including validation and test. This is only used for monitoring the
-      performance, but is not involved in training the agreement model.
+    num_pairs_eval_random: Integer representing the number of pairs to use for
+      evaluation. These pairs are randomly drawn from all datasets, including
+      validation and test. This is only used for monitoring the performance, but
+      is not involved in training the agreement model.
     agree_by_default: Boolean specifying whether to return agreement by default
       or disagreement by default when the agreement model is not warmed up.
     percent_val: Ratio of samples to use for validation.
@@ -127,7 +127,7 @@ class TrainerAgreement(Trainer):
                weight_decay_schedule=None,
                num_pairs_eval_random=1000,
                agree_by_default=False,
-               percent_val=0.2,
+               percent_val=0.1,
                max_num_samples_val=10000,
                seed=None,
                lr_decay_steps=None,
@@ -154,8 +154,9 @@ class TrainerAgreement(Trainer):
     self.eval_step = eval_step
     self.num_iter_trained = 0
     self.warm_start = warm_start
-    self.checkpoint_path = (os.path.join(checkpoints_dir, 'agree_best.ckpt')
-                            if checkpoints_dir is not None else None)
+    self.checkpoint_path = (
+        os.path.join(checkpoints_dir, 'agree_best.ckpt')
+        if checkpoints_dir is not None else None)
     self.weight_decay = weight_decay
     self.weight_decay_schedule = weight_decay_schedule
     self.num_pairs_eval_random = num_pairs_eval_random
@@ -221,15 +222,19 @@ class TrainerAgreement(Trainer):
     # Create train op.
     grads_and_vars = self.optimizer.compute_gradients(
         loss_op,
-        tf.trainable_variables())
+        tf.trainable_variables(scope=tf.get_default_graph().get_name_scope()))
     # Clip gradients.
     if self.gradient_clip:
       variab = [elem[1] for elem in grads_and_vars]
       gradients = [elem[0] for elem in grads_and_vars]
       gradients, _ = tf.clip_by_global_norm(gradients, self.gradient_clip)
       grads_and_vars = tuple(zip(gradients, variab))
-    train_op = self.optimizer.apply_gradients(
-        grads_and_vars, global_step=self.global_step)
+    with tf.control_dependencies(
+        tf.get_collection(
+            tf.GraphKeys.UPDATE_OPS,
+            scope=tf.get_default_graph().get_name_scope())):
+      train_op = self.optimizer.apply_gradients(
+          grads_and_vars, global_step=self.global_step)
 
     # Create Tensorboard summaries.
     if self.enable_summaries:
@@ -292,6 +297,7 @@ class TrainerAgreement(Trainer):
       is_train: A boolean Placeholder specifying if this a train or test regime.
       unused_kwargs: Other unused keyword arguments, which we allow in order to
         create a common interface with TrainerPerfectAgreement.
+
     Returns:
       predictions: A Tensor of shape (batch_size,) containing the agreement
         prediction logits.
@@ -312,16 +318,16 @@ class TrainerAgreement(Trainer):
     if self.original_var_scope is None:
       self.original_var_scope = tf.get_variable_scope()
       reuse = tf.AUTO_REUSE
-    with tf.variable_scope(self.original_var_scope, auxiliary_name_scope=False,
-                           reuse=reuse):
+    with tf.variable_scope(
+        self.original_var_scope, auxiliary_name_scope=False, reuse=reuse):
       # Create variables and predictions.
       # Can replace the encoding step once there is a shared
       # encoding between the classification and agreement model.
       encoding, variables, reg_params = self.model.get_encoding_and_params(
           inputs=(src_features, tgt_features), is_train=is_train)
       predictions, variables_pred, reg_params_pred = (
-          self.model.get_predictions_and_params(encoding=encoding,
-                                                is_train=is_train))
+          self.model.get_predictions_and_params(
+              encoding=encoding, is_train=is_train))
       variables.update(variables_pred)
       reg_params.update(reg_params_pred)
       normalized_predictions = self.model.normalize_predictions(predictions)
@@ -333,8 +339,11 @@ class TrainerAgreement(Trainer):
     weight_decay_var = None
     weight_decay_update = None
     if weight_decay_schedule is None:
-      weight_decay_var = tf.constant(
-          weight_decay_initial, dtype=tf.float32, name='weight_decay')
+      if weight_decay_initial is None:
+        weight_decay_var = None
+      else:
+        weight_decay_var = tf.constant(
+            weight_decay_initial, dtype=tf.float32, name='weight_decay')
     elif weight_decay_schedule == 'linear':
       weight_decay_var = tf.get_variable(
           name='weight_decay',
@@ -393,10 +402,10 @@ class TrainerAgreement(Trainer):
       acc: Total accuracy on random pairs of samples.
     """
     # Select at random num_pairs_eval_random pairs of nodes.
-    src_indices = self.rng.random_integers(
-        0, data.num_samples - 1, (self.num_pairs_eval_random,))
-    tgt_indices = self.rng.random_integers(
-        0, data.num_samples - 1, (self.num_pairs_eval_random,))
+    src_indices = self.rng.random_integers(0, data.num_samples - 1,
+                                           (self.num_pairs_eval_random,))
+    tgt_indices = self.rng.random_integers(0, data.num_samples - 1,
+                                           (self.num_pairs_eval_random,))
     src_features = data.get_features(src_indices)
     tgt_features = data.get_features(tgt_indices)
     src_labels = data.get_original_labels(src_indices)
@@ -405,109 +414,83 @@ class TrainerAgreement(Trainer):
     feed_dict = {
         self.src_features: src_features,
         self.tgt_features: tgt_features,
-        self.labels: agreement_labels.astype(np.float32)}
+        self.labels: agreement_labels.astype(np.float32)
+    }
     # Evaluate agreement.
     acc = session.run(self.accuracy, feed_dict=feed_dict)
     return acc
 
-  def _train_iterator(self, labeled_samples, neighbors_val, data,
-                      ratio_pos_to_neg=None):
-    """An iterator over pairs of samples for training the agreement model.
+  def _eval_train(self, session, feed_dict):
+    """Computes the accuracy of the predictions for the provided batch.
 
-    Provides batches of node pairs, including their features and the agreement
-    label (i.e. whether their labels agree). A set of validation pairs
-    is also provided to make sure those samples are not included in train.
+    This calculates the accuracy for both class 1 (agreement) and class 0
+    (disagreement).
 
     Arguments:
-      labeled_samples: An array of integers representing the indices of the
-        labeled nodes.
-      neighbors_val: An array of shape (num_samples, 2), where each row
-        represents a pair of sample indices used for validation.
-      data: A Dataset object used to provided the labels of the labeled samples.
-      ratio_pos_to_neg: A float representing the ratio of positive to negative
-        samples in the training set. If this is provided, the train iterator
-        will do rejection sampling based on this ratio to keep the training
-        data balanced. If None, we sample uniformly.
-    Yields:
-      neighbors_batch: An array of shape (batch_size, 2), where each row
-        represents a pair of sample indices used for training. It will not
-        include pairs of samples that are in the provided neighbors_val.
-      agreement_batch: An array of shape (batch_size,) with binary values,
-        where each row represents whether the labels of the corresponding
-        neighbor pair agree (1.0) or not (0.0).
-    """
-    neighbors_val = set([(pair[0], pair[1]) if pair[0] < pair[1] else
-                         (pair[1], pair[0]) for pair in neighbors_val])
-    neighbors_batch = np.empty(shape=(self.batch_size, 2), dtype=np.int32)
-    agreement_batch = np.empty(shape=(self.batch_size,), dtype=np.float32)
-    # TODO(otilastr): remove this. Temporary while fixing something.
-    # For sampling random pairs of samples very fast, we create two buffers,
-    # one containing elements for the left side of the pair, the other for the
-    # right side, and we go through them in parallel.
-    # buffer_left = np.copy(labeled_samples)
-    # buffer_right = np.copy(labeled_samples)
-    # idx_buffer = np.inf
-    # num_labeled = len(labeled_samples)
-    # while True:
-    #   num_added = 0
-    #   while num_added < self.batch_size:
-    #     if idx_buffer >= num_labeled:
-    #       idx_buffer = 0
-    #       self.rng.shuffle(buffer_left)
-    #       self.rng.shuffle(buffer_right)
-    #     pair = (buffer_left[idx_buffer], buffer_right[idx_buffer])
-    #     idx_buffer += 1
-    #     if pair[0] == pair[1]:
-    #       continue
-    #     ordered_pair = ((pair[0], pair[1]) if pair[0] < pair[1] else
-    #                     (pair[1], pair[0]))
-    #     if ordered_pair in neighbors_val:
-    #       continue
-    #     agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
-    #     if ratio_pos_to_neg is not None:
-    #       # To keep the positive and negatives balanced, do rejection sampling
-    #       # according to their ratio.
-    #       if ratio_pos_to_neg < 1 and not agreement:
-    #         # Reject a negative sample with some probability.
-    #         random_number = self.rng.rand(1)[0]
-    #         if random_number > ratio_pos_to_neg:
-    #           continue
-    #       elif ratio_pos_to_neg > 1 and agreement:
-    #         # Reject a positive sample with some probability.
-    #         random_number = self.rng.random()
-    #         if random_number > 1.0 / ratio_pos_to_neg:
-    #           continue
-    #     neighbors_batch[num_added][0] = pair[0]
-    #     neighbors_batch[num_added][1] = pair[1]
-    #     agreement_batch[num_added] = agreement
-    #     num_added += 1
-    #   yield neighbors_batch, agreement_batch
-    while True:
-      num_added = 0
-      while num_added < self.batch_size:
-        pair = self.rng.choice(labeled_samples, 2)
-        ordered_pair = (pair[0], pair[1]) if pair[0] < pair[1] else \
-                       (pair[1], pair[0])
-        if ordered_pair in neighbors_val:
-          continue
-        agreement = data.get_labels(pair[0]) == data.get_labels(pair[1])
-        if ratio_pos_to_neg is not None:
-          # Keep positives and negatives balanced.
-          if ratio_pos_to_neg < 1 and not agreement:
-            random_number = self.rng.rand(1)[0]
-            if random_number > ratio_pos_to_neg:
-              continue
-          elif ratio_pos_to_neg > 1 and agreement:
-            random_number = self.rng.rand(1)[0]
-            if random_number > 1.0 / ratio_pos_to_neg:
-              continue
-        neighbors_batch[num_added][0] = pair[0]
-        neighbors_batch[num_added][1] = pair[1]
-        agreement_batch[num_added] = agreement
-        num_added += 1
-      yield neighbors_batch, agreement_batch
+      session: A TensorFlow session.
+      feed_dict: A train feed dictionary.
 
-  def _select_val_set(self, labeled_samples, num_samples, data,
+    Returns:
+      The computed train accuracy.
+    """
+    train_acc, pred, targ = session.run(
+        (self.accuracy, self.normalized_predictions, self.labels),
+        feed_dict=feed_dict)
+    # Assume the threshold is at 0.5, and binarize the predictions.
+    binary_pred = pred > 0.5
+    targ = targ.astype(np.int32)
+    acc_per_sample = binary_pred == targ
+    acc_1 = acc_per_sample[targ == 1]
+    if acc_1.shape[0] > 0:
+      acc_1 = sum(acc_1) / np.float32(len(acc_1))
+    else:
+      acc_1 = -1
+    acc_0 = acc_per_sample[targ == 0]
+    if acc_0.shape[0] > 0:
+      acc_0 = sum(acc_0) / np.float32(len(acc_0))
+    else:
+      acc_0 = -1
+    logging.info('Train acc: %.2f. Acc class 1: %.2f. Acc class 0: %.2f',
+                 train_acc, acc_1, acc_0)
+    return train_acc
+
+  def _eval_validation(self, data, labeled_nodes_val, ratio_pos_to_neg,
+                       num_samples_val, session):
+    """Evaluate the current model on validation data.
+
+    Args:
+      data: A CotrainDataset object.
+      labeled_nodes_val: An array of indices of labeled nodes from which to
+        sample validation pairs.
+      ratio_pos_to_neg: The ratio of positive to negative samples, which is used
+        to keep the samples agreement pairs balanced.
+      num_samples_val: Number of sample pairs to use for validation. Since the
+        number of combinations of samples in `labeled_nodes_val` can be very
+        high, for validation we use only `num_samples_val` pairs.
+      session: A TensorFlow session.
+
+    Returns:
+      Total accuracy on random pairs of samples.
+    """
+    data_iterator_val = self._pair_iterator(
+        labeled_nodes_val, data, ratio_pos_neg=ratio_pos_to_neg)
+    feed_dict_val = self._construct_feed_dict(data_iterator_val, is_train=False)
+    cummulative_val_acc = 0.0
+    samples_seen = 0
+    while feed_dict_val is not None and samples_seen < num_samples_val:
+      val_acc, batch_size_actual = session.run(
+          (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
+      cummulative_val_acc += val_acc * batch_size_actual
+      samples_seen += batch_size_actual
+      feed_dict_val = self._construct_feed_dict(
+          data_iterator_val, is_train=False)
+    cummulative_val_acc /= samples_seen
+    return cummulative_val_acc
+
+  def _select_val_set(self,
+                      labeled_samples,
+                      num_samples,
+                      data,
                       ratio_pos_to_neg=None):
     """Select a validation set for the agreement model.
 
@@ -559,6 +542,7 @@ class TrainerAgreement(Trainer):
       labels: An array containing labels for the labeled samples. Note that
         these are the labels for the classification task, not for the agreement
         prediction task, so they are in range [0, num_classes - 1].
+
     Returns:
       A float representing the ratio of positive / negative agreement labels.
     """
@@ -590,8 +574,8 @@ class TrainerAgreement(Trainer):
     labeled_samples = data.get_indices_train()
     num_labeled_samples = len(labeled_samples)
     num_samples_train = num_labeled_samples * num_labeled_samples
-    num_samples_val = min(int(num_samples_train * self.ratio_val),
-                          self.max_num_samples_val)
+    num_samples_val = min(
+        int(num_samples_train * self.ratio_val), self.max_num_samples_val)
 
     if num_samples_train == 0:
       logging.info('No samples to train agreement. Skipping...')
@@ -618,8 +602,8 @@ class TrainerAgreement(Trainer):
         labeled_samples, self.ratio_val)
 
     # Create an iterator over training data pairs.
-    data_iterator_train = self._pair_iterator(labeled_samples_train, data,
-                                              ratio_pos_neg=ratio_pos_to_neg)
+    data_iterator_train = self._pair_iterator(
+        labeled_samples_train, data, ratio_pos_neg=ratio_pos_to_neg)
 
     # Start training.
     best_val_acc = -1
@@ -653,19 +637,11 @@ class TrainerAgreement(Trainer):
         if num_samples_val == 0:
           logging.info('Skipping validation. No validation samples available.')
           break
-        data_iterator_val = self._pair_iterator(labeled_nodes_val, data)
-        feed_dict_val = self._construct_feed_dict(
-            data_iterator_val, is_train=False)
-        cummulative_val_acc = 0.0
-        samples_seen = 0
-        while feed_dict_val is not None and samples_seen < num_samples_val:
-          val_acc, batch_size_actual = session.run(
-              (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
-          cummulative_val_acc += val_acc * batch_size_actual
-          samples_seen += batch_size_actual
-          feed_dict_val = self._construct_feed_dict(
-              data_iterator_val, is_train=False)
-        cummulative_val_acc /= samples_seen
+
+        # Evaluate on the selected validation data.
+        val_acc = self._eval_validation(data, labeled_nodes_val,
+                                        ratio_pos_to_neg, num_samples_val,
+                                        session)
 
         # Evaluate over a random choice of sample pairs, either labeled or not.
         acc_random = self._eval_random_pairs(data, session)
@@ -677,23 +653,22 @@ class TrainerAgreement(Trainer):
 
         if self.enable_summaries:
           summary = tf.Summary()
-          summary.value.add(tag='AgreementModel/train_acc',
-                            simple_value=acc_train)
-          summary.value.add(tag='AgreementModel/val_acc',
-                            simple_value=cummulative_val_acc)
+          summary.value.add(
+              tag='AgreementModel/train_acc', simple_value=acc_train)
+          summary.value.add(tag='AgreementModel/val_acc', simple_value=val_acc)
           if acc_random is not None:
-            summary.value.add(tag='AgreementModel/random_acc',
-                              simple_value=acc_random)
+            summary.value.add(
+                tag='AgreementModel/random_acc', simple_value=acc_random)
           iter_total = session.run(self.iter_agr_total)
           summary_writer.add_summary(summary, iter_total)
           summary_writer.flush()
-        if step % self.logging_step == 0 or cummulative_val_acc > best_val_acc:
+        if step % self.logging_step == 0 or val_acc > best_val_acc:
           logging.info(
               'Agreement step %6d | Loss: %10.4f | val_acc: %10.4f |'
-              'random_acc: %10.4f | acc_train: %10.4f', step, loss_val,
-              cummulative_val_acc, acc_random, acc_train)
-        if cummulative_val_acc > best_val_acc:
-          best_val_acc = cummulative_val_acc
+              'random_acc: %10.4f | acc_train: %10.4f', step, loss_val, val_acc,
+              acc_random, acc_train)
+        if val_acc > best_val_acc:
+          best_val_acc = val_acc
           if self.checkpoint_path:
             self.saver.save(
                 session, self.checkpoint_path, write_meta_graph=False)
@@ -759,39 +734,6 @@ class TrainerAgreement(Trainer):
     # Predict always disagreement.
     return np.zeros(shape=(len(src_features),), dtype=np.float32)
 
-  def _eval_train(self, session, feed_dict):
-    """Computes the accuracy of the predictions for the provided batch.
-
-    This calculates the accuracy for both class 1 (agreement) and class 0
-    (disagreement).
-
-    Arguments:
-      session: A TensorFlow session.
-      feed_dict: A train feed dictionary.
-    Returns:
-      The computed train accuracy.
-    """
-    train_acc, pred, targ = session.run(
-        (self.accuracy, self.normalized_predictions, self.labels),
-        feed_dict=feed_dict)
-    # Assume the threshold is at 0.5, and binarize the predictions.
-    binary_pred = pred > 0.5
-    targ = targ.astype(np.int32)
-    acc_per_sample = binary_pred == targ
-    acc_1 = acc_per_sample[targ == 1]
-    if acc_1.shape[0] > 0:
-      acc_1 = sum(acc_1) / np.float32(len(acc_1))
-    else:
-      acc_1 = -1
-    acc_0 = acc_per_sample[targ == 0]
-    if acc_0.shape[0] > 0:
-      acc_0 = sum(acc_0) / np.float32(len(acc_0))
-    else:
-      acc_0 = -1
-    logging.info('Train acc: %.2f. Acc class 1: %.2f. Acc class 0: %.2f',
-                 train_acc, acc_1, acc_0)
-    return train_acc
-
   def predict_label_by_agreement(self, session, indices, num_neighbors=100):
     """Predict class labels using agreement with other labeled samples.
 
@@ -807,6 +749,7 @@ class TrainerAgreement(Trainer):
       num_neighbors: An integer representing the number of labeled samples to
         compare each test sample with. The higher this number, the more accurate
         the predictions, but also the more expensive.
+
     Returns:
       acc: The accuracy of this agreement based classifier on the provided
         sample indices.
@@ -853,12 +796,12 @@ class TrainerAgreement(Trainer):
             tgt_features=features_u_repeated,
             src_indices=batch_indices_l,
             tgt_indices=index_u_repeated)
-        agreement[idx_start: idx_end, 0] = batch_agreement
+        agreement[idx_start:idx_end, 0] = batch_agreement
         idx_start = idx_end
       # Cummulate the agreement weights per label.
       vote_per_label = np.sum(train_labels_1hot * agreement, axis=0)
-      is_correct = (np.argmax(vote_per_label) ==
-                    self.data.get_original_labels(index_u))
+      is_correct = (
+          np.argmax(vote_per_label) == self.data.get_original_labels(index_u))
       acc += is_correct
     if indices:
       acc /= len(indices)
@@ -877,8 +820,8 @@ class TrainerAgreement(Trainer):
       data: A Dataset object used to provided the labels of the labeled samples.
       ratio_pos_neg: A float representing the ratio of positive to negative
         samples in the training set. If this is provided, the train iterator
-        will do rejection sampling based on this ratio to keep the training
-        data balanced. If None, we sample uniformly.
+        will do rejection sampling based on this ratio to keep the training data
+        balanced. If None, we sample uniformly.
 
     Yields:
       neighbors_batch: An array of shape (batch_size, 2), where each row
@@ -950,8 +893,7 @@ class TrainerPerfectAgreement(object):
     with tf.variable_scope('perfect_agreement'):
       indices = np.arange(data.num_samples)
       self.labels = tf.get_variable(
-          'labels_original',
-          initializer=self.data.get_original_labels(indices))
+          'labels_original', initializer=self.data.get_original_labels(indices))
       self.original_var_scope = tf.get_variable_scope()
 
   def train(self, unused_data, unused_session=None, **unused_kwargs):
@@ -983,7 +925,8 @@ class TrainerPerfectAgreement(object):
     """
     agreement = [
         self.data.get_original_labels(s) == self.data.get_original_labels(t)
-        for s, t in zip(src_indices, tgt_indices)]
+        for s, t in zip(src_indices, tgt_indices)
+    ]
     return np.asarray(agreement, dtype=np.float32)
 
   def create_agreement_prediction(self, src_indices, tgt_indices,
@@ -995,12 +938,13 @@ class TrainerPerfectAgreement(object):
     prediction.
 
     Arguments:
-      src_indices: A Tensor or Placeholder of shape (batch_size,)
-        containing the indices of the samples that are the sources of the edges.
-      tgt_indices: A Tensor or Placeholder of shape (batch_size,)
-        containing the indices of the samples that are the targets of the edges.
+      src_indices: A Tensor or Placeholder of shape (batch_size,) containing the
+        indices of the samples that are the sources of the edges.
+      tgt_indices: A Tensor or Placeholder of shape (batch_size,) containing the
+        indices of the samples that are the targets of the edges.
       unused_kwargs: Other unused keyword arguments, which we allow in order to
         create a common interface with TrainerAgreement.
+
     Returns:
       predictions: None, because this model doesn't do logits computations, but
         we still return something in order to keep the same function outputs as
@@ -1013,14 +957,16 @@ class TrainerPerfectAgreement(object):
         regularization weight decay term, because this model doesn't have
         regularization variables.
     """
-    with tf.variable_scope(self.original_var_scope, auxiliary_name_scope=False,
-                           reuse=True):
+    with tf.variable_scope(
+        self.original_var_scope, auxiliary_name_scope=False, reuse=True):
       src_labels = tf.gather(self.labels, src_indices)
       tgt_labels = tf.gather(self.labels, tgt_indices)
       agreement = tf.equal(src_labels, tgt_labels)
     return None, tf.cast(agreement, tf.float32), {}, {}
 
-  def predict_label_by_agreement(self, indices, num_neighbors=100,
+  def predict_label_by_agreement(self,
+                                 indices,
+                                 num_neighbors=100,
                                  **unused_kwargs):
     """Predict class labels using agreement with other labeled samples.
 
@@ -1035,9 +981,10 @@ class TrainerPerfectAgreement(object):
       num_neighbors: An integer representing the number of labeled samples to
         compare each test sample with. The higher this number, the more accurate
         the predictions, but also the more expensive.
-      **unused_kwargs: Other keyword arguments that may be provided just to
-        have a simiar interface as TrainerAgreement, when calling
+      **unused_kwargs: Other keyword arguments that may be provided just to have
+        a simiar interface as TrainerAgreement, when calling
         predict_label_by_agreement from the classification model.
+
     Returns:
       acc: The accuracy of this agreement based classifier on the provided
         sample indices.
@@ -1062,8 +1009,8 @@ class TrainerPerfectAgreement(object):
       agreement = train_labels_original == label_u
       # Cummulate the agreement weights per label.
       vote_per_label = np.sum(train_labels_1hot[agreement], axis=0)
-      is_correct = (np.argmax(vote_per_label) ==
-                    self.data.get_original_labels(index_u))
+      is_correct = (
+          np.argmax(vote_per_label) == self.data.get_original_labels(index_u))
       acc += is_correct
     if indices:
       acc /= len(indices)

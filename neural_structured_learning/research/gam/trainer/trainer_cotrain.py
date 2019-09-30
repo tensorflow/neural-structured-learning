@@ -334,7 +334,8 @@ class TrainerCotraining(Trainer):
     """
     # Select the candidate samples for self-labeling, and make predictions.
     indices_unlabeled = data.get_indices_unlabeled()
-    predictions = trainer_cls.predict(session, indices_unlabeled)
+    predictions = trainer_cls.predict(
+        session, indices_unlabeled, is_train=False)
     # Select most confident nodes. Compute confidence and most confident label,
     # which will be used as the new label.
     predicted_label = np.argmax(predictions, axis=-1)
