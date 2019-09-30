@@ -322,7 +322,6 @@ class CotrainDataset(object):
     if not self.inductive:
       self.dataset.indices_unlabeled = np.concatenate(
           (dataset.indices_unlabeled,
-           dataset.indices_val,
            dataset.indices_test))
 
     # If when labeling new data we want to keep the proportions of the labels
