@@ -29,7 +29,7 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":build_graph_lib",
+        ":graph_builder",
         ":graph_utils",
         ":pack_nbrs_lib",
     ],
@@ -56,13 +56,11 @@ py_test(
 )
 
 py_library(
-    name = "build_graph_lib",
-    srcs = ["build_graph.py"],
+    name = "graph_builder",
+    srcs = ["graph_builder.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        # package absl:app
-        # package absl/flags
         # package absl/logging
         # package numpy
         # package six
@@ -70,11 +68,29 @@ py_library(
     ],
 )
 
+py_test(
+    name = "graph_builder_test",
+    srcs = ["graph_builder_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":graph_builder",
+        ":graph_utils",
+        # package protobuf,
+        # package absl/testing:absltest
+        # package tensorflow
+    ],
+)
+
 py_binary(
-    name = "build_graph",
-    srcs = ["build_graph.py"],
+    name = "graph_builder_main",
+    srcs = ["graph_builder_main.py"],
     python_version = "PY3",
-    deps = [":build_graph_lib"],
+    deps = [
+        ":graph_builder",
+        # package absl:app
+        # package absl/flags
+        # package tensorflow
+    ],
 )
 
 py_library(
@@ -103,6 +119,8 @@ py_binary(
     srcs = ["build_docs.py"],
     python_version = "PY3",
     deps = [
+        # package absl:app
+        # package absl/flags
         "//neural_structured_learning",
         # package tensorflow_docs/api_generator
     ],
