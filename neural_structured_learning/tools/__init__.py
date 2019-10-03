@@ -5,4 +5,4 @@ from neural_structured_learning.tools.graph_utils import add_edge
 from neural_structured_learning.tools.graph_utils import add_undirected_edges
 from neural_structured_learning.tools.graph_utils import read_tsv_graph
 from neural_structured_learning.tools.graph_utils import write_tsv_graph
-import neural_structured_learning.tools.pack_nbrs
+from neural_structured_learning.tools.input_maker_lib import pack_nbrs
