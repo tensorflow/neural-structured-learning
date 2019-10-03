@@ -615,6 +615,14 @@ class TrainerClassification(Trainer):
     else:
       raise ValueError('Unsupported value for parameter `labeling`.')
 
+    if len(edges) == 0:
+      indices = np.zeros(shape=(0,), dtype=np.int32)
+      features = np.zeros(shape=[0,] + list(data.features_shape),
+                          dtype=np.float32)
+      labels = np.zeros(shape=(0,), dtype=np.int64)
+      while True:
+        yield (indices, indices, features, features, labels, labels)
+
     edges = np.stack([(e.src, e.tgt) for e in edges])
     iterator = batch_iterator(
       inputs=edges,
