@@ -349,10 +349,11 @@ class TrainerCotraining(Trainer):
     # self-labeling them.
     indices_unlabeled = data.get_indices_unlabeled()
     val_ind = set(data.get_indices_val())
-    indices_unlabeled = np.asarray([ind for ind in indices_unlabeled
-                                    if ind not in val_ind])
+    indices_unlabeled = np.asarray(
+        [ind for ind in indices_unlabeled if ind not in val_ind])
     predictions = trainer_cls.predict(
-      session, indices_unlabeled, is_train=False)
+        session, indices_unlabeled, is_train=False)
+
     # Select most confident nodes. Compute confidence and most confident label,
     # which will be used as the new label.
     predicted_label = np.argmax(predictions, axis=-1)

@@ -12,38 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Program to build a graph based on dense input features (embeddings).
+r"""Library to build a graph based on dense input features (embeddings).
 
-USAGE:
-
-`python build_graph.py` [*flags*] *input_features.tfr ... output_graph.tsv*
-
-This program reads input instances from one or more TFRecord files, each
-containing `tf.train.Example` protos. Each input example is expected to
-contain at least these 2 features:
-
-*   `id`: A singleton `bytes_list` feature that identifies each Example.
-*   `embedding`: A `float_list` feature that contains the (dense) embedding of
-     each example.
-
-`id` and `embedding` are not necessarily the literal feature names; if your
-features have different names, you can use the `--id_feature_name` and
-`--embedding_feature_name` flags to specify them, respectively.
-
-The program then computes the cosine similarity between all pairs of input
-examples based on their associated embeddings. An edge is written to the
-*output_graph.tsv* file for each pair whose similarity is at least as large as
-the value of the `--similarity_threshold` flag's value. Each output edge is
-represented by a line in the *output_graph.tsv* file with the following form:
-
-```
-source_id<TAB>target_id<TAB>edge_weight
-```
-
-All edges in the output will be symmetric (i.e., if edge `A--w-->B` exists in
-the output, then so will edge `B--w-->A`).
-
-For details about this program's flags, run `python build_graph.py --help`.
+A python-based program for graph building also exists on
+[GitHub](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/tools/graph_builder_main.py).
 """
 
 from __future__ import absolute_import
@@ -54,8 +26,6 @@ import collections
 import itertools
 import time
 
-from absl import app
-from absl import flags
 from absl import logging
 from neural_structured_learning.tools import graph_utils
 import numpy as np
@@ -71,7 +41,8 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
   """Reads and returns the embeddings stored in the Examples in `filename`.
 
   Args:
-    filenames: A list of names of TFRecord files containing tensorflow.Examples.
+    filenames: A list of names of TFRecord files containing `tf.train.Example`
+      objects.
     id_feature_name: Name of the feature that identifies the Example's ID.
     embedding_feature_name: Name of the feature that identifies the Example's
         embedding.
@@ -162,39 +133,52 @@ def _add_edges(embeddings, threshold, g):
                edge_cnt, (time.time() - start_time))
 
 
-def _main(argv):
-  """Main function for running the build_graph program."""
-  flag = flags.FLAGS
-  flag.showprefixforinfo = False
-  if len(argv) < 3:
-    raise app.UsageError(
-        'Invalid number of arguments; expected 2 or more, got %d' %
-        (len(argv) - 1))
+def build_graph(embedding_files,
+                output_graph_path,
+                similarity_threshold=0.8,
+                id_feature_name='id',
+                embedding_feature_name='embedding'):
+  """Builds a graph based on dense embeddings and persists it in TSV format.
 
-  embeddings = _read_tfrecord_examples(argv[1:-1], flag.id_feature_name,
-                                       flag.embedding_feature_name)
+  This function reads input instances from one or more TFRecord files, each
+  containing `tf.train.Example` protos. Each input example is expected to
+  contain at least the following 2 features:
+
+  *   `id`: A singleton `bytes_list` feature that identifies each example.
+  *   `embedding`: A `float_list` feature that contains the (dense) embedding of
+       each example.
+
+  `id` and `embedding` are not necessarily the literal feature names; if your
+  features have different names, you can specify them using the
+  `id_feature_name` and `embedding_feature_name` arguments, respectively.
+
+  This function then computes the cosine similarity between all pairs of input
+  examples based on their associated embeddings. An edge is written to the TSV
+  file named by `output_graph_path` for each pair whose similarity is at least
+  as large as `similarity_threshold`. Each output edge is represented by a TSV
+  line in the `output_graph_path` file with the following form:
+
+  ```
+  source_id<TAB>target_id<TAB>edge_weight
+  ```
+
+  All edges in the output will be symmetric (i.e., if edge `A--w-->B` exists in
+  the output, then so will edge `B--w-->A`).
+
+  Args:
+    embedding_files: A list of names of TFRecord files containing
+      `tf.train.Example` objects, which in turn contain dense embeddings.
+    output_graph_path: Name of the file to which the output graph in TSV format
+      should be written.
+    similarity_threshold: Threshold used to determine which edges to retain in
+      the resulting graph.
+    id_feature_name: The name of the feature in the input `tf.train.Example`
+      objects representing the ID of examples.
+    embedding_feature_name: The name of the feature in the input
+      `tf.train.Example` objects representing the embedding of examples.
+  """
+  embeddings = _read_tfrecord_examples(embedding_files, id_feature_name,
+                                       embedding_feature_name)
   graph = collections.defaultdict(dict)
-  _add_edges(embeddings, flag.similarity_threshold, graph)
-  graph_utils.write_tsv_graph(argv[-1], graph)
-
-
-if __name__ == '__main__':
-  flags.DEFINE_string(
-      'id_feature_name', 'id',
-      """Name of the singleton bytes_list feature in each input Example
-      whose value is the Example's ID."""
-  )
-  flags.DEFINE_string(
-      'embedding_feature_name', 'embedding',
-      """Name of the float_list feature in each input Example
-      whose value is the Example's (dense) embedding."""
-  )
-  flags.DEFINE_float(
-      'similarity_threshold', 0.8,
-      """Lower bound on the cosine similarity required for an edge
-      to be created between two nodes."""
-  )
-
-  # Ensure TF 2.0 behavior even if TF 1.X is installed.
-  tf.compat.v1.enable_v2_behavior()
-  app.run(_main)
+  _add_edges(embeddings, similarity_threshold, graph)
+  graph_utils.write_tsv_graph(output_graph_path, graph)
