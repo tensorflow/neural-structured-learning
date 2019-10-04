@@ -82,8 +82,8 @@ py_test(
 )
 
 py_binary(
-    name = "graph_builder_main",
-    srcs = ["graph_builder_main.py"],
+    name = "graph_builder",
+    srcs = ["graph_builder.py"],
     python_version = "PY3",
     deps = [
         ":graph_builder_lib",

@@ -18,11 +18,9 @@ for more details.
 
 USAGE:
 
-`python graph_builder_main.py` [*flags*] *input_features.tfr ...
-output_graph.tsv*
+`python graph_builder.py` [*flags*] *input_features.tfr... output_graph.tsv*
 
-For details about this program's flags, run `python graph_builder_main.py
---help`.
+For details about this program's flags, run `python graph_builder.py --help`.
 """
 
 from __future__ import absolute_import
@@ -36,7 +34,7 @@ import tensorflow as tf
 
 
 def _main(argv):
-  """Main function for running the graph_builder_main program."""
+  """Main function for running the graph_builder program."""
   flag = flags.FLAGS
   flag.showprefixforinfo = False
   if len(argv) < 3:

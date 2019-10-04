@@ -15,7 +15,7 @@
 r"""Library to build a graph based on dense input features (embeddings).
 
 A python-based program for graph building also exists on
-[GitHub](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/tools/graph_builder_main.py).
+[GitHub](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/tools/graph_builder.py).
 """
 
 from __future__ import absolute_import
