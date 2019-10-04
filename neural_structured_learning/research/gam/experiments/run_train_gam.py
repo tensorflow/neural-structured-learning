@@ -42,7 +42,7 @@ import tensorflow as tf
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    'dataset_name', '',
+    'dataset_name', 'cifar10',
     'Dataset name. Supported options are: mnist, cifar10, cifar100, '
     'svhn_cropped, fashion_mnist.')
 flags.DEFINE_string(
@@ -243,6 +243,12 @@ flags.DEFINE_integer(
     'num_pairs_reg', 128,
     'Number of pairs of nodes to use in the agreement loss term of the '
     'classification model.')
+flags.DEFINE_float(
+    'reg_weight_vat', 0.0,
+    'Regularization weight for the virtual adversarial training (VAT) loss.')
+flags.DEFINE_bool(
+    'use_ent_min', False,
+    'A boolean specifying whether to add entropy minimization to VAT.')
 flags.DEFINE_string(
     'aggregation_agr_inputs', 'dist',
     'Operation to apply on the pair of nodes in the agreement model. '
@@ -445,6 +451,8 @@ def main(argv):
       reg_weight_ll=FLAGS.reg_weight_ll,
       reg_weight_lu=FLAGS.reg_weight_lu,
       reg_weight_uu=FLAGS.reg_weight_uu,
+      reg_weight_vat=FLAGS.reg_weight_vat,
+      use_ent_min=FLAGS.use_ent_min,
       num_pairs_reg=FLAGS.num_pairs_reg,
       penalize_neg_agr=FLAGS.penalize_neg_agr,
       use_l2_cls=FLAGS.use_l2_cls,
