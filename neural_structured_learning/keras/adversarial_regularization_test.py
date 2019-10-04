@@ -344,6 +344,20 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
 
+  def test_train_with_loss_object(self):
+    w, x0, y0, lr, adv_config, w_new = self._set_up_linear_regression()
+
+    inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
+    model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(
+        optimizer=keras.optimizers.SGD(lr),
+        loss=tf.keras.losses.MeanSquaredError())
+    adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+
   def test_train_with_metrics(self):
     w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
 

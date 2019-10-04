@@ -89,6 +89,11 @@ class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
     w_new = w - learning_rate * (grad_w_labeled_loss + grad_w_adv_loss)
     return w, x0, y0, learning_rate, adv_config, w_new
 
+  def _get_mirrored_strategy(self):
+    device_type = 'GPU' if tf.test.is_gpu_available() else 'CPU'
+    devices = ['{}:{}'.format(device_type, i) for i in range(NUM_REPLICAS)]
+    return tf.distribute.MirroredStrategy(devices)
+
   def test_train_with_distribution_strategy(self):
     w, x0, y0, lr, adv_config, w_new = self._set_up_linear_regression()
     inputs = tf.data.Dataset.from_tensor_slices({
@@ -96,9 +101,7 @@ class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
         'label': y0
     }).batch(NUM_REPLICAS)
 
-    device_type = 'GPU' if tf.test.is_gpu_available() else 'CPU'
-    devices = ['{}:{}'.format(device_type, i) for i in range(NUM_REPLICAS)]
-    strategy = tf.distribute.MirroredStrategy(devices)
+    strategy = self._get_mirrored_strategy()
     with strategy.scope():
       # Makes sure we are running on multiple devices.
       self.assertEqual(NUM_REPLICAS, strategy.num_replicas_in_sync)
@@ -110,6 +113,25 @@ class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
     adv_model.fit(x=inputs)
 
     # The updated weight should be the same regardless of the number of devices.
+    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+
+  def test_train_with_loss_object(self):
+    w, x0, y0, lr, adv_config, w_new = self._set_up_linear_regression()
+    inputs = tf.data.Dataset.from_tensor_slices({
+        'feature': x0,
+        'label': y0
+    }).batch(NUM_REPLICAS)
+
+    strategy = self._get_mirrored_strategy()
+    with strategy.scope():
+      model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
+      adv_model = adversarial_regularization.AdversarialRegularization(
+          model, label_keys=['label'], adv_config=adv_config)
+      adv_model.compile(
+          optimizer=keras.optimizers.SGD(lr),
+          loss=tf.keras.losses.MeanSquaredError())
+    adv_model.fit(x=inputs)
+
     self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
 
 

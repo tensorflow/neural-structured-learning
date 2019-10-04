@@ -165,14 +165,21 @@ class _LossWrapper(tf.keras.losses.Loss):
     else:
       self.batch_size_reduction = False
     super(_LossWrapper, self).__init__(name=name, reduction=reduction)
-    self.loss_fn = loss_fn
     self.weight = weight
+    if isinstance(loss_fn, tf.keras.losses.Loss) and self.batch_size_reduction:
+      self.loss_fn = loss_fn.__class__.from_config(loss_fn.get_config())
+      self.loss_fn.reduction = tf.losses.Reduction.NONE
+    else:
+      self.loss_fn = loss_fn
 
   def call(self, y_true, y_pred):
     return self.loss_fn(y_true, y_pred)
 
   def __call__(self, *args, **kwargs):
-    loss_value = super(_LossWrapper, self).__call__(*args, **kwargs)
+    if isinstance(self.loss_fn, tf.keras.losses.Loss):
+      loss_value = self.loss_fn(*args, **kwargs)
+    else:
+      loss_value = super(_LossWrapper, self).__call__(*args, **kwargs)
     if self.batch_size_reduction:
       size = tf.cast(tf.size(loss_value), dtype=loss_value.dtype)
       loss_value = tf.math.divide_no_nan(tf.math.reduce_sum(loss_value), size)
