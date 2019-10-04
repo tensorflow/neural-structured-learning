@@ -928,6 +928,12 @@ class TrainerAgreement(Trainer):
       agreement between the validation labels.
     """
     edges = data.get_edges(src_labeled=True, tgt_labeled=True)
+
+    if len(edges) == 0:
+      empty_edges = np.zeros(shape=(0, 2), dtype=np.int32)
+      empty_agreement = np.zeros(shape=(0,), dtype=np.float32)
+      return empty_edges, empty_agreement, empty_edges, empty_agreement
+
     edges = np.stack([(e.src, e.tgt) for e in edges])
     agreement = np.equal(data.get_labels(edges[:, 0]),
                          data.get_labels(edges[:, 1]))
