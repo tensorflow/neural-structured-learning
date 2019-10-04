@@ -31,7 +31,7 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
-from neural_structured_learning.tools import graph_builder
+from neural_structured_learning.tools import graph_builder_lib
 import tensorflow as tf
 
 
@@ -44,8 +44,9 @@ def _main(argv):
         'Invalid number of arguments; expected 2 or more, got %d' %
         (len(argv) - 1))
 
-  graph_builder.build_graph(argv[1:-1], argv[-1], flag.similarity_threshold,
-                            flag.id_feature_name, flag.embedding_feature_name)
+  graph_builder_lib.build_graph(argv[1:-1], argv[-1], flag.similarity_threshold,
+                                flag.id_feature_name,
+                                flag.embedding_feature_name)
 
 
 if __name__ == '__main__':

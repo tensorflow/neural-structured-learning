@@ -29,7 +29,7 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         ":graph_utils",
         ":input_maker_lib",
     ],
@@ -56,8 +56,8 @@ py_test(
 )
 
 py_library(
-    name = "graph_builder",
-    srcs = ["graph_builder.py"],
+    name = "graph_builder_lib",
+    srcs = ["graph_builder_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
@@ -69,11 +69,11 @@ py_library(
 )
 
 py_test(
-    name = "graph_builder_test",
-    srcs = ["graph_builder_test.py"],
+    name = "graph_builder_lib_test",
+    srcs = ["graph_builder_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         ":graph_utils",
         # package protobuf,
         # package absl/testing:absltest
@@ -86,7 +86,7 @@ py_binary(
     srcs = ["graph_builder_main.py"],
     python_version = "PY3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         # package absl:app
         # package absl/flags
         # package tensorflow

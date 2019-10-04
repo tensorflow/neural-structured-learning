@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for neural_structured_learning.tools.graph_builder."""
+"""Tests for neural_structured_learning.tools.graph_builder_lib."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from neural_structured_learning.tools import graph_builder
+from neural_structured_learning.tools import graph_builder_lib
 from neural_structured_learning.tools import graph_utils
 import tensorflow as tf
 
@@ -82,9 +82,9 @@ class BuildGraphLibTest(absltest.TestCase):
     embedding_path = self._create_embedding_file()
     self._write_embeddings(embedding_path)
     graph_path = self._create_graph_file()
-    graph_builder.build_graph([embedding_path],
-                              graph_path,
-                              similarity_threshold=0)
+    graph_builder_lib.build_graph([embedding_path],
+                                  graph_path,
+                                  similarity_threshold=0)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(
         g_actual, {
@@ -107,9 +107,9 @@ class BuildGraphLibTest(absltest.TestCase):
     embedding_path = self._create_embedding_file()
     self._write_embeddings(embedding_path)
     graph_path = self._create_graph_file()
-    graph_builder.build_graph([embedding_path],
-                              graph_path,
-                              similarity_threshold=0.51)
+    graph_builder_lib.build_graph([embedding_path],
+                                  graph_path,
+                                  similarity_threshold=0.51)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(g_actual, {})
 
