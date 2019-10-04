@@ -323,6 +323,8 @@ def main(argv):
   model_name += '-perfCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
+  model_name += '-VAT' if FLAGS.reg_weight_vat > 0 else ''
+  model_name += 'ENT' if FLAGS.reg_weight_vat > 0 and FLAGS.use_ent_min else ''
   model_name += '-transd' if not FLAGS.inductive else ''
   model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
   model_name += '-graph' if FLAGS.use_graph else '-noGraph'
