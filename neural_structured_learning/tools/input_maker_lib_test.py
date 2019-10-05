@@ -130,10 +130,10 @@ def _node_as_neighbor(example, neighbor_id, edge_weight):
   return result
 
 
-def _write_training_examples(training_examples_file):
-  """Writes training examples to the specified file."""
-  with tf.io.TFRecordWriter(training_examples_file) as writer:
-    for example in [_example_a(), _example_b(), _example_c()]:
+def _write_examples(examples_file, examples):
+  """Writes the given `examples` to the TFRecord file named `examples_file`."""
+  with tf.io.TFRecordWriter(examples_file) as writer:
+    for example in examples:
       writer.write(example.SerializeToString())
 
 
@@ -168,37 +168,6 @@ def _augmented_a_undirected_two_nbrs():
   return _augmented_a_directed_two_nbrs()
 
 
-def _augmented_b_directed_one_nbr():
-  """Returns an augmented `tf.train.Example` instance for node B."""
-  augmented_b = _example_b()
-  augmented_b.MergeFrom(_node_as_neighbor(_example_c(), 0, 1.0))
-  augmented_b.MergeFrom(_num_neighbors_example(1))
-  return augmented_b
-
-
-def _augmented_b_directed_two_nbrs():
-  """Returns an augmented `tf.train.Example` instance for node B."""
-  augmented_b = _example_b()
-  augmented_b.MergeFrom(_node_as_neighbor(_example_c(), 0, 1.0))
-  augmented_b.MergeFrom(_node_as_neighbor(_example_a(), 1, 0.4))
-  augmented_b.MergeFrom(_num_neighbors_example(2))
-  return augmented_b
-
-
-def _augmented_b_undirected_one_nbr():
-  """Returns an augmented `tf.train.Example` instance for node B."""
-  return _augmented_b_directed_one_nbr()
-
-
-def _augmented_b_undirected_two_nbrs():
-  """Returns an augmented `tf.train.Example` instance for node B."""
-  augmented_b = _example_b()
-  augmented_b.MergeFrom(_node_as_neighbor(_example_c(), 0, 1.0))
-  augmented_b.MergeFrom(_node_as_neighbor(_example_a(), 1, 0.5))
-  augmented_b.MergeFrom(_num_neighbors_example(2))
-  return augmented_b
-
-
 def _augmented_c_directed():
   """Returns an augmented `tf.train.Example` instance for node C."""
   augmented_c = _example_c()
@@ -206,10 +175,18 @@ def _augmented_c_directed():
   return augmented_c
 
 
-def _augmented_c_undirected_one_nbr():
-  """Returns an augmented `tf.train.Example` instance for node C."""
+def _augmented_c_undirected_one_nbr_b():
+  """Returns an augmented `tf.train.Example` instance for node C with nbr B."""
   augmented_c = _example_c()
   augmented_c.MergeFrom(_node_as_neighbor(_example_b(), 0, 1.0))
+  augmented_c.MergeFrom(_num_neighbors_example(1))
+  return augmented_c
+
+
+def _augmented_c_undirected_one_nbr_a():
+  """Returns an augmented `tf.train.Example` instance for node C with nbr A."""
+  augmented_c = _example_c()
+  augmented_c.MergeFrom(_node_as_neighbor(_example_a(), 0, 0.9))
   augmented_c.MergeFrom(_num_neighbors_example(1))
   return augmented_c
 
@@ -227,22 +204,28 @@ class PackNbrsTest(absltest.TestCase):
 
   def setUp(self):
     super(PackNbrsTest, self).setUp()
-    self._graph_path = self._create_graph_file()
+    # Write graph edges (as a TSV file).
+    self._graph_path = self._create_tmp_file('graph.tsv')
     graph_utils.write_tsv_graph(self._graph_path, _GRAPH)
-    self._training_examples_path = self._create_training_examples_file()
-    _write_training_examples(self._training_examples_path)
-    self._output_nsl_training_data_path = self._create_nsl_training_data_file()
+    # Write labeled training Examples.
+    self._training_examples_path = self._create_tmp_file('train_data.tfr')
+    _write_examples(self._training_examples_path, [_example_a(), _example_c()])
+    # Write unlabeled neighbor Examples.
+    self._neighbor_examples_path = self._create_tmp_file('neighbor_data.tfr')
+    _write_examples(self._neighbor_examples_path, [_example_b()])
+    # Create output file
+    self._output_nsl_training_data_path = self._create_tmp_file(
+        'nsl_train_data.tfr')
 
-  def _create_training_examples_file(self):
-    return self.create_tempfile('train_data.tfr').full_path
+  def _create_tmp_file(self, filename):
+    return self.create_tempfile(filename).full_path
 
-  def _create_nsl_training_data_file(self):
-    return self.create_tempfile('nsl_train_data.tfr').full_path
+  def testDirectedGraphUnlimitedNbrsNoNeighborExamples(self):
+    """Tests pack_nbrs() with an empty second argument (neighbor examples).
 
-  def _create_graph_file(self):
-    return self.create_tempfile('graph.tsv').full_path
-
-  def testDirectedGraphUnlimitedNbrs(self):
+    In this case, the edge A-->B is dangling because there will be no Example
+    named "B" in the input.
+    """
     input_maker_lib.pack_nbrs(
         self._training_examples_path,
         '',
@@ -250,8 +233,46 @@ class PackNbrsTest(absltest.TestCase):
         self._output_nsl_training_data_path,
         add_undirected_edges=False)
     expected_nsl_train_data = {
+        # Node A has only one neighbor, namely C.
+        'A': _augmented_a_directed_one_nbr(),
+        # C has no neighbors in the directed case.
+        'C': _augmented_c_directed()
+    }
+    actual_nsl_train_data = _read_tfrecord_examples(
+        self._output_nsl_training_data_path)
+    self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
+
+  def testUndirectedGraphUnlimitedNbrsNoNeighborExamples(self):
+    """Tests pack_nbrs() with an empty second argument (neighbor examples).
+
+    In this case, the edge A-->B is dangling because there will be no Example
+    named "B" in the input.
+    """
+    input_maker_lib.pack_nbrs(
+        self._training_examples_path,
+        '',
+        self._graph_path,
+        self._output_nsl_training_data_path,
+        add_undirected_edges=True)
+    expected_nsl_train_data = {
+        # Node A has only one neighbor, namely C.
+        'A': _augmented_a_directed_one_nbr(),
+        # C's only neighbor in the undirected case is A.
+        'C': _augmented_c_undirected_one_nbr_a()
+    }
+    actual_nsl_train_data = _read_tfrecord_examples(
+        self._output_nsl_training_data_path)
+    self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
+
+  def testDirectedGraphUnlimitedNbrs(self):
+    input_maker_lib.pack_nbrs(
+        self._training_examples_path,
+        self._neighbor_examples_path,
+        self._graph_path,
+        self._output_nsl_training_data_path,
+        add_undirected_edges=False)
+    expected_nsl_train_data = {
         'A': _augmented_a_directed_two_nbrs(),
-        'B': _augmented_b_directed_two_nbrs(),
         'C': _augmented_c_directed()
     }
     actual_nsl_train_data = _read_tfrecord_examples(
@@ -261,14 +282,13 @@ class PackNbrsTest(absltest.TestCase):
   def testDirectedGraphLimitedNbrs(self):
     input_maker_lib.pack_nbrs(
         self._training_examples_path,
-        '',
+        self._neighbor_examples_path,
         self._graph_path,
         self._output_nsl_training_data_path,
         add_undirected_edges=False,
         max_nbrs=1)
     expected_nsl_train_data = {
         'A': _augmented_a_directed_one_nbr(),
-        'B': _augmented_b_directed_one_nbr(),
         'C': _augmented_c_directed()
     }
     actual_nsl_train_data = _read_tfrecord_examples(
@@ -278,13 +298,12 @@ class PackNbrsTest(absltest.TestCase):
   def testUndirectedGraphUnlimitedNbrs(self):
     input_maker_lib.pack_nbrs(
         self._training_examples_path,
-        '',
+        self._neighbor_examples_path,
         self._graph_path,
         self._output_nsl_training_data_path,
         add_undirected_edges=True)
     expected_nsl_train_data = {
         'A': _augmented_a_undirected_two_nbrs(),
-        'B': _augmented_b_undirected_two_nbrs(),
         'C': _augmented_c_undirected_two_nbrs()
     }
     actual_nsl_train_data = _read_tfrecord_examples(
@@ -294,15 +313,14 @@ class PackNbrsTest(absltest.TestCase):
   def testUndirectedGraphLimitedNbrs(self):
     input_maker_lib.pack_nbrs(
         self._training_examples_path,
-        '',
+        self._neighbor_examples_path,
         self._graph_path,
         self._output_nsl_training_data_path,
         add_undirected_edges=True,
         max_nbrs=1)
     expected_nsl_train_data = {
         'A': _augmented_a_undirected_one_nbr(),
-        'B': _augmented_b_undirected_one_nbr(),
-        'C': _augmented_c_undirected_one_nbr()
+        'C': _augmented_c_undirected_one_nbr_b()
     }
     actual_nsl_train_data = _read_tfrecord_examples(
         self._output_nsl_training_data_path)
