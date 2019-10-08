@@ -27,9 +27,16 @@ py_library(
     name = "neural_structured_learning",
     srcs = ["__init__.py"],
     deps = [
+        ":version",
         "//neural_structured_learning/estimator",
         "//neural_structured_learning/keras",
         "//neural_structured_learning/lib",
         "//neural_structured_learning/tools",
     ],
+)
+
+py_library(
+    name = "version",
+    srcs = ["version.py"],
+    srcs_version = "PY2AND3",
 )
