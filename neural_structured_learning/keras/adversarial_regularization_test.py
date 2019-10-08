@@ -202,6 +202,23 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
     self.assertEqual(1, call_count['model'])
     self.assertEqual(1, call_count['loss_fn'])
 
+  def test_with_model_kwargs(self):
+    w = np.array([[4.0], [-3.0]])
+    x0 = np.array([[2.0, 3.0]])
+    y0 = np.array([[0.0]])
+    model = build_linear_keras_sequential_model(input_shape=(2,), weights=w)
+    model.add(tf.keras.layers.BatchNormalization())
+
+    adv_loss = adversarial_regularization.adversarial_loss(
+        features={'feature': tf.constant(x0)},
+        labels=tf.constant(y0),
+        model=model,
+        loss_fn=keras.losses.MeanSquaredError(),
+        adv_config=self.adv_config,
+        model_kwargs={'training': True})
+    # BatchNormalization returns 0 for signle-example batch when training=True.
+    self.assertAllClose(0.0, self.evaluate(adv_loss))
+
 
 class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 

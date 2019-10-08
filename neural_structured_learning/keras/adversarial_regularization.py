@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import functools
 import types
 
 import attr
@@ -36,7 +37,8 @@ def adversarial_loss(features,
                      adv_config=None,
                      predictions=None,
                      labeled_loss=None,
-                     gradient_tape=None):
+                     gradient_tape=None,
+                     model_kwargs=None):
   """Computes the adversarial loss for `model` given `features` and `labels`.
 
   This utility function adds adversarial perturbations to the input `features`,
@@ -109,6 +111,8 @@ def adversarial_loss(features,
       adversarial regularization. In eager mode, the `gradient_tape` has to be
       set as well.
     gradient_tape: (optional) A `tf.GradientTape` object watching `features`.
+    model_kwargs: (optional) A dictionary of additional keyword arguments to be
+      passed to the `model`.
 
   Returns:
     A `Tensor` for adversarial regularization loss, i.e. labeled loss on
@@ -117,6 +121,9 @@ def adversarial_loss(features,
 
   if adv_config is None:
     adv_config = nsl_configs.AdvRegConfig()
+
+  if model_kwargs is not None:
+    model = functools.partial(model, **model_kwargs)
 
   # Calculates labeled_loss if not provided.
   if labeled_loss is None:
@@ -626,16 +633,16 @@ class AdversarialRegularization(keras.Model):
       self.add_metric(value, aggregation=aggregation, name=name)
 
     # Adversarial loss.
-    base_model_fn = lambda inputs: self.base_model(inputs, **kwargs)
     adv_loss = adversarial_loss(
         inputs,
         labels,
-        base_model_fn,
+        self.base_model,
         self._compute_total_loss,
         sample_weights=sample_weights,
         adv_config=self.adv_config,
         labeled_loss=labeled_loss,
-        gradient_tape=tape)
+        gradient_tape=tape,
+        model_kwargs=kwargs)
     self.add_loss(self.adv_config.multiplier * adv_loss)
     self.add_metric(adv_loss, name='adversarial_loss', aggregation='mean')
     return outputs
