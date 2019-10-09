@@ -80,9 +80,7 @@ py_test(
 
 py_library(
     name = "pairwise_distance",
-    srcs = [
-        "pairwise_distance.py",
-    ],
+    srcs = ["pairwise_distance.py"],
     srcs_version = "PY2AND3",
     deps = [
         # package attr
@@ -96,9 +94,7 @@ py_library(
 
 py_test(
     name = "pairwise_distance_test",
-    srcs = [
-        "pairwise_distance_test.py",
-    ],
+    srcs = ["pairwise_distance_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":pairwise_distance",

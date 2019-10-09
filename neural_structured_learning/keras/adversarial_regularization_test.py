@@ -24,46 +24,45 @@ import neural_structured_learning.configs as configs
 from neural_structured_learning.keras import adversarial_regularization
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
 
 from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
 
 
 def build_linear_keras_sequential_model(input_shape, weights):
-  model = keras.Sequential()
-  model.add(keras.Input(shape=input_shape, name='feature'))
+  model = tf.keras.Sequential()
+  model.add(tf.keras.Input(shape=input_shape, name='feature'))
   model.add(
-      keras.layers.Dense(
+      tf.keras.layers.Dense(
           weights.shape[-1],
           use_bias=False,
-          kernel_initializer=keras.initializers.Constant(weights)))
+          kernel_initializer=tf.keras.initializers.Constant(weights)))
   return model
 
 
 def build_linear_keras_functional_model(input_shape,
                                         weights,
                                         input_name='feature'):
-  inputs = keras.Input(shape=input_shape, name=input_name)
-  layer = keras.layers.Dense(
+  inputs = tf.keras.Input(shape=input_shape, name=input_name)
+  layer = tf.keras.layers.Dense(
       weights.shape[-1],
       use_bias=False,
-      kernel_initializer=keras.initializers.Constant(weights))
+      kernel_initializer=tf.keras.initializers.Constant(weights))
   outputs = layer(inputs)
-  return keras.Model(inputs={input_name: inputs}, outputs=outputs)
+  return tf.keras.Model(inputs={input_name: inputs}, outputs=outputs)
 
 
 def build_linear_keras_subclassed_model(input_shape, weights, dynamic=False):
   del input_shape
 
-  class LinearModel(keras.Model):
+  class LinearModel(tf.keras.Model):
 
     def __init__(self):
       super(LinearModel, self).__init__(dynamic=dynamic)
-      self.dense = keras.layers.Dense(
+      self.dense = tf.keras.layers.Dense(
           weights.shape[-1],
           use_bias=False,
           name='dense',
-          kernel_initializer=keras.initializers.Constant(weights))
+          kernel_initializer=tf.keras.initializers.Constant(weights))
 
     def call(self, inputs):
       return self.dense(inputs['feature'])
@@ -92,7 +91,7 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
     x_adv = x0 + self.adv_step_size * np.sign((y_hat - y0) * w.T)
     y_hat_adv = np.dot(x_adv, w)
     model = model_fn(input_shape=(2,), weights=w)
-    loss_fn = keras.losses.MeanSquaredError()
+    loss_fn = tf.keras.losses.MeanSquaredError()
     inputs = {'feature': tf.constant(x0)}
     labels = tf.constant(y0)
     expected_adv_loss = np.reshape((y_hat_adv - y0)**2, ())
@@ -102,12 +101,12 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
     return inputs, labels, model, loss_fn, expected_adv_loss
 
   def evaluate(self, *args, **kwargs):
-    if hasattr(keras.backend, 'get_session'):
+    if hasattr(tf.keras.backend, 'get_session'):
       # Sets the Keras Session as default TF Session, so that the variable
       # in Keras subclassed model can be initialized correctly. The variable
       # is not created until the first call to the model, so the initialization
       # is not captured in the global_variables_initializer above.
-      with keras.backend.get_session().as_default():
+      with tf.keras.backend.get_session().as_default():
         return super(AdversarialLossTest, self).evaluate(
             *args, **kwargs)
     else:
@@ -213,7 +212,7 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
         features={'feature': tf.constant(x0)},
         labels=tf.constant(y0),
         model=model,
-        loss_fn=keras.losses.MeanSquaredError(),
+        loss_fn=tf.keras.losses.MeanSquaredError(),
         adv_config=self.adv_config,
         model_kwargs={'training': True})
     # BatchNormalization returns 0 for signle-example batch when training=True.
@@ -235,7 +234,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     }
 
     adv_model = adversarial_regularization.AdversarialRegularization(model)
-    adv_model.compile(optimizer=keras.optimizers.SGD(0.01), loss='MSE')
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = adv_model.predict(x=inputs, steps=1, batch_size=1)
     self.assertAllEqual([[2.0]], prediction)
@@ -250,7 +249,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     inputs = {'feature': tf.constant([[5.0, 3.0]])}
 
     adv_model = adversarial_regularization.AdversarialRegularization(model)
-    adv_model.compile(optimizer=keras.optimizers.SGD(0.01), loss='MSE')
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = model.predict(x=inputs, steps=1, batch_size=1)
     self.assertAllEqual([[2.0]], prediction)
@@ -287,10 +286,10 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     model = model_fn(input_shape=(2,), weights=w)
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
-    adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss='MSE')
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MSE')
     adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   def test_train_fgsm_functional_model_diff_feature_key(self):
     # This test asserts that AdversarialRegularization works regardless of the
@@ -304,10 +303,10 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
         input_shape=(2,), weights=w, input_name='the_feature')
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
-    adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss='MSE')
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MSE')
     adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   @parameterized.named_parameters([
       ('sequential', build_linear_keras_sequential_model),
@@ -330,10 +329,10 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
         label_keys=['label'],
         sample_weight_key='sample_weight',
         adv_config=adv_config)
-    adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss='MSE')
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MSE')
     adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   @parameterized.named_parameters([
       ('sequential', build_linear_keras_sequential_model),
@@ -355,11 +354,11 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
       adv_model = adversarial_regularization.AdversarialRegularization(
           model, label_keys=['label'], adv_config=adv_config)
       adv_model.compile(
-          optimizer=keras.optimizers.SGD(lr), loss='MSE', metrics=['mae'])
+          optimizer=tf.keras.optimizers.SGD(lr), loss='MSE', metrics=['mae'])
 
     adv_model.fit(x=inputs)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   def test_train_with_loss_object(self):
     w, x0, y0, lr, adv_config, w_new = self._set_up_linear_regression()
@@ -369,11 +368,11 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(lr),
+        optimizer=tf.keras.optimizers.SGD(lr),
         loss=tf.keras.losses.MeanSquaredError())
     adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   def test_train_with_metrics(self):
     w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
@@ -383,7 +382,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(lr), loss='MSE', metrics=['mae'])
+        optimizer=tf.keras.optimizers.SGD(lr), loss='MSE', metrics=['mae'])
     history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
     actual_labeled_loss = history.history['mean_squared_error'][0]
@@ -401,7 +400,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(lr), loss=['MSE'], metrics=[['MSE']])
+        optimizer=tf.keras.optimizers.SGD(lr), loss=['MSE'], metrics=[['MSE']])
     history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
 
     self.assertIn('mean_squared_error', history.history)
@@ -417,7 +416,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(lr),
+        optimizer=tf.keras.optimizers.SGD(lr),
         loss='MSE',
         metrics=[tf.keras.metrics.MeanAbsoluteError()])
     history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
@@ -434,23 +433,23 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
         'label2': tf.constant(-y0)
     }
 
-    input_layer = keras.Input(shape=(2,), name='feature')
-    layer1 = keras.layers.Dense(
+    input_layer = tf.keras.Input(shape=(2,), name='feature')
+    layer1 = tf.keras.layers.Dense(
         w.shape[-1],
         use_bias=False,
-        kernel_initializer=keras.initializers.Constant(w))
-    layer2 = keras.layers.Dense(
+        kernel_initializer=tf.keras.initializers.Constant(w))
+    layer2 = tf.keras.layers.Dense(
         w.shape[-1],
         use_bias=False,
-        kernel_initializer=keras.initializers.Constant(-w))
-    model = keras.Model(
+        kernel_initializer=tf.keras.initializers.Constant(-w))
+    model = tf.keras.Model(
         inputs={'feature': input_layer},
         outputs=[layer1(input_layer), layer2(input_layer)])
 
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label1', 'label2'], adv_config=adv_config)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(lr),
+        optimizer=tf.keras.optimizers.SGD(lr),
         loss='MSE',
         metrics=[tf.keras.metrics.MeanAbsoluteError()])
     history = adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
@@ -468,11 +467,11 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     y0 = np.array([[0.0, 1.0, 1.0]])
     inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
     model = build_linear_keras_sequential_model(input_shape=(2,), weights=w)
-    model.add(keras.layers.Lambda(tf.sigmoid))
+    model.add(tf.keras.layers.Lambda(tf.sigmoid))
 
     adv_model = adversarial_regularization.AdversarialRegularization(model)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(0.1),
+        optimizer=tf.keras.optimizers.SGD(0.1),
         loss='squared_hinge',
         metrics=['accuracy', 'ce'])
     metrics_values = adv_model.evaluate(inputs, steps=1)
@@ -494,11 +493,11 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     y0 = np.array([[1]])
     inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
     model = build_linear_keras_sequential_model(input_shape=(2,), weights=w)
-    model.add(keras.layers.Softmax())
+    model.add(tf.keras.layers.Softmax())
 
     adv_model = adversarial_regularization.AdversarialRegularization(model)
     adv_model.compile(
-        optimizer=keras.optimizers.SGD(0.1),
+        optimizer=tf.keras.optimizers.SGD(0.1),
         loss='sparse_categorical_crossentropy',
         metrics=['accuracy', 'ce'])
     metrics_values = adv_model.evaluate(inputs, steps=1)
@@ -520,7 +519,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
-    adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss=['MSE'])
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss=['MSE'])
     adv_inputs = adv_model.perturb_on_batch(inputs)
 
     y_hat = np.dot(x0, w)
@@ -535,7 +534,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
-    adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss=['MSE'])
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss=['MSE'])
 
     adv_step_size = 0.2  # A different value from config.adv_step_size
     adv_inputs = adv_model.perturb_on_batch(inputs, adv_step_size=adv_step_size)

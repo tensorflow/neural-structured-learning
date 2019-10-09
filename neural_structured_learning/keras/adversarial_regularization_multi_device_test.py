@@ -24,7 +24,6 @@ import neural_structured_learning.configs as configs
 from neural_structured_learning.keras import adversarial_regularization
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
 
 NUM_REPLICAS = 2
 
@@ -51,13 +50,13 @@ def _set_up_virtual_devices():
 
 
 def build_linear_keras_functional_model(input_shape, weights):
-  inputs = keras.Input(shape=input_shape, name='feature')
-  layer = keras.layers.Dense(
+  inputs = tf.keras.Input(shape=input_shape, name='feature')
+  layer = tf.keras.layers.Dense(
       1,
       use_bias=False,
-      kernel_initializer=keras.initializers.Constant(weights))
+      kernel_initializer=tf.keras.initializers.Constant(weights))
   outputs = layer(inputs)
-  return keras.Model(inputs=inputs, outputs=outputs)
+  return tf.keras.Model(inputs=inputs, outputs=outputs)
 
 
 class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
@@ -108,12 +107,12 @@ class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
       model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
       adv_model = adversarial_regularization.AdversarialRegularization(
           model, label_keys=['label'], adv_config=adv_config)
-      adv_model.compile(optimizer=keras.optimizers.SGD(lr), loss='MSE')
+      adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MSE')
 
     adv_model.fit(x=inputs)
 
     # The updated weight should be the same regardless of the number of devices.
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
   def test_train_with_loss_object(self):
     w, x0, y0, lr, adv_config, w_new = self._set_up_linear_regression()
@@ -128,11 +127,11 @@ class AdversarialRegularizationMultiDeviceTest(tf.test.TestCase):
       adv_model = adversarial_regularization.AdversarialRegularization(
           model, label_keys=['label'], adv_config=adv_config)
       adv_model.compile(
-          optimizer=keras.optimizers.SGD(lr),
+          optimizer=tf.keras.optimizers.SGD(lr),
           loss=tf.keras.losses.MeanSquaredError())
     adv_model.fit(x=inputs)
 
-    self.assertAllClose(w_new, keras.backend.get_value(model.weights[0]))
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
 
 
 if __name__ == '__main__':

@@ -41,9 +41,7 @@ py_library(
 
 py_library(
     name = "abstract_gen_neighbor",
-    srcs = [
-        "abstract_gen_neighbor.py",
-    ],
+    srcs = ["abstract_gen_neighbor.py"],
     srcs_version = "PY2AND3",
     deps = [
     ],
@@ -51,9 +49,7 @@ py_library(
 
 py_library(
     name = "adversarial_neighbor",
-    srcs = [
-        "adversarial_neighbor.py",
-    ],
+    srcs = ["adversarial_neighbor.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":abstract_gen_neighbor",
@@ -64,9 +60,7 @@ py_library(
 
 py_test(
     name = "adversarial_neighbor_test",
-    srcs = [
-        "adversarial_neighbor_test.py",
-    ],
+    srcs = ["adversarial_neighbor_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":adversarial_neighbor",
@@ -78,9 +72,7 @@ py_test(
 
 py_library(
     name = "distances",
-    srcs = [
-        "distances.py",
-    ],
+    srcs = ["distances.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
@@ -90,9 +82,7 @@ py_library(
 
 py_test(
     name = "distances_test",
-    srcs = [
-        "distances_test.py",
-    ],
+    srcs = ["distances_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":distances",
@@ -104,9 +94,7 @@ py_test(
 
 py_library(
     name = "regularizer",
-    srcs = [
-        "regularizer.py",
-    ],
+    srcs = ["regularizer.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":distances",
@@ -117,9 +105,7 @@ py_library(
 
 py_test(
     name = "regularizer_test",
-    srcs = [
-        "regularizer_test.py",
-    ],
+    srcs = ["regularizer_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":regularizer",
@@ -131,9 +117,7 @@ py_test(
 
 py_library(
     name = "utils",
-    srcs = [
-        "utils.py",
-    ],
+    srcs = ["utils.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
