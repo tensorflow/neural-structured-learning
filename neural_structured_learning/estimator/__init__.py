@@ -6,3 +6,5 @@ versions (such as 2.0 or above).
 
 from neural_structured_learning.estimator.adversarial_regularization import add_adversarial_regularization
 from neural_structured_learning.estimator.graph_regularization import add_graph_regularization
+
+__all__ = ['add_adversarial_regularization', 'add_graph_regularization']
