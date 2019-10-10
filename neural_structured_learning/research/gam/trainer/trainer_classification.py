@@ -491,6 +491,7 @@ class TrainerClassification(Trainer):
     # edges at the end of training, so the shapes don't match needs fixing.
     left = tf.concat((labels_ll_left, labels_lu_left, predictions_uu_left),
                      axis=0)
+    # left = tf.stop_gradient(left)
     right = tf.concat(
         (predictions_ll_right, predictions_lu_right, predictions_uu_right),
         axis=0)
@@ -514,13 +515,14 @@ class TrainerClassification(Trainer):
         src_indices=indices_uu_left,
         tgt_indices=indices_uu_right)
     agreement = tf.concat((agreement_ll, agreement_lu, agreement_uu), axis=0)
+    # agreement = tf.stop_gradient(agreement)
     if self.penalize_neg_agr:
       # Since the agreement is predicting scores between [0, 1], anything
       # under 0.5 should represent disagreement. Therefore, we want to encourage
       # agreement whenever the score is > 0.5, otherwise don't incur any loss.
       agreement = tf.nn.relu(agreement - 0.5)
 
-      # Create a Tensor containing the weights assigned to each pair in the
+    # Create a Tensor containing the weights assigned to each pair in the
     # agreement regularization loss, depending on how many samples in the pair
     # were labeled. This weight can be either reg_weight_ll, reg_weight_lu,
     # or reg_weight_uu.
