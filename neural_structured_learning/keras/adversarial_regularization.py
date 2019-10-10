@@ -645,6 +645,11 @@ class AdversarialRegularization(tf.keras.Model):
     self.add_metric(adv_loss, name='adversarial_loss', aggregation='mean')
     return outputs
 
+  def save(self, *args, **kwargs):
+    raise NotImplementedError(
+        'Saving `AdversarialRegularization` models is currently not supported. '
+        'Consider using `save_weights` or saving the `base_model`.')
+
   def perturb_on_batch(self, x, **config_kwargs):
     """Perturbs the given input to generates adversarial examples.
 
