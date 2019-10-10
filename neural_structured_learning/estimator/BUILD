@@ -15,6 +15,7 @@
 # Description:
 # Build rules for Estimator APIs in Neural Structured Learning.
 
+# Placeholder for internal Python strict compatibility macro.
 # Placeholder for internal Python version compatibility macro.
 
 package(

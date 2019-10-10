@@ -15,6 +15,7 @@
 # Description:
 # Build rules for TensorFlow Neural Structured Learning.
 
+# Placeholder for internal Python strict compatibility macro.
 # Internal annotation for sync
 
 package(default_visibility = ["//visibility:public"])
@@ -28,6 +29,7 @@ py_library(
     srcs = ["__init__.py"],
     deps = [
         ":version",
+        "//neural_structured_learning/configs",
         "//neural_structured_learning/estimator",
         "//neural_structured_learning/keras",
         "//neural_structured_learning/lib",

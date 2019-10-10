@@ -26,7 +26,6 @@ import neural_structured_learning.configs as nsl_configs
 import neural_structured_learning.lib as nsl_lib
 import six
 import tensorflow as tf
-import tensorflow.keras as keras
 
 
 def adversarial_loss(features,
@@ -193,16 +192,15 @@ class _LossWrapper(tf.keras.losses.Loss):
     return loss_value
 
   def _is_sparse_categorical_loss(self):
-    return self.loss_fn == keras.losses.sparse_categorical_crossentropy or (
-        isinstance(self.loss_fn, keras.losses.SparseCategoricalCrossentropy))
+    return self.loss_fn == tf.keras.losses.sparse_categorical_crossentropy or (
+        isinstance(self.loss_fn, tf.keras.losses.SparseCategoricalCrossentropy))
 
   def _is_binary_classification_loss(self):
-    return self.loss_fn in (keras.losses.binary_crossentropy,
-                            keras.losses.hinge,
-                            keras.losses.squared_hinge) or isinstance(
-                                self.loss_fn,
-                                (keras.losses.BinaryCrossentropy,
-                                 keras.losses.Hinge, keras.losses.SquaredHinge))
+    return self.loss_fn in (
+        tf.keras.losses.binary_crossentropy,
+        tf.keras.losses.hinge, tf.keras.losses.squared_hinge) or isinstance(
+            self.loss_fn, (tf.keras.losses.BinaryCrossentropy,
+                           tf.keras.losses.Hinge, tf.keras.losses.SquaredHinge))
 
   def resolve_metric(self, metric):
     """Resolves potentially ambiguous metric name based on the loss function."""
@@ -237,21 +235,21 @@ def _prepare_loss_fns(loss, output_names):
       if name not in loss:
         raise ValueError(
             'Loss for {} not found in `loss` dictionary.'.format(name))
-    return [keras.losses.get(loss[name]) for name in output_names]
+    return [tf.keras.losses.get(loss[name]) for name in output_names]
 
   # loss for single output, or shared loss fn for multiple outputs
   if isinstance(loss, six.string_types):
-    return [keras.losses.get(loss) for _ in output_names]
+    return [tf.keras.losses.get(loss) for _ in output_names]
 
   # losses for multiple outputs indexed by position
   if isinstance(loss, collections.Sequence):
     if len(loss) != len(output_names):
       raise ValueError('`loss` should have the same number of elements as '
                        'model output')
-    return six.moves.map(keras.losses.get, loss)
+    return six.moves.map(tf.keras.losses.get, loss)
 
   # loss for single output, or shared loss fn for multiple outputs
-  return [keras.losses.get(loss) for _ in output_names]
+  return [tf.keras.losses.get(loss) for _ in output_names]
 
 
 def _prepare_loss_weights(loss_weights, output_names):
@@ -294,7 +292,7 @@ def _clone_metrics(metrics):
     # adversarial-regularized models, and also on multiple outputs in one model.
     # The cloning logic is the same as the `clone_metric` function in
     # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/keras/metrics.py
-    if not isinstance(metric, keras.metrics.Metric):
+    if not isinstance(metric, tf.keras.metrics.Metric):
       return metric
     with tf.init_scope():
       return metric.__class__.from_config(metric.get_config())
@@ -348,7 +346,7 @@ def _prepare_metric_fns(metrics, output_names, loss_wrappers):
   metric_fns = []
   for per_output_metrics, loss_wrapper in zip(metrics, loss_wrappers):
     metric_fns.append([
-        keras.metrics.get(loss_wrapper.resolve_metric(metric))
+        tf.keras.metrics.get(loss_wrapper.resolve_metric(metric))
         for metric in to_list(per_output_metrics)
     ])
   return metric_fns
@@ -390,7 +388,7 @@ def _compute_loss_and_metrics(losses,
       value = metric_fn(label, output)
       # Metric objects always return an aggregated result, and shouldn't be
       # aggregated again.
-      if isinstance(metric_fn, keras.metrics.Metric):
+      if isinstance(metric_fn, tf.keras.metrics.Metric):
         aggregation = None
       else:
         aggregation = 'mean'
@@ -398,7 +396,7 @@ def _compute_loss_and_metrics(losses,
   return tf.add_n(total_loss), output_metrics
 
 
-class AdversarialRegularization(keras.Model):
+class AdversarialRegularization(tf.keras.Model):
   """Wrapper thats adds adversarial regularization to a given `tf.keras.Model`.
 
   This model will reuse the layers and variables as the given `base_model`, so
@@ -567,7 +565,7 @@ class AdversarialRegularization(keras.Model):
       per_output_metrics = []
       for metric_fn in metric_fns:
         metric_name = self._make_metric_name(metric_fn, label_key)
-        if isinstance(metric_fn, keras.metrics.Metric):
+        if isinstance(metric_fn, tf.keras.metrics.Metric):
           # Updates the name of the Metric object to make sure it is unique.
           metric_fn._name = metric_name  # pylint: disable=protected-access
         per_output_metrics.append((metric_fn, metric_name))
@@ -682,7 +680,7 @@ class AdversarialRegularization(keras.Model):
           adv_inputs,
           expand_composites=False)
     else:
-      adv_inputs = keras.backend.function([], adv_inputs)([])
+      adv_inputs = tf.keras.backend.function([], adv_inputs)([])
 
     # Inserts the labels and sample_weights back to the input dictionary, so
     # the returned input has the same structure as the original input.

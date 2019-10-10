@@ -15,6 +15,8 @@
 # Description:
 # Build rules for config libraries in Neural Structured Learning.
 
+# Placeholder for internal Python strict compatibility macro.
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],  # Apache 2.0

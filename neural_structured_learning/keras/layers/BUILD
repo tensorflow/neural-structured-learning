@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Placeholder for internal Python strict compatibility macro.
 # Placeholder for internal Python version compatibility macro.
 
 # Description:
