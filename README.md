@@ -98,7 +98,7 @@ Please see the [release notes](RELEASE.md) for detailed version updates.
 
 [[4] T. Miyato, S. Maeda, M. Koyama and S. Ishii. "Virtual Adversarial Training: a Regularization Method for Supervised and Semi-supervised Learning." ICLR 2016](https://arxiv.org/pdf/1704.03976.pdf)
 
-[[5] D. Juan, C. Lu, Z. Li, F. Peng, A. Timofeev, Y. Chen, Y. Gao, T. Duerig, A. Tomkins and S. Ravi "Graph-RISE: Graph-Regularized Image Semantic Embedding." arXiv 2019](https://arxiv.org/abs/1902.10814)
+[[5] D. Juan, C. Lu, Z. Li, F. Peng, A. Timofeev, Y. Chen, Y. Gao, T. Duerig, A. Tomkins and S. Ravi "Graph-RISE: Graph-Regularized Image Semantic Embedding." WSDM 2020](https://arxiv.org/abs/1902.10814)
 
 
 
