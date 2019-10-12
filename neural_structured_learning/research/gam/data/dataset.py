@@ -109,6 +109,33 @@ class Dataset(object):
                    feature_preproc_fn=feature_preproc_fn)
 
 
+  def copy(self, name=None, features=None, labels=None, indices_train=None,
+           indices_test=None, indices_val=None, indices_unlabeled=None,
+           num_classes=None, feature_preproc_fn=None):
+    name = name if name is not None else self.name
+    features = features if features is not None else self.features
+    labels = labels if labels is not None else self.labels
+    indices_train = (indices_train if indices_train is not None else
+                     self.indices_train)
+    indices_test = (indices_test if indices_test is not None else
+                    self.indices_test)
+    indices_val = indices_val if indices_val is not None else self.indices_val
+    indices_unlabeled = (indices_unlabeled if indices_unlabeled is not None else
+                         self.indices_unlabeled)
+    num_classes = num_classes if num_classes is not None else self.num_classes
+    feature_preproc_fn = (feature_preproc_fn if feature_preproc_fn is not None
+                          else self.feature_preproc_fn)
+    return Dataset(
+      name=name,
+      features=features,
+      labels=labels,
+      indices_train=indices_train,
+      indices_test=indices_test,
+      indices_val=indices_val,
+      indices_unlabeled=indices_unlabeled,
+      num_classes=num_classes,
+      feature_preproc_fn=feature_preproc_fn)
+
   def copy_labels(self):
     return np.copy(self.labels)
 
@@ -211,6 +238,35 @@ class GraphDataset(Dataset):
       name=name,
       features=features,
       labels=labels,
+      indices_train=indices_train,
+      indices_test=indices_test,
+      indices_val=indices_val,
+      indices_unlabeled=indices_unlabeled,
+      num_classes=num_classes,
+      feature_preproc_fn=feature_preproc_fn)
+
+  def copy(self, name=None, features=None, labels=None, edges=None,
+           indices_train=None, indices_test=None, indices_val=None,
+           indices_unlabeled=None, num_classes=None, feature_preproc_fn=None):
+    name = name if name is not None else self.name
+    features = features if features is not None else self.features
+    labels = labels if labels is not None else self.labels
+    indices_train = (indices_train if indices_train is not None else
+                     self.indices_train)
+    indices_test = (indices_test if indices_test is not None else
+                    self.indices_test)
+    indices_val = indices_val if indices_val is not None else self.indices_val
+    indices_unlabeled = (indices_unlabeled if indices_unlabeled is not None else
+                         self.indices_unlabeled)
+    num_classes = num_classes if num_classes is not None else self.num_classes
+    feature_preproc_fn = (feature_preproc_fn if feature_preproc_fn is not None
+                          else self.feature_preproc_fn)
+    edges = edges if edges is not None else self.edges
+    return GraphDataset(
+      name=name,
+      features=features,
+      labels=labels,
+      edges=edges,
       indices_train=indices_train,
       indices_test=indices_test,
       indices_val=indices_val,

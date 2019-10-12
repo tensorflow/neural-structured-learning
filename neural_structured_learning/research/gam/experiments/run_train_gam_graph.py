@@ -30,6 +30,7 @@ from absl import app
 from absl import flags
 
 from gam.data.loaders import load_data_planetoid
+from gam.data.robustness import add_noisy_edges
 from gam.experiments.helper import get_model_agr
 from gam.experiments.helper import get_model_cls
 from gam.trainer.trainer_cotrain import TrainerCotraining
@@ -47,14 +48,19 @@ flags.DEFINE_bool(
     'row_normalize', False,
     'Whether to row normalize the data. Important for GCN.')
 flags.DEFINE_string(
-  'data_output_dir', './outputs',
-  'Path to a folder where to save the preprocessed dataset.')
+    'data_output_dir', './outputs',
+    'Path to a folder where to save the preprocessed dataset.')
 flags.DEFINE_integer(
     'target_num_train_per_class', 20,
     'Number of samples per class to use for training.')
 flags.DEFINE_integer(
     'target_num_val', 1000,
     'Number of samples to be used for validation.')
+flags.DEFINE_float(
+    'target_ratio_correct', None,
+    'Ratio of correct edges that we want the graph to have, after adding'
+    '`wrong` edges between nodes with different labels. This is parameters is'
+    'introduced to test the robustness of GAM to noisy edges.')
 flags.DEFINE_integer(
     'seed', 123,
     'Seed used by the random number generators.')
@@ -298,6 +304,11 @@ def main(argv):
     name=FLAGS.dataset_name,
     path=FLAGS.data_path,
     row_normalize=FLAGS.row_normalize)
+
+  # Potentially add noisy edges. This can be used to asses the robustness of
+  # GAM to noisy edges. See `Robustness` section of our paper.
+  if FLAGS.target_ratio_correct:
+    data = add_noisy_edges(data, FLAGS.target_ratio_correct)
 
   ############################################################################
   #                            PREPARE OUTPUTS                               #
