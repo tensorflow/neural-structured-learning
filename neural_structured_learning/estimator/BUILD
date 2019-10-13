@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Description:
+# Build rules for Estimator APIs in Neural Structured Learning.
+
 # Placeholder for internal Python strict compatibility macro.
 # Placeholder for internal Python version compatibility macro.
-
-# Description:
-# Build rules for Keras APIs in Neural Structured Learning.
 
 package(
     default_visibility = ["//visibility:public"],
@@ -26,12 +26,12 @@ package(
 exports_files(["LICENSE"])
 
 py_library(
-    name = "keras",
+    name = "estimator",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":adversarial_regularization",
         ":graph_regularization",
-        "//neural_structured_learning/keras/layers",
     ],
 )
 
@@ -40,22 +40,8 @@ py_library(
     srcs = ["adversarial_regularization.py"],
     srcs_version = "PY2AND3",
     deps = [
-        # package attr
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib",
-        # package six
-        # package tensorflow
-    ],
-)
-
-py_test(
-    name = "adversarial_regularization_multi_device_test",
-    srcs = ["adversarial_regularization_multi_device_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":adversarial_regularization",
-        "//neural_structured_learning/configs",
-        # package numpy
         # package tensorflow
     ],
 )
@@ -65,8 +51,7 @@ py_test(
     srcs = ["adversarial_regularization_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":adversarial_regularization",
-        # package absl/testing:parameterized
+        ":estimator",
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow
@@ -80,7 +65,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
-        "//neural_structured_learning/keras/layers",
+        "//neural_structured_learning/lib:distances",
+        "//neural_structured_learning/lib:utils",
         # package tensorflow
     ],
 )
@@ -90,9 +76,8 @@ py_test(
     srcs = ["graph_regularization_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_regularization",
+        ":estimator",
         # package protobuf,
-        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow

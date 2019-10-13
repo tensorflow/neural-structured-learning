@@ -13,6 +13,8 @@
 # limitations under the License.
 """Setup file for the TensorFlow Neural Structured Learning pip package."""
 
+import os
+import sys
 import textwrap
 
 import setuptools
@@ -59,9 +61,15 @@ NSL_OVERVIEW = textwrap.dedent("""\
     Incorporating structured signals is done only during training, so the
     performance of the serving/inference workflow remains unchanged.""")
 
+# Adds the path to sys.path so that we can import version.py.
+version_path = os.path.join(os.path.dirname(__file__),
+                            "neural_structured_learning")
+sys.path.append(version_path)
+from version import __version__  # pylint: disable=g-import-not-at-top
+
 setuptools.setup(
     name="neural-structured-learning",
-    version="1.0.1",
+    version=__version__,
     author="Google LLC",
     description="Neural Structured Learning is an open-source TensorFlow "
     "framework to train neural networks with structured signals",

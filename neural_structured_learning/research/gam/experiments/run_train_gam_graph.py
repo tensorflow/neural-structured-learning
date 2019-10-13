@@ -41,67 +41,49 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string(
     'dataset_name', 'cora',
     'Dataset name. Supported options are: cora, citeseer, pubmed.')
-flags.DEFINE_string(
-    'data_path', '', 'Path to data.')
-flags.DEFINE_bool(
-    'row_normalize', False,
-    'Whether to row normalize the data. Important for GCN.')
-flags.DEFINE_string(
-  'data_output_dir', './outputs',
-  'Path to a folder where to save the preprocessed dataset.')
-flags.DEFINE_integer(
-    'target_num_train_per_class', 20,
-    'Number of samples per class to use for training.')
-flags.DEFINE_integer(
-    'target_num_val', 1000,
-    'Number of samples to be used for validation.')
-flags.DEFINE_integer(
-    'seed', 123,
-    'Seed used by the random number generators.')
+flags.DEFINE_string('data_path', '', 'Path to data.')
+flags.DEFINE_bool('row_normalize', False,
+                  'Whether to row normalize the data. Important for GCN.')
+flags.DEFINE_string('data_output_dir', './outputs',
+                    'Path to a folder where to save the preprocessed dataset.')
+flags.DEFINE_integer('target_num_train_per_class', 20,
+                     'Number of samples per class to use for training.')
+flags.DEFINE_integer('target_num_val', 1000,
+                     'Number of samples to be used for validation.')
+flags.DEFINE_integer('seed', 123, 'Seed used by the random number generators.')
 flags.DEFINE_string(
     'output_dir', './outputs',
     'Path to a folder where checkpoints, summaries and other outputs are '
     'stored.')
+flags.DEFINE_string('logging_config', '', 'Path to logging configuration file.')
 flags.DEFINE_string(
-    'logging_config', '', 'Path to logging configuration file.')
-flags.DEFINE_string(
-    'model_cls', 'mlp',
-    'Model type for the classification model. '
+    'model_cls', 'mlp', 'Model type for the classification model. '
     'Options are: `mlp`, `cnn`, `wide_resnet`')
 flags.DEFINE_string(
     'model_agr', 'mlp',
     'Model type for the agreement model. Options are: `mlp`, `cnn`, '
     '`wide_resnet`.')
-flags.DEFINE_float(
-    'learning_rate_cls', 0.001,
-    'Initial learning rate of the classification model.')
-flags.DEFINE_float(
-    'learning_rate_agr', 0.001,
-    'Initial learning rate of the agreement model.')
-flags.DEFINE_float(
-    'learning_rate_decay_cls', None,
-    'Learning rate decay factor for the classification model.')
-flags.DEFINE_float(
-    'learning_rate_decay_agr', None,
-    'Learning rate decay factor for the agreement model.')
-flags.DEFINE_float(
-    'lr_decay_rate_cls', None,
-    'Learning rate decay rate for the classification model.')
-flags.DEFINE_integer(
-    'lr_decay_steps_cls', None,
-    'Learning rate decay steps for the classification model.')
-flags.DEFINE_float(
-    'lr_decay_rate_agr', None,
-    'Learning rate decay rate for the agreement model.')
-flags.DEFINE_integer(
-    'lr_decay_steps_agr', None,
-    'Learning rate decay steps for the agreement model.')
-flags.DEFINE_integer(
-    'max_num_iter_cotrain', 200, 'Number of epochs to train.')
-flags.DEFINE_integer(
-    'min_num_iter_cls', 200, 'Minimum number of epochs to train for.')
-flags.DEFINE_integer(
-    'max_num_iter_cls', 100000, 'Maximum number of epochs to train for.')
+flags.DEFINE_float('learning_rate_cls', 0.001,
+                   'Initial learning rate of the classification model.')
+flags.DEFINE_float('learning_rate_agr', 0.001,
+                   'Initial learning rate of the agreement model.')
+flags.DEFINE_float('learning_rate_decay_cls', None,
+                   'Learning rate decay factor for the classification model.')
+flags.DEFINE_float('learning_rate_decay_agr', None,
+                   'Learning rate decay factor for the agreement model.')
+flags.DEFINE_float('lr_decay_rate_cls', None,
+                   'Learning rate decay rate for the classification model.')
+flags.DEFINE_integer('lr_decay_steps_cls', None,
+                     'Learning rate decay steps for the classification model.')
+flags.DEFINE_float('lr_decay_rate_agr', None,
+                   'Learning rate decay rate for the agreement model.')
+flags.DEFINE_integer('lr_decay_steps_agr', None,
+                     'Learning rate decay steps for the agreement model.')
+flags.DEFINE_integer('max_num_iter_cotrain', 200, 'Number of epochs to train.')
+flags.DEFINE_integer('min_num_iter_cls', 200,
+                     'Minimum number of epochs to train for.')
+flags.DEFINE_integer('max_num_iter_cls', 100000,
+                     'Maximum number of epochs to train for.')
 flags.DEFINE_integer(
     'num_iter_after_best_val_cls', 2000,
     'Minimum number of iterations to train the classification model for after '
@@ -130,9 +112,8 @@ flags.DEFINE_integer(
     'num_warm_up_iter_agr', 1,
     'Minimum number of co-train iterations the agreement must be trained '
     'before it is used in the classifier.')
-flags.DEFINE_float(
-    'ratio_valid_agr', 0.1,
-    'Ratio of edges used for validating the agreement model.')
+flags.DEFINE_float('ratio_valid_agr', 0.1,
+                   'Ratio of edges used for validating the agreement model.')
 flags.DEFINE_integer(
     'max_samples_valid_agr', 10000,
     'Max number of samples to set aside for validating the agreement model.')
@@ -157,19 +138,16 @@ flags.DEFINE_string(
     'weight_decay_schedule_cls', None,
     'Schedule for decaying the weight decay in the classification model. '
     'Choose bewteen None or linear.')
-flags.DEFINE_float(
-    'weight_decay_agr', None,
-    'Weight of the L2 penalty on the agreement model weights.')
+flags.DEFINE_float('weight_decay_agr', None,
+                   'Weight of the L2 penalty on the agreement model weights.')
 flags.DEFINE_string(
     'weight_decay_schedule_agr', None,
     'Schedule for decaying the weight decay in the agreement model. Choose '
     'between None or linear.')
-flags.DEFINE_float(
-    'dropout', None, 'Dropout rate (1 - keep probability).')
-flags.DEFINE_integer(
-    'batch_size_agr', 128, 'Batch size for agreement model.')
-flags.DEFINE_integer(
-    'batch_size_cls', 128, 'Batch size for classification model.')
+flags.DEFINE_float('dropout', None, 'Dropout rate (1 - keep probability).')
+flags.DEFINE_integer('batch_size_agr', 128, 'Batch size for agreement model.')
+flags.DEFINE_integer('batch_size_cls', 128,
+                     'Batch size for classification model.')
 flags.DEFINE_float(
     'gradient_clip', None,
     'The gradient clipping global norm value. If None, no clipping is done.')
@@ -205,17 +183,16 @@ flags.DEFINE_bool(
     'Whether to reinitialize the parameters of the agreement model before '
     'retraining (if False), or use the ones from the previous cotrain '
     'iteration.')
-flags.DEFINE_bool(
-    'use_perfect_agreement', False, 'Whether to use perfect agreement.')
-flags.DEFINE_bool(
-    'use_perfect_classifier', False, 'Whether to use perfect classifier.')
-flags.DEFINE_float(
-    'reg_weight_ll', 0.00, 'Regularization weight for labeled-labeled edges.')
-flags.DEFINE_float(
-    'reg_weight_lu', 0.1, 'Regularization weight for labeled-unlabeled edges.')
-flags.DEFINE_float(
-    'reg_weight_uu', 0.05,
-    'Regularization weight for unlabeled-unlabeled edges.')
+flags.DEFINE_bool('use_perfect_agreement', False,
+                  'Whether to use perfect agreement.')
+flags.DEFINE_bool('use_perfect_classifier', False,
+                  'Whether to use perfect classifier.')
+flags.DEFINE_float('reg_weight_ll', 0.00,
+                   'Regularization weight for labeled-labeled edges.')
+flags.DEFINE_float('reg_weight_lu', 0.1,
+                   'Regularization weight for labeled-unlabeled edges.')
+flags.DEFINE_float('reg_weight_uu', 0.05,
+                   'Regularization weight for unlabeled-unlabeled edges.')
 flags.DEFINE_integer(
     'num_pairs_reg', 128,
     'Number of pairs of nodes to use in the agreement loss term of the '
@@ -241,9 +218,8 @@ flags.DEFINE_bool(
     'first_iter_original', True,
     'Whether to use the original model in the first iteration, without self '
     'labeling or agreement loss.')
-flags.DEFINE_bool(
-    'inductive', False,
-    'Whether to use an inductive or transductive SSL setting.')
+flags.DEFINE_bool('inductive', False,
+                  'Whether to use an inductive or transductive SSL setting.')
 flags.DEFINE_string(
     'experiment_suffix', '',
     'A suffix you might want to add at the end of the experiment name to'
@@ -273,9 +249,8 @@ flags.DEFINE_bool(
     'add_negative_edges_agr', True,
     'Whether to add fake negative edges when training the agreement model, in'
     'order to keep the classes balanced.')
-flags.DEFINE_bool(
-    'use_graph', True,
-    'Whether to use the graph edges, or any pair of samples.')
+flags.DEFINE_bool('use_graph', True,
+                  'Whether to use the graph edges, or any pair of samples.')
 
 
 def main(argv):
@@ -295,9 +270,9 @@ def main(argv):
   ############################################################################
   # Load data.
   data = load_data_planetoid(
-    name=FLAGS.dataset_name,
-    path=FLAGS.data_path,
-    row_normalize=FLAGS.row_normalize)
+      name=FLAGS.dataset_name,
+      path=FLAGS.data_path,
+      row_normalize=FLAGS.row_normalize)
 
   ############################################################################
   #                            PREPARE OUTPUTS                               #
@@ -309,14 +284,14 @@ def main(argv):
   model_name += ('_' + FLAGS.hidden_agr) if FLAGS.model_agr == 'mlp' else ''
   model_name += '-aggr_' + FLAGS.aggregation_agr_inputs
   model_name += ('_' + FLAGS.hidden_aggreg) if FLAGS.hidden_aggreg else ''
-  model_name += ('-add_%d-conf_%.2f-iterCls_%d-iterAgr_%d-batchCls_%d' %
-                 (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
-                  FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr,
-                  FLAGS.batch_size_cls))
-  model_name += (('-wdecayCls_%.4f' % FLAGS.weight_decay_cls)
-                 if FLAGS.weight_decay_cls else '')
-  model_name += (('-wdecayAgr_%.4f' % FLAGS.weight_decay_agr)
-                 if FLAGS.weight_decay_agr else '')
+  model_name += (
+      '-add_%d-conf_%.2f-iterCls_%d-iterAgr_%d-batchCls_%d' %
+      (FLAGS.num_samples_to_label, FLAGS.min_confidence_new_label,
+       FLAGS.max_num_iter_cls, FLAGS.max_num_iter_agr, FLAGS.batch_size_cls))
+  model_name += (('-wdecayCls_%.4f' %
+                  FLAGS.weight_decay_cls) if FLAGS.weight_decay_cls else '')
+  model_name += (('-wdecayAgr_%.4f' %
+                  FLAGS.weight_decay_agr) if FLAGS.weight_decay_agr else '')
   model_name += '-LL_%s_LU_%s_UU_%s' % (str(
       FLAGS.reg_weight_ll), str(FLAGS.reg_weight_lu), str(FLAGS.reg_weight_uu))
   model_name += '-perfAgr' if FLAGS.use_perfect_agreement else ''
@@ -335,12 +310,12 @@ def main(argv):
 
   # Create directories for model checkpoints, summaries, and
   # self-labeled data backup.
-  summary_dir = os.path.join(
-    FLAGS.output_dir, 'summaries', FLAGS.dataset_name, model_name)
-  checkpoints_dir = os.path.join(
-    FLAGS.output_dir, 'checkpoints', FLAGS.dataset_name, model_name)
-  data_dir = os.path.join(
-    FLAGS.data_output_dir, 'data_checkpoints',  FLAGS.dataset_name, model_name)
+  summary_dir = os.path.join(FLAGS.output_dir, 'summaries', FLAGS.dataset_name,
+                             model_name)
+  checkpoints_dir = os.path.join(FLAGS.output_dir, 'checkpoints',
+                                 FLAGS.dataset_name, model_name)
+  data_dir = os.path.join(FLAGS.data_output_dir, 'data_checkpoints',
+                          FLAGS.dataset_name, model_name)
   if not os.path.exists(checkpoints_dir):
     os.makedirs(checkpoints_dir)
   if not os.path.exists(data_dir):
@@ -351,19 +326,18 @@ def main(argv):
   ############################################################################
   # Create classification model.
   model_cls = get_model_cls(
-    model_name=FLAGS.model_cls,
-    data=data,
-    dataset_name=FLAGS.dataset_name,
-    hidden=FLAGS.hidden_cls)
+      model_name=FLAGS.model_cls,
+      data=data,
+      dataset_name=FLAGS.dataset_name,
+      hidden=FLAGS.hidden_cls)
 
   # Create agreement model.
   model_agr = get_model_agr(
-    model_name=FLAGS.model_agr,
-    data=data,
-    dataset_name=FLAGS.dataset_name,
-    hidden_aggreg=FLAGS.hidden_aggreg,
-    aggregation_agr_inputs=FLAGS.aggregation_agr_inputs,
-    hidden=FLAGS.hidden_agr)
+      model_name=FLAGS.model_agr,
+      dataset_name=FLAGS.dataset_name,
+      hidden_aggreg=FLAGS.hidden_aggreg,
+      aggregation_agr_inputs=FLAGS.aggregation_agr_inputs,
+      hidden=FLAGS.hidden_agr)
 
   # Train.
   trainer = TrainerCotraining(
