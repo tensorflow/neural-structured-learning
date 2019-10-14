@@ -333,6 +333,114 @@ class PlanetoidDataset(GraphDataset):
     return features
 
 
+class GCNDataset(GraphDataset):
+  """Data container for Planetoid datasets."""
+
+  def __init__(self,
+               name,
+               adj,
+               features,
+               train_mask,
+               val_mask,
+               test_mask,
+               labels,
+               row_normalize=False):
+    # Extract train, val, test, unlabeled indices.
+    train_indices = np.where(train_mask)[0]
+    test_indices = np.where(test_mask)[0]
+    val_indices = np.where(val_mask)[0]
+    unlabeled_mask = np.logical_not(train_mask | test_mask | val_mask)
+    unlabeled_indices = np.where(unlabeled_mask)[0]
+
+    # Extract node features.
+    if row_normalize:
+      features = self.preprocess_features(features)
+
+    features = np.float32(features.todense())
+
+    # Extract labels.
+    labels = np.argmax(labels, axis=-1)
+    num_classes = max(labels) + 1
+
+    # Extract edges.
+    adj = scipy.sparse.coo_matrix(adj)
+    edges = [
+      self.Edge(src, tgt, val)
+      for src, tgt, val in zip(adj.row, adj.col, adj.data)
+    ]
+
+    # Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."
+    adj_normalized = self.normalize_adj(
+      adj + scipy.eye(adj.shape[0])).astype(np.float32)
+    self.support = self.sparse_to_tuple(adj_normalized)
+
+    features_matrix = (self.row_normalize(features).astype(np.float32)
+                       if row_normalize else features.astype(np.float32))
+    features = self.sparse_to_tuple(features_matrix)
+
+
+    # Convert to Dataset format.
+    super(GCNDataset, self).__init__(
+      name=name,
+      features=features,
+      labels=labels,
+      edges=edges,
+      indices_train=train_indices,
+      indices_test=test_indices,
+      indices_val=val_indices,
+      indices_unlabeled=unlabeled_indices,
+      num_classes=num_classes,
+      feature_preproc_fn=lambda x: x)
+
+  @staticmethod
+  def preprocess_features(features):
+    """Row-normalize feature matrix."""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = scipy.sparse.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return features
+
+  @staticmethod
+  def normalize_adj(adj):
+    """Symmetrically normalize adjacency matrix."""
+    adj = scipy.coo_matrix(adj)
+    rowsum = np.array(adj.sum(1))
+    d_inv_sqrt = np.power(rowsum, -0.5).flatten()
+    d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = scipy.diags(d_inv_sqrt)
+    return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
+
+  @staticmethod
+  def row_normalize(features):
+    """Row-normalize feature matrix."""
+    rowsum = np.array(features.sum(1))
+    r_inv = np.power(rowsum, -1).flatten()
+    r_inv[np.isinf(r_inv)] = 0.
+    r_mat_inv = scipy.diags(r_inv)
+    features = r_mat_inv.dot(features)
+    return features
+
+  @staticmethod
+  def sparse_to_tuple(sparse_mx):
+    """Convert sparse matrix to tuple representation."""
+    def to_tuple(mx):
+      if not scipy.isspmatrix_coo(mx):
+        mx = mx.tocoo()
+      coords = np.vstack((mx.row, mx.col)).transpose()
+      values = mx.data
+      shape = mx.shape
+      return coords, values, shape
+
+    if isinstance(sparse_mx, list):
+      for i in range(len(sparse_mx)):
+        sparse_mx[i] = to_tuple(sparse_mx[i])
+    else:
+      sparse_mx = to_tuple(sparse_mx)
+
+    return sparse_mx
+
 class CotrainDataset(object):
   """A wrapper around a Dataset object, adding co-training functionality.
 

@@ -266,7 +266,8 @@ class TrainerCotraining(Trainer):
                load_from_checkpoint=False,
                use_graph=False,
                always_agree=False,
-               add_negative_edges_agr=False):
+               add_negative_edges_agr=False,
+               include_indices_cls=False):
     assert not enable_summaries or (enable_summaries and
                                     summary_dir is not None)
     assert checkpoints_step is None or (checkpoints_step is not None and
@@ -338,6 +339,7 @@ class TrainerCotraining(Trainer):
     self.use_graph = use_graph
     self.always_agree = always_agree
     self.add_negative_edges_agr = add_negative_edges_agr
+    self.include_indices_cls = include_indices_cls
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -538,6 +540,7 @@ class TrainerCotraining(Trainer):
             lr_decay_rate=self.lr_decay_rate_cls,
             lr_decay_steps=self.lr_decay_steps_cls,
             lr_initial=self.learning_rate_cls,
+            include_indices=self.include_indices_cls,
             use_graph=self.use_graph)
 
     # Create a saver which saves only the variables that we would need to

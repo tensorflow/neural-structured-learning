@@ -33,6 +33,7 @@ from gam.data.loaders import load_data_planetoid
 from gam.experiments.helper import get_model_agr
 from gam.experiments.helper import get_model_cls
 from gam.trainer.trainer_cotrain import TrainerCotraining
+from gam.models.gcn import GCN
 import numpy as np
 import tensorflow as tf
 
@@ -405,7 +406,8 @@ def main(argv):
       load_from_checkpoint=FLAGS.load_from_checkpoint,
       use_graph=FLAGS.use_graph,
       always_agree=FLAGS.always_agree,
-      add_negative_edges_agr=FLAGS.add_negative_edges_agr)
+      add_negative_edges_agr=FLAGS.add_negative_edges_agr,
+      include_indices_cls=(model_cls==GCN))
 
   ############################################################################
   #                            TRAIN                                         #

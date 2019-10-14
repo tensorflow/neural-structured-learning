@@ -150,6 +150,7 @@ class TrainerClassification(Trainer):
                seed=None,
                lr_decay_steps=None,
                lr_decay_rate=None,
+               include_indices=False,
                use_graph=False):
     super(TrainerClassification, self).__init__(
         model=model,
@@ -241,6 +242,14 @@ class TrainerClassification(Trainer):
 
     # Create counter for classification iterations.
     iter_cls_total, iter_cls_total_update = self._create_counter()
+
+    # For some models like GCN the input indices are necessary.
+    if include_indices:
+      self.include_indices = True
+      self.input_indices =  tf.placeholder(
+        tf.int64, shape=(None,), name='input_indices')
+    else:
+      self.include_indices = False
 
     # Create loss.
     with tf.name_scope('loss'):
@@ -573,6 +582,8 @@ class TrainerClassification(Trainer):
           self.input_labels: labels,
           self.is_train: split == 'train'
       }
+      if self.include_indices:
+        feed_dict.update({self.input_indices: input_indices})
       if data_iterator_unlabeled is not None:
         # This is not None only when using VAT regularization.
         try:
@@ -607,6 +618,8 @@ class TrainerClassification(Trainer):
             self.features_uu_left: features_src,
             self.features_uu_right: features_tgt
         })
+      # Potentially add to the feed_dict some model specific inputs.
+      feed_dict.update(self.model.add_to_feed_dict())
       return feed_dict
     except StopIteration:
       # If the iterator has finished, return None.
