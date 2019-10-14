@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Library to build a graph based on dense input features (embeddings).
-
-A python-based program for graph building also exists on
-[GitHub](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/tools/graph_builder.py).
-"""
+r"""Program & library to build a graph from dense features (embeddings)."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -26,6 +22,8 @@ import collections
 import itertools
 import time
 
+from absl import app
+from absl import flags
 from absl import logging
 from neural_structured_learning.tools import graph_utils
 import numpy as np
@@ -165,6 +163,18 @@ def build_graph(embedding_files,
   All edges in the output will be symmetric (i.e., if edge `A--w-->B` exists in
   the output, then so will edge `B--w-->A`).
 
+  Note that this function can also be invoked as a binary from a shell. Sample
+  usage:
+
+  `python -m neural_structured_learning.tools.build_graph` [*flags*]
+  *embedding_file.tfr... output_graph.tsv*
+
+  For details about this program's flags, run:
+
+  ```
+  python -m neural_structured_learning.tools.build_graph --help
+  ```
+
   Args:
     embedding_files: A list of names of TFRecord files containing
       `tf.train.Example` objects, which in turn contain dense embeddings.
@@ -182,3 +192,35 @@ def build_graph(embedding_files,
   graph = collections.defaultdict(dict)
   _add_edges(embeddings, similarity_threshold, graph)
   graph_utils.write_tsv_graph(output_graph_path, graph)
+
+
+def _main(argv):
+  """Main function for invoking the `nsl.tools.build_graph` function."""
+  flag = flags.FLAGS
+  flag.showprefixforinfo = False
+  if len(argv) < 3:
+    raise app.UsageError(
+        'Invalid number of arguments; expected 2 or more, got %d' %
+        (len(argv) - 1))
+
+  build_graph(argv[1:-1], argv[-1], flag.similarity_threshold,
+              flag.id_feature_name, flag.embedding_feature_name)
+
+
+if __name__ == '__main__':
+  flags.DEFINE_string(
+      'id_feature_name', 'id',
+      """Name of the singleton bytes_list feature in each input Example
+      whose value is the Example's ID.""")
+  flags.DEFINE_string(
+      'embedding_feature_name', 'embedding',
+      """Name of the float_list feature in each input Example
+      whose value is the Example's (dense) embedding.""")
+  flags.DEFINE_float(
+      'similarity_threshold', 0.8,
+      """Lower bound on the cosine similarity required for an edge
+      to be created between two nodes.""")
+
+  # Ensure TF 2.0 behavior even if TF 1.X is installed.
+  tf.compat.v1.enable_v2_behavior()
+  app.run(_main)

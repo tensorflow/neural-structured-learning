@@ -30,9 +30,9 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder_lib",
+        ":build_graph_lib",
         ":graph_utils",
-        ":input_maker_lib",
+        ":pack_nbrs_lib",
     ],
 )
 
@@ -57,11 +57,13 @@ py_test(
 )
 
 py_library(
-    name = "graph_builder_lib",
-    srcs = ["graph_builder_lib.py"],
+    name = "build_graph_lib",
+    srcs = ["build_graph.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
+        # package absl:app
+        # package absl/flags
         # package absl/logging
         # package numpy
         # package six
@@ -70,11 +72,11 @@ py_library(
 )
 
 py_test(
-    name = "graph_builder_lib_test",
-    srcs = ["graph_builder_lib_test.py"],
+    name = "build_graph_test",
+    srcs = ["build_graph_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder_lib",
+        ":build_graph_lib",
         ":graph_utils",
         # package protobuf,
         # package absl/testing:absltest
@@ -83,23 +85,22 @@ py_test(
 )
 
 py_binary(
-    name = "graph_builder",
-    srcs = ["graph_builder.py"],
+    name = "build_graph",
+    srcs = ["build_graph.py"],
     python_version = "PY3",
     deps = [
-        ":graph_builder_lib",
-        # package absl:app
-        # package absl/flags
-        # package tensorflow
+        ":build_graph_lib",
     ],
 )
 
 py_library(
-    name = "input_maker_lib",
-    srcs = ["input_maker_lib.py"],
+    name = "pack_nbrs_lib",
+    srcs = ["pack_nbrs.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
+        # package absl:app
+        # package absl/flags
         # package absl/logging
         # package six
         # package tensorflow
@@ -107,12 +108,12 @@ py_library(
 )
 
 py_test(
-    name = "input_maker_lib_test",
-    srcs = ["input_maker_lib_test.py"],
+    name = "pack_nbrs_test",
+    srcs = ["pack_nbrs_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        ":input_maker_lib",
+        ":pack_nbrs_lib",
         # package protobuf,
         # package absl/testing:absltest
         # package tensorflow
@@ -120,13 +121,11 @@ py_test(
 )
 
 py_binary(
-    name = "input_maker",
-    srcs = ["input_maker.py"],
+    name = "pack_nbrs",
+    srcs = ["pack_nbrs.py"],
     python_version = "PY3",
     deps = [
-        ":input_maker_lib",
-        # package absl:app
-        # package absl/flags
+        ":pack_nbrs_lib",
         # package tensorflow
     ],
 )

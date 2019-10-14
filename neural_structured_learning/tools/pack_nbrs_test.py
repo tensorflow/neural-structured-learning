@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for neural_structured_learning.tools.input_maker_lib."""
+"""Tests for neural_structured_learning.tools.pack_nbrs."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -19,7 +19,7 @@ from __future__ import print_function
 
 from absl.testing import absltest
 from neural_structured_learning.tools import graph_utils
-from neural_structured_learning.tools import input_maker_lib
+from neural_structured_learning.tools import pack_nbrs as pack_nbrs_lib
 
 import tensorflow as tf
 
@@ -226,7 +226,7 @@ class PackNbrsTest(absltest.TestCase):
     In this case, the edge A-->B is dangling because there will be no Example
     named "B" in the input.
     """
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         '',
         self._graph_path,
@@ -248,7 +248,7 @@ class PackNbrsTest(absltest.TestCase):
     In this case, the edge A-->B is dangling because there will be no Example
     named "B" in the input.
     """
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         '',
         self._graph_path,
@@ -265,7 +265,7 @@ class PackNbrsTest(absltest.TestCase):
     self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
 
   def testDirectedGraphUnlimitedNbrs(self):
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         self._neighbor_examples_path,
         self._graph_path,
@@ -280,7 +280,7 @@ class PackNbrsTest(absltest.TestCase):
     self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
 
   def testDirectedGraphLimitedNbrs(self):
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         self._neighbor_examples_path,
         self._graph_path,
@@ -296,7 +296,7 @@ class PackNbrsTest(absltest.TestCase):
     self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
 
   def testUndirectedGraphUnlimitedNbrs(self):
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         self._neighbor_examples_path,
         self._graph_path,
@@ -311,7 +311,7 @@ class PackNbrsTest(absltest.TestCase):
     self.assertDictEqual(actual_nsl_train_data, expected_nsl_train_data)
 
   def testUndirectedGraphLimitedNbrs(self):
-    input_maker_lib.pack_nbrs(
+    pack_nbrs_lib.pack_nbrs(
         self._training_examples_path,
         self._neighbor_examples_path,
         self._graph_path,
