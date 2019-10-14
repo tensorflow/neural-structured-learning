@@ -159,6 +159,11 @@ class TrainerCotraining(Trainer):
     num_pairs_reg: An integer representing the number of sample pairs of each
       type (LL, LU, UU) to include in each computation of the classification
       model loss.
+    reg_weight_vat: A float representing the weight of the virtual adversarial
+      training (VAT) regularization loss in the classification model loss
+      function.
+    use_ent_min: A boolean specifying whether to use entropy regularization with
+      VAT.
     penalize_neg_agr: Whether to not only encourage agreement between samples
       that the agreement model believes should have the same label, but also
       penalize agreement when two samples agree when the agreement model
@@ -245,6 +250,8 @@ class TrainerCotraining(Trainer):
                reg_weight_lu=0,
                reg_weight_uu=0,
                num_pairs_reg=100,
+               reg_weight_vat=0,
+               use_ent_min=False,
                penalize_neg_agr=False,
                use_l2_cls=True,
                first_iter_original=True,
@@ -314,6 +321,8 @@ class TrainerCotraining(Trainer):
     self.reg_weight_lu = reg_weight_lu
     self.reg_weight_uu = reg_weight_uu
     self.num_pairs_reg = num_pairs_reg
+    self.reg_weight_vat = reg_weight_vat
+    self.use_ent_min = use_ent_min
     self.penalize_neg_agr = penalize_neg_agr
     self.use_l2_classif = use_l2_cls
     self.first_iter_original = first_iter_original
@@ -507,6 +516,8 @@ class TrainerCotraining(Trainer):
             reg_weight_lu=self.reg_weight_lu,
             reg_weight_uu=self.reg_weight_uu,
             num_pairs_reg=self.num_pairs_reg,
+            reg_weight_vat=self.reg_weight_vat,
+            use_ent_min=self.use_ent_min,
             enable_summaries=self.enable_summaries_per_model,
             summary_step=self.summary_step_cls,
             summary_dir=self.summary_dir,

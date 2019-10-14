@@ -16,6 +16,7 @@ import collections
 import logging
 import os
 import pickle
+
 from gam.data.preprocessing import split_train_val
 import numpy as np
 import scipy
@@ -267,7 +268,6 @@ class GraphDataset(Dataset):
       return self.get_labels(edge.src) == self.get_labels(edge.tgt)
 
     agreement_cond = _agreement_cond if label_must_match else lambda e: True
-
     return [
         e for e in self.edges if _labeled_cond(e.src, src_labeled) and
         _labeled_cond(e.tgt, tgt_labeled) and agreement_cond(e)
@@ -286,7 +286,6 @@ class PlanetoidDataset(GraphDataset):
                test_mask,
                labels,
                row_normalize=False):
-
     # Extract train, val, test, unlabeled indices.
     train_indices = np.where(train_mask)[0]
     test_indices = np.where(test_mask)[0]

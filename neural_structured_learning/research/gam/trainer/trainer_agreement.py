@@ -442,7 +442,9 @@ class TrainerAgreement(Trainer):
       feed_dict: A train feed dictionary.
 
     Returns:
-      The computed train accuracy.
+      train_acc: The computed train accuracy.
+      acc_0: Accuracy for class 0.
+      acc_1: Accuracy for class 1.
     """
     train_acc, pred, targ = session.run(
         (self.accuracy, self.normalized_predictions, self.labels),
@@ -462,9 +464,7 @@ class TrainerAgreement(Trainer):
       acc_0 = sum(acc_0) / np.float32(len(acc_0))
     else:
       acc_0 = -1
-    logging.info('Train acc: %.2f. Acc class 1: %.2f. Acc class 0: %.2f',
-                 train_acc, acc_1, acc_0)
-    return train_acc
+    return train_acc, acc_0, acc_1
 
   def _eval_validation(self, data_iterator_val, num_samples_val, session):
     """Evaluate the current model on validation data.
@@ -685,7 +685,8 @@ class TrainerAgreement(Trainer):
         # Evaluate the accuracy on the latest train batch. We track this to make
         # sure the agreement model is able to fit the training data, but can be
         # eliminated if efficiency is an issue.
-        acc_train = self._eval_train(session, feed_dict)
+        acc_train, acc_0_train, acc_1_train = self._eval_train(
+            session, feed_dict)
 
         if self.enable_summaries:
           summary = tf.Summary()
@@ -700,9 +701,10 @@ class TrainerAgreement(Trainer):
           summary_writer.flush()
         if step % self.logging_step == 0 or val_acc > best_val_acc:
           logging.info(
-              'Agreement step %6d | Loss: %10.4f | val_acc: %10.4f |'
-              'random_acc: %10.4f | acc_train: %10.4f', step, loss_val, val_acc,
-              acc_random, acc_train)
+              'Agreement step %6d | Loss: %10.4f | val_acc: %.4f |'
+              'random_acc: %.4f | acc_train: %.4f | acc_train_cls_0: %.4f | '
+              'acc_train_cls_1: %.4f', step, loss_val, val_acc, acc_random,
+              acc_train, acc_0_train, acc_1_train)
         if val_acc > best_val_acc:
           best_val_acc = val_acc
           if self.checkpoint_path:

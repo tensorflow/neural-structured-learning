@@ -21,6 +21,8 @@ of samples.
 import logging
 import os
 
+from gam.trainer.adversarial import entropy_y_x
+from gam.trainer.adversarial import get_loss_vat
 from gam.trainer.trainer_base import batch_iterator
 from gam.trainer.trainer_base import Trainer
 
@@ -65,6 +67,11 @@ class TrainerClassification(Trainer):
       model loss.
     iter_cotrain: A Tensorflow variable containing the current cotrain
       iteration.
+    reg_weight_vat: A float representing the weight of the virtual adversarial
+      training (VAT) regularization loss in the classification model loss
+      function.
+    use_ent_min: A boolean specifying whether to use entropy regularization with
+      VAT.
     enable_summaries: Boolean specifying whether to enable variable summaries.
     summary_step: Integer representing the summary step size.
     summary_dir: String representing the path to a directory where to save the
@@ -122,6 +129,8 @@ class TrainerClassification(Trainer):
                reg_weight_uu,
                num_pairs_reg,
                iter_cotrain,
+               reg_weight_vat=0.0,
+               use_ent_min=False,
                enable_summaries=False,
                summary_step=1,
                summary_dir=None,
@@ -170,6 +179,8 @@ class TrainerClassification(Trainer):
     self.reg_weight_ll = reg_weight_ll
     self.reg_weight_lu = reg_weight_lu
     self.reg_weight_uu = reg_weight_uu
+    self.reg_weight_vat = reg_weight_vat
+    self.use_ent_min = use_ent_min
     self.penalize_neg_agr = penalize_neg_agr
     self.use_l2_classif = use_l2_classif
     self.first_iter_original = first_iter_original
@@ -188,6 +199,8 @@ class TrainerClassification(Trainer):
     features_shape = [None] + list(data.features_shape)
     input_features = tf.placeholder(
         tf.float32, shape=features_shape, name='input_features')
+    input_features_unlabeled = tf.placeholder(
+        tf.float32, shape=features_shape, name='input_features_unlabeled')
     input_labels = tf.placeholder(tf.int64, shape=(None,), name='input_labels')
     one_hot_labels = tf.one_hot(
         input_labels, data.num_classes, name='input_labels_one_hot')
@@ -196,16 +209,28 @@ class TrainerClassification(Trainer):
 
     # Create variables and predictions.
     with tf.variable_scope('predictions'):
-      encoding, variables, reg_params = self.model.get_encoding_and_params(
-          inputs=input_features, is_train=is_train)
-      self.variables = variables
-      self.reg_params = reg_params
-      predictions, variables, reg_params = (
+      encoding, variables_enc, reg_params_enc = (
+          self.model.get_encoding_and_params(
+              inputs=input_features, is_train=is_train))
+      self.variables = variables_enc
+      self.reg_params = reg_params_enc
+      predictions, variables_pred, reg_params_pred = (
           self.model.get_predictions_and_params(
               encoding=encoding, is_train=is_train))
-      self.variables.update(variables)
-      self.reg_params.update(reg_params)
+      self.variables.update(variables_pred)
+      self.reg_params.update(reg_params_pred)
       normalized_predictions = self.model.normalize_predictions(predictions)
+      predictions_var_scope = tf.get_variable_scope()
+
+    # Create predictions on unlabeled data, which is only used for VAT loss.
+    with tf.variable_scope('predictions', reuse=True):
+      encoding_unlabeled, _, _ = self.model.get_encoding_and_params(
+          inputs=input_features_unlabeled,
+          is_train=is_train,
+          update_batch_stats=False)
+      predictions_unlabeled, _, _ = (
+          self.model.get_predictions_and_params(
+              encoding=encoding_unlabeled, is_train=is_train))
 
     # Create a variable for weight decay that may be updated.
     weight_decay_var, weight_decay_update = self._create_weight_decay_var(
@@ -235,11 +260,30 @@ class TrainerClassification(Trainer):
       # Weight decay loss.
       loss_reg = 0.0
       if weight_decay_var is not None:
-        for var in reg_params.values():
+        for var in self.reg_params.values():
           loss_reg += weight_decay_var * tf.nn.l2_loss(var)
 
+      # Adversarial loss, in case we want to add VAT on top of GAM.
+      loss_vat = get_loss_vat(input_features_unlabeled, predictions_unlabeled,
+                              is_train, model, predictions_var_scope)
+      num_unlabeled = tf.shape(input_features_unlabeled)[0]
+      loss_vat = tf.cond(
+          tf.greater(num_unlabeled, 0), lambda: loss_vat, lambda: 0.0)
+      if self.use_ent_min:
+        # Use entropy minimization with VAT (i.e. VATENT).
+        loss_ent = entropy_y_x(predictions_unlabeled)
+        loss_vat = loss_vat + tf.cond(
+            tf.greater(num_unlabeled, 0), lambda: loss_ent, lambda: 0.0)
+      loss_vat = loss_vat * self.reg_weight_vat
+      if self.first_iter_original:
+        # Do not add the adversarial loss in the first iteration if
+        # the first iteration trains the plain baseline model.
+        weight_loss_vat = tf.cond(
+            tf.greater(iter_cotrain, 0), lambda: 1.0, lambda: 0.0)
+        loss_vat = loss_vat * weight_loss_vat
+
       # Total loss.
-      loss_op = loss_supervised + loss_agr + loss_reg
+      loss_op = loss_supervised + loss_agr + loss_reg + loss_vat
 
     # Create accuracy.
     accuracy = tf.equal(tf.argmax(normalized_predictions, 1), input_labels)
@@ -301,13 +345,14 @@ class TrainerClassification(Trainer):
     if isinstance(weight_decay_var, tf.Variable):
       self.vars_to_save.append(weight_decay_var)
     if self.warm_start:
-      self.vars_to_save.extend([v for v in variables])
+      self.vars_to_save.extend([v for v in self.variables])
 
     # More variables to be initialized after the session is created.
     self.is_initialized = False
 
     self.rng = np.random.RandomState(seed)
     self.input_features = input_features
+    self.input_features_unlabeled = input_features_unlabeled
     self.input_labels = input_labels
     self.predictions = predictions
     self.normalized_predictions = normalized_predictions
@@ -315,7 +360,6 @@ class TrainerClassification(Trainer):
     self.weight_decay_update = weight_decay_update
     self.iter_cls_total = iter_cls_total
     self.iter_cls_total_update = iter_cls_total_update
-    self.variables = variables
     self.accuracy = accuracy
     self.train_op = train_op
     self.loss_op = loss_op
@@ -469,7 +513,7 @@ class TrainerClassification(Trainer):
       # agreement whenever the score is > 0.5, otherwise don't incur any loss.
       agreement = tf.nn.relu(agreement - 0.5)
 
-      # Create a Tensor containing the weights assigned to each pair in the
+    # Create a Tensor containing the weights assigned to each pair in the
     # agreement regularization loss, depending on how many samples in the pair
     # were labeled. This weight can be either reg_weight_ll, reg_weight_lu,
     # or reg_weight_uu.
@@ -505,7 +549,8 @@ class TrainerClassification(Trainer):
                            split,
                            pair_ll_iterator=None,
                            pair_lu_iterator=None,
-                           pair_uu_iterator=None):
+                           pair_uu_iterator=None,
+                           data_iterator_unlabeled=None):
     """Construct feed dictionary."""
     try:
       input_indices = next(data_iterator)
@@ -519,6 +564,14 @@ class TrainerClassification(Trainer):
           self.input_labels: labels,
           self.is_train: split == 'train'
       }
+      if data_iterator_unlabeled is not None:
+        # This is not None only when using VAT regularization.
+        try:
+          input_indices = next(data_iterator_unlabeled)
+          input_features = self.data.get_features(input_indices)
+        except StopIteration:
+          input_features = np.zeros([0] + list(self.data.features_shape))
+        feed_dict.update({self.input_features_unlabeled: input_features})
       if pair_ll_iterator is not None:
         _, _, _, features_tgt, labels_src, labels_tgt = next(pair_ll_iterator)
         feed_dict.update({
@@ -721,6 +774,13 @@ class TrainerClassification(Trainer):
         shuffle=True,
         allow_smaller_batch=False,
         repeat=True)
+    # Create an iterator for unlabeled samples for the VAT loss term.
+    data_iterator_unlabeled = batch_iterator(
+        unlabeled_indices,
+        batch_size=self.batch_size,
+        shuffle=True,
+        allow_smaller_batch=False,
+        repeat=True)
     # Create iterators for ll, lu, uu pairs of samples for the agreement term.
     if self.use_graph:
       pair_ll_iterator = self.edge_iterator(
@@ -752,7 +812,8 @@ class TrainerClassification(Trainer):
           split='train',
           pair_ll_iterator=pair_ll_iterator,
           pair_lu_iterator=pair_lu_iterator,
-          pair_uu_iterator=pair_uu_iterator)
+          pair_uu_iterator=pair_uu_iterator,
+          data_iterator_unlabeled=data_iterator_unlabeled)
       if self.enable_summaries and step % self.summary_step == 0:
         loss_val, summary, iter_cls_total, _ = session.run(
             [self.loss_op, self.summary_op, self.iter_cls_total, self.train_op],
