@@ -98,7 +98,7 @@ def virtual_adv_regularizer(input_layer,
     embedding_fn: a unary function that computes the embedding for the given
       `input_layer` input.
     virtual_adv_config: an `nsl.configs.VirtualAdvConfig` object that specifies
-      parameters for generating adversarial examples and computing the the
+      parameters for generating adversarial examples and computing the
       adversarial loss.
     embedding: (optional) a dense tensor representing the embedding of
       `input_layer`. If not provided, it will be calculated as
