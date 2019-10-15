@@ -64,7 +64,7 @@ from absl import app
 from absl import flags
 from absl import logging
 from neural_structured_learning.tools import graph_utils
-from neural_structured_learning.tools import pack_nbrs
+from neural_structured_learning.tools import pack_nbrs as pack_nbrs_lib
 import six
 import tensorflow as tf
 
@@ -161,10 +161,10 @@ def main(unused_argv):
   # neighbors for transductive learning purpose. In other words, the labels of
   # test_examples are not used.
   with tf.io.TFRecordWriter(FLAGS.output_train_data) as writer:
-    # Here we call a private function in pack_nbrs to join the examples. This is
-    # one-off for demonstration purpose only. Later on we will refactor that
-    # function to a public API.
-    for merged_example in pack_nbrs._join_examples(  # pylint: disable=protected-access
+    # Here we call a private function in pack_nbrs_lib to join the examples.
+    # This is one-off for demonstration purpose only. Later on we will refactor
+    # that function to a public API.
+    for merged_example in pack_nbrs_lib._join_examples(  # pylint: disable=protected-access
         train_examples, test_examples, graph, FLAGS.max_nbrs):
       writer.write(merged_example.SerializeToString())
 
