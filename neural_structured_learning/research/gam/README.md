@@ -33,7 +33,8 @@ versions (such as 2.0 or above) or Python versions.
 
 ## Reference
 
-[[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
+[[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
+Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
 
-
-[[2] T. Kipf and M. Welling. "Semi-supervised classification with graph convolutional networks." ICLR 2017](https://arxiv.org/pdf/1609.02907.pdf)
+[[2] T. Kipf and M. Welling. "Semi-supervised classification with graph
+convolutional networks." ICLR 2017](https://arxiv.org/pdf/1609.02907.pdf)
