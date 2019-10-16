@@ -235,7 +235,7 @@ def pack_nbrs(labeled_examples_path,
   For details about this program's flags, run:
 
   ```
-  python -m neural_structured_learning.tools.pack_nbrs.py --help
+  python -m neural_structured_learning.tools.pack_nbrs --help
   ```
 
   Args:
