@@ -125,13 +125,13 @@ TensorFlow 2.0.
 CPU support:
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow>=1.15.0rc0</code>
+<code class="devsite-terminal tfo-terminal-venv">pip install 'tensorflow>=1.15.0'</code>
 </pre>
 
 GPU support:
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow-gpu>=1.15.0rc0</code>
+<code class="devsite-terminal tfo-terminal-venv">pip install 'tensorflow-gpu>=1.15.0'</code>
 </pre>
 
 #### 6. Install Neural Structured Learning dependencies.
