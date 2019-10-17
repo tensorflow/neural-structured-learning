@@ -51,13 +51,13 @@ Note: To exit the virtual environment, run `deactivate`.
 CPU support:
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow>=1.15.0rc0</code>
+<code class="devsite-terminal tfo-terminal-venv">pip install 'tensorflow>=1.15.0'</code>
 </pre>
 
 GPU support:
 
 <pre class="prettyprint lang-bsh">
-<code class="devsite-terminal tfo-terminal-venv">pip install tensorflow-gpu>=1.15.0rc0</code>
+<code class="devsite-terminal tfo-terminal-venv">pip install 'tensorflow-gpu>=1.15.0'</code>
 </pre>
 
 #### 4. Install the Neural Structured Learning `pip` package.
