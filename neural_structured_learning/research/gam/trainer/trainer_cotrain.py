@@ -70,17 +70,17 @@ class TrainerCotraining(Trainer):
       cotrain iteration, provided that they have confidence higher than the
       min_confidence_new_label threshold.
     min_confidence_new_label: A float number between [0, 1] representing the
-      minimum confidence the prediction for an unlabeled sample needs to have
-      in order to allow it to be self-labeled. The confidence is the maximum
+      minimum confidence the prediction for an unlabeled sample needs to have in
+      order to allow it to be self-labeled. The confidence is the maximum
       probability the classification model assigns to any of the classes.
     keep_label_proportions: A boolean specifying whether to choose samples for
       self-labeling such that we maintain the original label proportions.
-    num_warm_up_iter_agr: An integer representing the number of times we need
-      to train the agreement model (i.e. number of cotrain iterations that train
+    num_warm_up_iter_agr: An integer representing the number of times we need to
+      train the agreement model (i.e. number of cotrain iterations that train
       the agreement) before we start using it in the classification model's
       loss. While the agreement is not warmed up, the agreement model will
-      always predict either disagreement, or agreement, by default, depending
-      on the argument `agree_by_default`.
+      always predict either disagreement, or agreement, by default, depending on
+      the argument `agree_by_default`.
     optimizer: An optimizer.
     gradient_clip: A float number representing the maximum gradient norm allowed
       if we do gradient clipping. If None, no gradient clipping is performed.
@@ -96,9 +96,9 @@ class TrainerCotraining(Trainer):
     warm_start_cls: Boolean specifying if the classification model is trained
       from scratch in every cotrain itertion (if False), or if it continues from
       the parameter values in the previous cotrain iteration (if True).
-    warm_start_agr: Boolean specifying if the agreement model is trained
-      from scratch in every cotrain itertion (if False), or if it continues from
-      the parameter values in the previous cotrain iteration (if True).
+    warm_start_agr: Boolean specifying if the agreement model is trained from
+      scratch in every cotrain itertion (if False), or if it continues from the
+      parameter values in the previous cotrain iteration (if True).
     enable_summaries: Boolean specifying whether to write TensorBoard summaries
       for the cotrain progress.
     enable_summaries_per_model: Boolean specifying whether to write TensorBoard
@@ -112,15 +112,15 @@ class TrainerCotraining(Trainer):
       to log the loss and other training metrics for the classification model.
     logging_step_agr: Integer representing the number of iterations after which
       to log the loss and other training metrics for the agreement model.
-    eval_step_cls: Integer representing the number of iterations after which
-      to evaluate the classification model.
-    eval_step_agr: Integer representing the number of iterations after which
-      to evaluate the agreement model.
+    eval_step_cls: Integer representing the number of iterations after which to
+      evaluate the classification model.
+    eval_step_agr: Integer representing the number of iterations after which to
+      evaluate the agreement model.
     checkpoints_step: Integer representing the number of iterations after which
       to save checkpoints.
     checkpoints_dir: Directory where to save checkpoints.
-    data_dir: Directory where to write some files that contain self-labeled
-      data backup.
+    data_dir: Directory where to write some files that contain self-labeled data
+      backup.
     abs_loss_chg_tol: A float representing the absolute tolerance for checking
       if the training loss has converged. If the difference between the current
       loss and previous loss is less than `abs_loss_chg_tol`, we count this
@@ -145,8 +145,8 @@ class TrainerCotraining(Trainer):
       decay weight after every cotrain iteration.
     weight_decay_agr: Weight for the weight decay term in the agreement model
       loss.
-    weight_decay_schedule_agr: Schedule how to adjust the agreement weight
-      decay weight after every cotrain iteration.
+    weight_decay_schedule_agr: Schedule how to adjust the agreement weight decay
+      weight after every cotrain iteration.
     reg_weight_ll: A float representing the weight of the agreement loss term
       component of the classification model loss function, between
       labeled-labeled pairs of samples.
@@ -174,8 +174,8 @@ class TrainerCotraining(Trainer):
       iteration trains the original classification model (with no agreement
       term). We do this to evaluate how well a baseline model would do without
       the agreement. If true, there is no self-labeling after the first
-      iteration, which trains original model. Self-labeling will be used only
-      in the iterations that do include the agreement term.
+      iteration, which trains original model. Self-labeling will be used only in
+      the iterations that do include the agreement term.
     inductive: Boolean specifying whether this is an inductive or transductive
       setting. If inductive, then the validation and test labels are never seen
       when training the classification model. If transductive, the inputs of the
@@ -184,20 +184,20 @@ class TrainerCotraining(Trainer):
       regularization, and can also be labeled via self-labeling.
     seed: An integer representing the seed for the random number generator used
       when selecting batches of samples.
-    eval_acc_pred_by_agr: Boolean specifying whether to evaluate the accuracy
-      of a model that uses our trained agreement model to make predictions for
-      the test samples, in a way similar to k-nearest neighbors, where the
-      distance is given by the agreement model predictions.
+    eval_acc_pred_by_agr: Boolean specifying whether to evaluate the accuracy of
+      a model that uses our trained agreement model to make predictions for the
+      test samples, in a way similar to k-nearest neighbors, where the distance
+      is given by the agreement model predictions.
     num_neighbors_pred_by_agr: An integer representing the number of neighbors
       to use when predicting by agreement. Note that this needs to be at least
       as much as the number of classes.
     load_from_checkpoint: A boolean specifying whethe the trained models are
       loaded from checkpoint, if one is available. If False, the models are
       always trained from scratch.
-    use_graph: Boolean specifying whether to use to apply the agreement model
-      on the graph edges, or otherwise use random pairs of samples.
-    always_agree: Whether the agreement model should return 1.0 always (i.e.
-      the samples always agree), to simulate the Neural Graph Machines model.
+    use_graph: Boolean specifying whether to use to apply the agreement model on
+      the graph edges, or otherwise use random pairs of samples.
+    always_agree: Whether the agreement model should return 1.0 always (i.e. the
+      samples always agree), to simulate the Neural Graph Machines model.
     add_negative_edges_agr:
   """
 
@@ -378,8 +378,9 @@ class TrainerCotraining(Trainer):
     confident_indices = np.argwhere(
         confidence > self.min_confidence_new_label)[:, 0]
     if confident_indices.shape[0] == 0:
-      logging.info('No unlabeled nodes with confidence > %.2f. '
-                   'Skipping self-labeling...', self.min_confidence_new_label)
+      logging.info(
+          'No unlabeled nodes with confidence > %.2f. '
+          'Skipping self-labeling...', self.min_confidence_new_label)
       selected_samples = np.zeros((0,), dtype=np.int64)
       selected_labels = np.zeros((0,), dtype=np.int64)
       return selected_samples, selected_labels
@@ -571,8 +572,8 @@ class TrainerCotraining(Trainer):
       checkpts_path_cotrain = None
 
     # Create a progress bar showing how many samples are labeled.
-    pbar = tqdm(total=data.num_samples - data.num_train(),
-                desc='self-labeled nodes')
+    pbar = tqdm(
+        total=data.num_samples - data.num_train(), desc='self-labeled nodes')
 
     logging.info('Starting co-training...')
     step = session.run(iter_cotrain)
@@ -619,13 +620,15 @@ class TrainerCotraining(Trainer):
           summary.value.add(
               tag='cotrain/val_acc_agree', simple_value=val_acc_agree)
         if acc_pred_by_agr is not None:
-          summary.value.add(tag='cotrain/acc_predict_by_agreement',
-                            simple_value=acc_pred_by_agr)
+          summary.value.add(
+              tag='cotrain/acc_predict_by_agreement',
+              simple_value=acc_pred_by_agr)
         summary_writer.add_summary(summary, step)
         summary_writer.flush()
 
-      logging.info('--------- Cotrain step %6d | Accuracy val: %10.4f | '
-                   'Accuracy test: %10.4f ---------', step, val_acc, test_acc)
+      logging.info(
+          '--------- Cotrain step %6d | Accuracy val: %10.4f | '
+          'Accuracy test: %10.4f ---------', step, val_acc, test_acc)
 
       if self.first_iter_original and step == 0:
         logging.info('No self-labeling because the first iteration trains the '
@@ -640,8 +643,8 @@ class TrainerCotraining(Trainer):
         num_new_labels = len(selected_samples)
         pbar.update(num_new_labels)
         if num_new_labels > 0:
-          data.compute_dataset_statistics(
-              selected_samples, summary_writer, step)
+          data.compute_dataset_statistics(selected_samples, summary_writer,
+                                          step)
         else:
           logging.info('No new samples labeled. Stopping...')
           stop = True
@@ -656,8 +659,9 @@ class TrainerCotraining(Trainer):
       session.run(iter_cotrain_update)
       logging.info('________________________________________________________')
 
-    logging.info('Best validation acc: %.4f, corresponding test acc: %.4f at '
-                 'iteration %d', best_val_acc, test_acc_at_best, iter_at_best)
+    logging.info(
+        'Best validation acc: %.4f, corresponding test acc: %.4f at '
+        'iteration %d', best_val_acc, test_acc_at_best, iter_at_best)
     pbar.close()
 
   def _create_counter(self):

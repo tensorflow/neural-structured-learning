@@ -106,7 +106,7 @@ class TrainerClassification(Trainer):
     first_iter_original:  A boolean specifying whether the first cotrain
       iteration trains the original classification model (with no agreement
       term).
-    use_l2_clssif: Whether to use L2 loss for classification, as opposed to the
+    use_l2_classif: Whether to use L2 loss for classification, as opposed to the
       whichever loss is specified in the provided model_cls.
     seed: Seed used by all the random number generators in this class.
     use_graph: Boolean specifying whether the agreement loss is applied to graph
@@ -670,31 +670,34 @@ class TrainerClassification(Trainer):
       labels_tgt
     """
     if labeling == 'll':
-      edges = data.get_edges(src_labeled=True, tgt_labeled=True,
-                             label_must_match=True)
+      edges = data.get_edges(
+          src_labeled=True, tgt_labeled=True, label_must_match=True)
     elif labeling == 'lu':
-      edges = (data.get_edges(src_labeled=True, tgt_labeled=False) +
-               data.get_edges(src_labeled=False, tgt_labeled=True))
+      edges = (
+          data.get_edges(src_labeled=True, tgt_labeled=False) +
+          data.get_edges(src_labeled=False, tgt_labeled=True))
     elif labeling == 'uu':
       edges = data.get_edges(src_labeled=False, tgt_labeled=False)
     else:
       raise ValueError('Unsupported value for parameter `labeling`.')
 
-    if len(edges) == 0:
+    if not edges:
       indices = np.zeros(shape=(0,), dtype=np.int32)
-      features = np.zeros(shape=[0,] + list(data.features_shape),
-                          dtype=np.float32)
+      features = np.zeros(
+          shape=[
+              0,
+          ] + list(data.features_shape), dtype=np.float32)
       labels = np.zeros(shape=(0,), dtype=np.int64)
       while True:
         yield (indices, indices, features, features, labels, labels)
 
     edges = np.stack([(e.src, e.tgt) for e in edges])
     iterator = batch_iterator(
-      inputs=edges,
-      batch_size=batch_size,
-      shuffle=True,
-      allow_smaller_batch=False,
-      repeat=True)
+        inputs=edges,
+        batch_size=batch_size,
+        shuffle=True,
+        allow_smaller_batch=False,
+        repeat=True)
 
     for edge in iterator:
       indices_src = edge[:, 0]
@@ -703,8 +706,8 @@ class TrainerClassification(Trainer):
       features_tgt = data.get_features(indices_tgt)
       labels_src = data.get_labels(indices_src)
       labels_tgt = data.get_labels(indices_tgt)
-      yield (indices_src, indices_tgt, features_src, features_tgt,
-             labels_src, labels_tgt)
+      yield (indices_src, indices_tgt, features_src, features_tgt, labels_src,
+             labels_tgt)
 
   def _evaluate(self, indices, split, session, summary_writer):
     """Evaluates the samples with the provided indices."""
@@ -792,18 +795,19 @@ class TrainerClassification(Trainer):
     # Create iterators for ll, lu, uu pairs of samples for the agreement term.
     if self.use_graph:
       pair_ll_iterator = self.edge_iterator(
-        data, batch_size=self.num_pairs_reg, labeling='ll')
+          data, batch_size=self.num_pairs_reg, labeling='ll')
       pair_lu_iterator = self.edge_iterator(
-        data, batch_size=self.num_pairs_reg, labeling='lu')
+          data, batch_size=self.num_pairs_reg, labeling='lu')
       pair_uu_iterator = self.edge_iterator(
-        data, batch_size=self.num_pairs_reg, labeling='uu')
+          data, batch_size=self.num_pairs_reg, labeling='uu')
     else:
-      pair_ll_iterator = self.pair_iterator(
-          train_indices, train_indices, self.num_pairs_reg, data)
-      pair_lu_iterator = self.pair_iterator(
-          train_indices, unlabeled_indices, self.num_pairs_reg, data)
-      pair_uu_iterator = self.pair_iterator(
-          unlabeled_indices, unlabeled_indices, self.num_pairs_reg, data)
+      pair_ll_iterator = self.pair_iterator(train_indices, train_indices,
+                                            self.num_pairs_reg, data)
+      pair_lu_iterator = self.pair_iterator(train_indices, unlabeled_indices,
+                                            self.num_pairs_reg, data)
+      pair_uu_iterator = self.pair_iterator(unlabeled_indices,
+                                            unlabeled_indices,
+                                            self.num_pairs_reg, data)
 
     step = 0
     iter_below_tol = 0

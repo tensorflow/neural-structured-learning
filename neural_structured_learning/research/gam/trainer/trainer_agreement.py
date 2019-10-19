@@ -101,8 +101,8 @@ class TrainerAgreement(Trainer):
     max_num_samples_val: Maximum number of samples to include in the validation
       set.
     seed: Integer representing the seed for the random number generator.
-    use_graph: Boolean specifying whether to use the graph edges, or any pair
-      of samples.
+    use_graph: Boolean specifying whether to use the graph edges, or any pair of
+      samples.
     add_negative_edges: Boolean specifying whether to add fake negative edges
       when training the agreement model, in order to keep the classes balanced.
       Only applies when `use_graph` is True.
@@ -447,8 +447,8 @@ class TrainerAgreement(Trainer):
       acc_1: Accuracy for class 1.
     """
     train_acc, pred, targ = session.run(
-      (self.accuracy, self.normalized_predictions, self.labels),
-      feed_dict=feed_dict)
+        (self.accuracy, self.normalized_predictions, self.labels),
+        feed_dict=feed_dict)
 
     # Assume the threshold is at 0.5, and binarize the predictions.
     binary_pred = pred > 0.5
@@ -478,8 +478,7 @@ class TrainerAgreement(Trainer):
     Returns:
       Total accuracy on random pairs of samples.
     """
-    feed_dict_val = self._construct_feed_dict(
-      data_iterator_val, is_train=False)
+    feed_dict_val = self._construct_feed_dict(data_iterator_val, is_train=False)
     cummulative_val_acc = 0.0
     samples_seen = 0
     while feed_dict_val is not None and samples_seen < num_samples_val:
@@ -609,8 +608,11 @@ class TrainerAgreement(Trainer):
       # If we use the graph, then the training data consists of graph edges
       # and the agreement (1.0 or 0.0) between them.
       data_iterator_train = self._get_train_edge_iterator(
-        edges_train, agreement_train, self.batch_size, data,
-        add_negatives=self.add_negative_edges)
+          edges_train,
+          agreement_train,
+          self.batch_size,
+          data,
+          add_negatives=self.add_negative_edges)
     else:
       # If we don't use the graph, then the training data consists of pairs of
       # labeled sampels, and the agreement (1.0 or 0.0) between them.
@@ -621,7 +623,7 @@ class TrainerAgreement(Trainer):
 
       # Split data into train and validation.
       labeled_samples_train, labeled_nodes_val = self._select_val_samples(
-        labeled_samples, self.ratio_val)
+          labeled_samples, self.ratio_val)
 
       # Create an iterator over training data pairs.
       data_iterator_train = self._pair_iterator(
@@ -663,17 +665,17 @@ class TrainerAgreement(Trainer):
         # Evaluate on the selected validation data.
         if self.use_graph:
           data_iterator_val = batch_iterator(
-            edges_val,
-            agreement_val,
-            batch_size=self.batch_size,
-            shuffle=False,
-            allow_smaller_batch=True,
-            repeat=False)
+              edges_val,
+              agreement_val,
+              batch_size=self.batch_size,
+              shuffle=False,
+              allow_smaller_batch=True,
+              repeat=False)
         else:
           data_iterator_val = self._pair_iterator(
-            labeled_nodes_val, data, ratio_pos_neg=ratio_pos_to_neg)
-        val_acc = self._eval_validation(
-          data_iterator_val, num_samples_val, session)
+              labeled_nodes_val, data, ratio_pos_neg=ratio_pos_to_neg)
+        val_acc = self._eval_validation(data_iterator_val, num_samples_val,
+                                        session)
 
         # Evaluate over a random choice of sample pairs, either labeled or not.
         acc_random = self._eval_random_pairs(data, session)
@@ -931,24 +933,30 @@ class TrainerAgreement(Trainer):
     """
     edges = data.get_edges(src_labeled=True, tgt_labeled=True)
 
-    if len(edges) == 0:
+    if not edges:
       empty_edges = np.zeros(shape=(0, 2), dtype=np.int32)
       empty_agreement = np.zeros(shape=(0,), dtype=np.float32)
       return empty_edges, empty_agreement, empty_edges, empty_agreement
 
     edges = np.stack([(e.src, e.tgt) for e in edges])
-    agreement = np.equal(data.get_labels(edges[:, 0]),
-                         data.get_labels(edges[:, 1]))
+    agreement = np.equal(
+        data.get_labels(edges[:, 0]), data.get_labels(edges[:, 1]))
 
     # Select validation set for agreement.
     train_ind, val_ind = split_train_val(
-      np.arange(agreement.shape[0]), self.ratio_val, self.rng,
-      max_num_val=self.max_num_samples_val)
+        np.arange(agreement.shape[0]),
+        self.ratio_val,
+        self.rng,
+        max_num_val=self.max_num_samples_val)
 
-    return (edges[train_ind], agreement[train_ind],
-            edges[val_ind], agreement[val_ind])
+    return (edges[train_ind], agreement[train_ind], edges[val_ind],
+            agreement[val_ind])
 
-  def _get_train_edge_iterator(self, edges, agreement, batch_size, data,
+  def _get_train_edge_iterator(self,
+                               edges,
+                               agreement,
+                               batch_size,
+                               data,
                                add_negatives=False):
     if add_negatives:
       # Separate the positive from the negative edges.
@@ -962,14 +970,15 @@ class TrainerAgreement(Trainer):
       # A batch will have an equal number of positive and negative edges.
       half_batch = min(batch_size // 2, num_pos)
 
-      # Add extra negative edges to match the number of positive. For now fill in with zeros.
+      # Add extra negative edges to match the number of positive.
+      # For now fill in with zeros.
       if num_neg_needed > 0:
         edges_neg_with_extras = np.zeros_like(edges_pos)
         edges_neg_with_extras[:num_neg] = edges_neg
       else:
         edges_neg_with_extras = edges_neg
 
-      batch_agreement = np.zeros((2*half_batch,))
+      batch_agreement = np.zeros((2 * half_batch,))
       batch_agreement[:half_batch] = 1.0
 
       labeled_nodes_indices = data.get_indices_train()
@@ -977,13 +986,14 @@ class TrainerAgreement(Trainer):
       keep_going = num_pos > 0
       while keep_going:
         if num_neg_needed > 0:
-          # Select some random negative edges to fill in the remaining num_neg_needed.
+          # Select some random negative edges to fill in the remaining
+          # num_neg_needed.
           for i in range(num_neg_needed):
             while True:
               pair = np.random.choice(labeled_nodes_indices, size=2)
               if data.get_labels(pair[0]) != data.get_labels(pair[1]):
                 break
-            edges_neg_with_extras[num_neg+i] = pair
+            edges_neg_with_extras[num_neg + i] = pair
 
         # Create batches with half_batch positives and half_batch negatives,
         np.random.shuffle(edges_pos)
@@ -993,18 +1003,20 @@ class TrainerAgreement(Trainer):
           if end_index > num_pos:
             break
           batch_edges = np.concatenate(
-            (edges_pos[start_index: end_index],
-             edges_neg_with_extras[start_index: end_index]))
+              (edges_pos[start_index:end_index],
+               edges_neg_with_extras[start_index:end_index]))
           yield batch_edges, batch_agreement
     else:
-      iterator = batch_iterator(edges,
-                                targets=agreement.astype(float),
-                                batch_size=batch_size,
-                                shuffle=True,
-                                allow_smaller_batch=False,
-                                repeat=True)
+      iterator = batch_iterator(
+          edges,
+          targets=agreement.astype(float),
+          batch_size=batch_size,
+          shuffle=True,
+          allow_smaller_batch=False,
+          repeat=True)
       for data in iterator:
         yield data
+
 
 class TrainerPerfectAgreement(object):
   """Trainer for an agreement model that always predicts the correct value."""
@@ -1143,6 +1155,7 @@ class TrainerPerfectAgreement(object):
     logging.info('Majority vote accuracy: %.2f.', acc)
     return acc
 
+
 class TrainerAgreementAlwaysAgree(object):
   """Trainer for an agreement model that always predicts that samples agree.
 
@@ -1159,7 +1172,7 @@ class TrainerAgreementAlwaysAgree(object):
     logging.info('Using NGM, agreement always returns 1. no need to train...')
 
   def predict(self, unused_session, unused_src_features, unused_tgt_features,
-              src_indices, tgt_indices):
+              src_indices, unused_tgt_indices):
     """Predict agreement for the provided pairs of samples.
 
     The function contains many unused arguments, in order to conform with the
@@ -1173,8 +1186,8 @@ class TrainerAgreementAlwaysAgree(object):
         containing the features of the second element of the pair.
       src_indices: An array of integers containing the index of each sample in
         self.data of the samples in src_features.
-      tgt_indices: An array of integers containing the index of each sample in
-        self.data of the samples in tgt_features.
+      unused_tgt_indices: An array of integers containing the index of each
+        sample in self.data of the samples in tgt_features.
 
     Returns:
       An array containing the predicted agreement value for each pair of
@@ -1191,12 +1204,13 @@ class TrainerAgreementAlwaysAgree(object):
     TrainerAgreement, but here we always predict 1.0.
 
     Arguments:
-      src_indices: A Tensor or Placeholder of shape (batch_size,)
-        containing the indices of the samples that are the sources of the edges.
-      unused_args: Other unused arguments, which we allow in order to
-        create a common interface with TrainerAgreement.
+      src_indices: A Tensor or Placeholder of shape (batch_size,) containing the
+        indices of the samples that are the sources of the edges.
+      unused_args: Other unused arguments, which we allow in order to create a
+        common interface with TrainerAgreement.
       unused_kwargs: Other unused keyword arguments, which we allow in order to
         create a common interface with TrainerAgreement.
+
     Returns:
       predictions: None, because this model doesn't do logits computations, but
         we still return something in order to keep the same function outputs as

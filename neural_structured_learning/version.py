@@ -11,29 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Defines neural_structured_learning version information."""
 
-# Description:
-# Build rules for config libraries in Neural Structured Learning.
+# We follow Semantic Versioning (https://semver.org/).
+_MAJOR_VERSION = '1'
+_MINOR_VERSION = '0'
+_PATCH_VERSION = '1'
 
-# Placeholder for internal Python strict compatibility macro.
+_VERSION_SUFFIX = ''
 
-package(
-    default_visibility = ["//visibility:public"],
-    licenses = ["notice"],  # Apache 2.0
-)
-
-exports_files(["LICENSE"])
-
-py_library(
-    name = "configs",
-    srcs = [
-        "__init__.py",
-        "configs.py",
-    ],
-    srcs_version = "PY2AND3",
-    deps = [
-        # package attr
-        # package enum
-        # package tensorflow
-    ],
-)
+__version__ = '.'.join([_MAJOR_VERSION, _MINOR_VERSION, _PATCH_VERSION])
+if _VERSION_SUFFIX:
+  __version__ = '{}-{}'.format(__version__, _VERSION_SUFFIX)

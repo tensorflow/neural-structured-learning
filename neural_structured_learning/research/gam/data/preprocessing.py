@@ -28,6 +28,7 @@ def convert_image(image):
   image *= 2.
   return image
 
+
 def split_train_val(indices, ratio_val, rng, max_num_val=None):
   """Split the train sample indices into train and validation.
 
@@ -53,8 +54,11 @@ def split_train_val(indices, ratio_val, rng, max_num_val=None):
   ind_train = ind[num_val:]
   return ind_train, ind_val
 
-def split_train_val_unlabeled(train_inputs, train_labels,
-                              target_num_train_per_class, target_num_val,
+
+def split_train_val_unlabeled(train_inputs,
+                              train_labels,
+                              target_num_train_per_class,
+                              target_num_val,
                               seed=None):
   """Splits the training data into train, validation and unlabeled samples.
 
@@ -126,5 +130,5 @@ def split_train_val_unlabeled(train_inputs, train_labels,
   train_inputs = train_inputs[ind_train]
   train_labels = train_labels[ind_train]
 
-  return (train_inputs, train_labels, val_inputs, val_labels,
-          unlabeled_inputs, unlabeled_labels)
+  return (train_inputs, train_labels, val_inputs, val_labels, unlabeled_inputs,
+          unlabeled_labels)

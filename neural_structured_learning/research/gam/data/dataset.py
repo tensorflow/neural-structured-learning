@@ -16,12 +16,12 @@ import collections
 import logging
 import os
 import pickle
-import scipy
-
-import numpy as np
-import tensorflow as tf
 
 from gam.data.preprocessing import split_train_val
+
+import numpy as np
+import scipy
+import tensorflow as tf
 
 
 class Dataset(object):
@@ -32,8 +32,15 @@ class Dataset(object):
   and unlabeled. These sets of samples are disjoint.
   """
 
-  def __init__(self, name, features, labels, indices_train, indices_test,
-               indices_val, indices_unlabeled, num_classes=None,
+  def __init__(self,
+               name,
+               features,
+               labels,
+               indices_train,
+               indices_test,
+               indices_val,
+               indices_unlabeled,
+               num_classes=None,
                feature_preproc_fn=lambda x: x):
     self.name = name
     self.features = features
@@ -54,64 +61,88 @@ class Dataset(object):
     self.num_classes = 1 + max(labels) if num_classes is None else num_classes
 
   @staticmethod
-  def build_from_splits(name, inputs_train, labels_train, inputs_val,
-                        labels_val, inputs_test, labels_test, inputs_unlabeled,
-                        labels_unlabeled=None, num_classes=None,
+  def build_from_splits(name,
+                        inputs_train,
+                        labels_train,
+                        inputs_val,
+                        labels_val,
+                        inputs_test,
+                        labels_test,
+                        inputs_unlabeled,
+                        labels_unlabeled=None,
+                        num_classes=None,
                         feature_preproc_fn=lambda x: x):
+    """Build Dataset from splits."""
     num_train = inputs_train.shape[0]
     num_val = inputs_val.shape[0]
     num_unlabeled = inputs_unlabeled.shape[0]
     num_test = inputs_test.shape[0]
 
     if labels_unlabeled is None:
-      labels_unlabeled = np.zeros(shape=(num_unlabeled,),
-                                  dtype=labels_train[0].dtype)
+      labels_unlabeled = np.zeros(
+          shape=(num_unlabeled,), dtype=labels_train[0].dtype)
     features = np.concatenate(
-      (inputs_train, inputs_val, inputs_unlabeled, inputs_test))
+        (inputs_train, inputs_val, inputs_unlabeled, inputs_test))
     labels = np.concatenate(
-      (labels_train, labels_val, labels_unlabeled, labels_test))
+        (labels_train, labels_val, labels_unlabeled, labels_test))
 
     indices_train = np.arange(num_train)
-    indices_val = np.arange(num_train, num_train+num_val)
-    indices_unlabeled = np.arange(num_train+num_val,
-                                  num_train+num_val+num_unlabeled)
-    indices_test = np.arange(num_train+num_val+num_unlabeled,
-                             num_train+num_val+num_unlabeled+num_test)
+    indices_val = np.arange(num_train, num_train + num_val)
+    indices_unlabeled = np.arange(num_train + num_val,
+                                  num_train + num_val + num_unlabeled)
+    indices_test = np.arange(num_train + num_val + num_unlabeled,
+                             num_train + num_val + num_unlabeled + num_test)
 
-    return Dataset(name=name,
-                   features=features,
-                   labels=labels,
-                   indices_train=indices_train,
-                   indices_test=indices_test,
-                   indices_val=indices_val,
-                   indices_unlabeled=indices_unlabeled,
-                   num_classes=num_classes,
-                   feature_preproc_fn=feature_preproc_fn)
+    return Dataset(
+        name=name,
+        features=features,
+        labels=labels,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
 
   @staticmethod
-  def build_from_features(name, features, labels, indices_train, indices_test,
-                          indices_val=None, indices_unlabeled=None,
-                          percent_val=0.2, seed=None, num_classes=None,
+  def build_from_features(name,
+                          features,
+                          labels,
+                          indices_train,
+                          indices_test,
+                          indices_val=None,
+                          indices_unlabeled=None,
+                          percent_val=0.2,
+                          seed=None,
+                          num_classes=None,
                           feature_preproc_fn=lambda x: x):
+    """Build Dataset from features."""
     if indices_val is None:
       rng = np.random.RandomState(seed=seed)
       indices_train, indices_val = split_train_val(
-        np.arange(indices_train.shape[0]), percent_val, rng)
+          np.arange(indices_train.shape[0]), percent_val, rng)
 
-    return Dataset(name=name,
-                   features=features,
-                   labels=labels,
-                   indices_train=indices_train,
-                   indices_test=indices_test,
-                   indices_val=indices_val,
-                   indices_unlabeled=indices_unlabeled,
-                   num_classes=num_classes,
-                   feature_preproc_fn=feature_preproc_fn)
+    return Dataset(
+        name=name,
+        features=features,
+        labels=labels,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
 
-
-  def copy(self, name=None, features=None, labels=None, indices_train=None,
-           indices_test=None, indices_val=None, indices_unlabeled=None,
-           num_classes=None, feature_preproc_fn=None):
+  def copy(self,
+           name=None,
+           features=None,
+           labels=None,
+           indices_train=None,
+           indices_test=None,
+           indices_val=None,
+           indices_unlabeled=None,
+           num_classes=None,
+           feature_preproc_fn=None):
     name = name if name is not None else self.name
     features = features if features is not None else self.features
     labels = labels if labels is not None else self.labels
@@ -126,15 +157,15 @@ class Dataset(object):
     feature_preproc_fn = (feature_preproc_fn if feature_preproc_fn is not None
                           else self.feature_preproc_fn)
     return Dataset(
-      name=name,
-      features=features,
-      labels=labels,
-      indices_train=indices_train,
-      indices_test=indices_test,
-      indices_val=indices_val,
-      indices_unlabeled=indices_unlabeled,
-      num_classes=num_classes,
-      feature_preproc_fn=feature_preproc_fn)
+        name=name,
+        features=features,
+        labels=labels,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
 
   def copy_labels(self):
     return np.copy(self.labels)
@@ -218,15 +249,26 @@ class Dataset(object):
 
 class GraphDataset(Dataset):
   """Data container for SSL datasets."""
+
   class Edge(object):
     def __init__(self, src, tgt, weight=None):
       self.src = src
       self.tgt = tgt
       self.weight = weight
 
-  def __init__(self, name, features, labels, edges, indices_train, indices_test,
-               indices_val=None, indices_unlabeled=None, percent_val=0.2,
-               seed=None, num_classes=None, feature_preproc_fn=lambda x: x):
+  def __init__(self,
+               name,
+               features,
+               labels,
+               edges,
+               indices_train,
+               indices_test,
+               indices_val=None,
+               indices_unlabeled=None,
+               percent_val=0.2,
+               seed=None,
+               num_classes=None,
+               feature_preproc_fn=lambda x: x):
     self.edges = edges
 
     if indices_val is None:
@@ -245,9 +287,17 @@ class GraphDataset(Dataset):
       num_classes=num_classes,
       feature_preproc_fn=feature_preproc_fn)
 
-  def copy(self, name=None, features=None, labels=None, edges=None,
-           indices_train=None, indices_test=None, indices_val=None,
-           indices_unlabeled=None, num_classes=None, feature_preproc_fn=None):
+  def copy(self,
+           name=None,
+           features=None,
+           labels=None,
+           edges=None,
+           indices_train=None,
+           indices_test=None,
+           indices_val=None,
+           indices_unlabeled=None,
+           num_classes=None,
+           feature_preproc_fn=None):
     name = name if name is not None else self.name
     features = features if features is not None else self.features
     labels = labels if labels is not None else self.labels
@@ -274,8 +324,25 @@ class GraphDataset(Dataset):
       num_classes=num_classes,
       feature_preproc_fn=feature_preproc_fn)
 
-  def get_edges(self, src_labeled=None, tgt_labeled=None,
+  def get_edges(self,
+                src_labeled=None,
+                tgt_labeled=None,
                 label_must_match=False):
+    """Returns the graph edges satisfying the requested labeling.
+
+    Args:
+        src_labeled: Boolean specifying whether the source of the edge should
+            be labeled (if True), or unlabeled (if False). If None, then the
+            source can be either labeled or unlabeled.
+        tgt_labeled: Boolean specifying whether the target of the edge should
+            be labeled (if True), or unlabeled (if False). If None, then the
+            target can be either labeled or unlabeled.
+        label_must_match: Boolean specifying whether the source and the target
+            nodes of the returned edges are required to have the same label.
+
+    Returns:
+        A list of edges.
+    """
     labeled_mask = np.full((self.num_samples,), False)
     labeled_mask[self.get_indices_train()] = True
 
@@ -287,17 +354,24 @@ class GraphDataset(Dataset):
 
     agreement_cond = _agreement_cond if label_must_match else lambda e: True
 
-    return [e for e in self.edges
-            if _labeled_cond(e.src, src_labeled) and \
-            _labeled_cond(e.tgt, tgt_labeled) and \
-            agreement_cond(e)]
+    return [
+        e for e in self.edges if _labeled_cond(e.src, src_labeled) and
+        _labeled_cond(e.tgt, tgt_labeled) and agreement_cond(e)
+    ]
 
 
 class PlanetoidDataset(GraphDataset):
   """Data container for Planetoid datasets."""
 
-  def __init__(self, name, adj, features, train_mask, val_mask, test_mask,
-               labels, row_normalize=False):
+  def __init__(self,
+               name,
+               adj,
+               features,
+               train_mask,
+               val_mask,
+               test_mask,
+               labels,
+               row_normalize=False):
 
     # Extract train, val, test, unlabeled indices.
     train_indices = np.where(train_mask)[0]
@@ -318,21 +392,24 @@ class PlanetoidDataset(GraphDataset):
 
     # Extract edges.
     adj = scipy.sparse.coo_matrix(adj)
-    edges = [self.Edge(src, tgt, val)
-             for src, tgt, val in zip(adj.row, adj.col, adj.data)]
+
+    edges = [
+        self.Edge(src, tgt, val)
+        for src, tgt, val in zip(adj.row, adj.col, adj.data)
+    ]
 
     # Convert to Dataset format.
-    super().__init__(
-      name=name,
-      features=features,
-      labels=labels,
-      edges=edges,
-      indices_train=train_indices,
-      indices_test=test_indices,
-      indices_val=val_indices,
-      indices_unlabeled=unlabeled_indices,
-      num_classes=num_classes,
-      feature_preproc_fn=lambda x: x)
+    super(PlanetoidDataset, self).__init__(
+        name=name,
+        features=features,
+        labels=labels,
+        edges=edges,
+        indices_train=train_indices,
+        indices_test=test_indices,
+        indices_val=val_indices,
+        indices_unlabeled=unlabeled_indices,
+        num_classes=num_classes,
+        feature_preproc_fn=lambda x: x)
 
   @staticmethod
   def preprocess_features(features):
@@ -351,14 +428,13 @@ class CotrainDataset(object):
   Attributes:
     dataset: A Dataset object.
     keep_label_proportions: A boolean specifying whether every self-labeling
-      step will keep the label proportions from the original training data.
-      If so, this class keeps statistics of the label distribution.
-    inductive: A boolean specifying if the dataset is inductive. If True,
-      then the unlabeled samples include the validation and test samples.
-    labels_original: Stores the original labels of all samples in `dataset`.
-      We do this because via the self-labeling step, the method
-      `label_samples` can rewrite the original (correct) labels, which are
-      needed for evaluation.
+      step will keep the label proportions from the original training data. If
+      so, this class keeps statistics of the label distribution.
+    inductive: A boolean specifying if the dataset is inductive. If True, then
+      the unlabeled samples include the validation and test samples.
+    labels_original: Stores the original labels of all samples in `dataset`. We
+      do this because via the self-labeling step, the method `label_samples` can
+      rewrite the original (correct) labels, which are needed for evaluation.
     label_prop: Stores the ratio of samples for each label in the original
       training set.
   """
@@ -377,8 +453,7 @@ class CotrainDataset(object):
     # Otherwise, they are treated as any unlabeled samples.
     if not self.inductive:
       self.dataset.indices_unlabeled = np.concatenate(
-          (dataset.indices_unlabeled,
-           dataset.indices_val,
+          (dataset.indices_unlabeled, dataset.indices_val,
            dataset.indices_test))
 
     # If when labeling new data we want to keep the proportions of the labels
@@ -390,7 +465,8 @@ class CotrainDataset(object):
       num_labels = np.float(len(labeled_indices))
       assert num_labels > 0, 'There are no labeled samples in the dataset.'
       self.label_prop = {
-          label: count / num_labels for label, count in label_counts.items()}
+          label: count / num_labels for label, count in label_counts.items()
+      }
     else:
       self.label_prop = None
 
@@ -426,9 +502,10 @@ class CotrainDataset(object):
 
     num_new_labels = len(selected_samples)
     logging.info('Number of newly labeled nodes: %d', num_new_labels)
-    logging.info('Ratio correct new labels: %f. '
-                 'Ratio correct labels total: %f.',
-                 ratio_correct_new_labels, ratio_correct_total)
+    logging.info(
+        'Ratio correct new labels: %f. '
+        'Ratio correct labels total: %f.', ratio_correct_new_labels,
+        ratio_correct_total)
 
     # Compute how many test nodes have been labeled, and their correctness.
     # Note: This is an expensive step, and should be skipped for large datasets.
@@ -510,6 +587,7 @@ class CotrainDataset(object):
 
     Args:
       indices: A list or array of sample indices.
+
     Returns:
       An array of labels.
     """
@@ -568,9 +646,9 @@ class CotrainDataset(object):
     file_indices_train = os.path.join(path, 'indices_train.txt')
     file_indices_unlabeled = os.path.join(path, 'indices_unlabeled.txt')
     file_labels_train = os.path.join(path, 'labels_train.txt')
-    indices_type = (np.uint32
-                    if self.dataset.num_samples < np.iinfo(np.uint32).max
-                    else np.uint64)
+    indices_type = (
+        np.uint32
+        if self.dataset.num_samples < np.iinfo(np.uint32).max else np.uint64)
     if os.path.exists(file_indices_train) \
         and os.path.exists(file_indices_unlabeled) \
         and os.path.exists(file_labels_train):
@@ -589,9 +667,11 @@ class CotrainDataset(object):
   def copy_labels(self):
     return self.dataset.copy_labels()
 
-  def get_edges(self, src_labeled=None, tgt_labeled=None,
+  def get_edges(self,
+                src_labeled=None,
+                tgt_labeled=None,
                 label_must_match=False):
     return self.dataset.get_edges(
-      src_labeled=src_labeled,
-      tgt_labeled=tgt_labeled,
-      label_must_match=label_must_match)
+        src_labeled=src_labeled,
+        tgt_labeled=tgt_labeled,
+        label_must_match=label_must_match)

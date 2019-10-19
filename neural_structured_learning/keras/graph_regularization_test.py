@@ -23,7 +23,6 @@ from neural_structured_learning.keras import graph_regularization
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
 
 from google.protobuf import text_format
 from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
@@ -63,39 +62,39 @@ def make_feature_spec(input_shape, max_neighbors):
 
 
 def build_linear_sequential_model(input_shape, weights, num_output=1):
-  model = keras.Sequential()
+  model = tf.keras.Sequential()
   model.add(
-      keras.layers.Dense(
+      tf.keras.layers.Dense(
           num_output,
           input_shape=input_shape,
           use_bias=False,
           name='dense',
-          kernel_initializer=keras.initializers.Constant(weights)))
+          kernel_initializer=tf.keras.initializers.Constant(weights)))
   return model
 
 
 def build_linear_functional_model(input_shape, weights, num_output=1):
-  inputs = keras.Input(shape=input_shape, name=FEATURE_NAME)
-  outputs = keras.layers.Dense(
+  inputs = tf.keras.Input(shape=input_shape, name=FEATURE_NAME)
+  outputs = tf.keras.layers.Dense(
       num_output,
       use_bias=False,
-      kernel_initializer=keras.initializers.Constant(weights))(
+      kernel_initializer=tf.keras.initializers.Constant(weights))(
           inputs)
-  return keras.Model(inputs=inputs, outputs=outputs)
+  return tf.keras.Model(inputs=inputs, outputs=outputs)
 
 
 def build_linear_subclass_model(input_shape, weights, num_output=1):
   del input_shape
 
-  class LinearModel(keras.Model):
+  class LinearModel(tf.keras.Model):
 
     def __init__(self):
       super(LinearModel, self).__init__()
-      self.dense = keras.layers.Dense(
+      self.dense = tf.keras.layers.Dense(
           num_output,
           use_bias=False,
           name='dense',
-          kernel_initializer=keras.initializers.Constant(weights))
+          kernel_initializer=tf.keras.initializers.Constant(weights))
 
     def call(self, inputs):
       return self.dense(inputs[FEATURE_NAME])
@@ -136,7 +135,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularization(model)
-    graph_reg_model.compile(optimizer=keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = graph_reg_model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -149,7 +148,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularization(model)
-    graph_reg_model.compile(optimizer=keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -200,7 +199,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
       graph_reg_model = graph_regularization.GraphRegularization(
           model, graph_reg_config)
       graph_reg_model.compile(
-          optimizer=keras.optimizers.SGD(LEARNING_RATE), loss='MSE')
+          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE), loss='MSE')
       return model, graph_reg_model
 
     if distributed_strategy:

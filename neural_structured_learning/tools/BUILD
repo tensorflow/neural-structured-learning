@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Placeholder for internal Python strict compatibility macro.
 # Placeholder for internal Python version compatibility macro.
 
 # Description:
@@ -29,9 +30,9 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         ":graph_utils",
-        ":pack_nbrs_lib",
+        ":input_maker_lib",
     ],
 )
 
@@ -56,8 +57,8 @@ py_test(
 )
 
 py_library(
-    name = "graph_builder",
-    srcs = ["graph_builder.py"],
+    name = "graph_builder_lib",
+    srcs = ["graph_builder_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
@@ -69,11 +70,11 @@ py_library(
 )
 
 py_test(
-    name = "graph_builder_test",
-    srcs = ["graph_builder_test.py"],
+    name = "graph_builder_lib_test",
+    srcs = ["graph_builder_lib_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         ":graph_utils",
         # package protobuf,
         # package absl/testing:absltest
@@ -82,11 +83,11 @@ py_test(
 )
 
 py_binary(
-    name = "graph_builder_main",
-    srcs = ["graph_builder_main.py"],
+    name = "graph_builder",
+    srcs = ["graph_builder.py"],
     python_version = "PY3",
     deps = [
-        ":graph_builder",
+        ":graph_builder_lib",
         # package absl:app
         # package absl/flags
         # package tensorflow
@@ -94,24 +95,40 @@ py_binary(
 )
 
 py_library(
-    name = "pack_nbrs_lib",
-    srcs = ["pack_nbrs.py"],
+    name = "input_maker_lib",
+    srcs = ["input_maker_lib.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":graph_utils",
-        # package absl:app
-        # package absl/flags
         # package absl/logging
         # package six
         # package tensorflow
     ],
 )
 
+py_test(
+    name = "input_maker_lib_test",
+    srcs = ["input_maker_lib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":graph_utils",
+        ":input_maker_lib",
+        # package protobuf,
+        # package absl/testing:absltest
+        # package tensorflow
+    ],
+)
+
 py_binary(
-    name = "pack_nbrs",
-    srcs = ["pack_nbrs.py"],
+    name = "input_maker",
+    srcs = ["input_maker.py"],
     python_version = "PY3",
-    deps = [":pack_nbrs_lib"],
+    deps = [
+        ":input_maker_lib",
+        # package absl:app
+        # package absl/flags
+        # package tensorflow
+    ],
 )
 
 py_binary(
