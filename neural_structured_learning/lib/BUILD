@@ -55,6 +55,7 @@ py_library(
     deps = [
         ":abstract_gen_neighbor",
         ":utils",
+        # package absl/logging
         # package tensorflow
     ],
 )

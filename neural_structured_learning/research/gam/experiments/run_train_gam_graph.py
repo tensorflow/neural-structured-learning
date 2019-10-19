@@ -37,6 +37,7 @@ from gam.trainer.trainer_cotrain import TrainerCotraining
 import numpy as np
 import tensorflow as tf
 
+
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
     'dataset_name', 'cora',
@@ -257,6 +258,7 @@ flags.DEFINE_bool(
 flags.DEFINE_bool('use_graph', True,
                   'Whether to use the graph edges, or any pair of samples.')
 
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
@@ -420,7 +422,6 @@ def main(argv):
   #                            TRAIN                                         #
   ############################################################################
   trainer.train(data)
-
 
 if __name__ == '__main__':
   app.run(main)

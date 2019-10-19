@@ -22,9 +22,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
+
+from absl import logging
 from neural_structured_learning.lib import abstract_gen_neighbor as abs_gen
 from neural_structured_learning.lib import utils
-
 import tensorflow as tf
 
 
@@ -88,7 +90,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         # In either case, no gradient will be calculated for this feature.
         if self._raise_invalid_gradient:
           raise ValueError('Cannot perturb feature ' + key)
-        tf.compat.v1.logging.warn('Cannot perturb feature ' + key)
+        logging.warn('Cannot perturb feature %s', key)
         continue
 
       # Guards against numerical errors. If the gradient is malformed (inf,
@@ -129,6 +131,28 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       perturbation[key] = sub_grad
     return perturbation
 
+  # The _compose_as_dict and _decompose_as functions are similar to
+  # tf.nest.{flatten, pack_sequence_as} except that the composed representation
+  # is a dictionary of (name, value) pairs instead of a list of values. The
+  # names are needed for joining values from different inputs (e.g. input
+  # features and feature masks) with possibly missing values (e.g. no mask for
+  # some features).
+  def _compose_as_dict(self, inputs):
+    if isinstance(inputs, collections.Mapping):
+      return inputs
+    elif isinstance(inputs, (tuple, list)):
+      return dict(enumerate(inputs))  # index -> value
+    else:
+      return {'': inputs} if inputs is not None else {}
+
+  def _decompose_as(self, structure, values):
+    if isinstance(structure, collections.Mapping):
+      return values
+    elif isinstance(structure, (tuple, list)):
+      return [values[index] for index in range(len(structure))]
+    else:
+      return values[''] if structure is not None else None
+
   def gen_neighbor(self, input_features):
     """Generates adversarial neighbors and the corresponding weights.
 
@@ -141,8 +165,9 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     remain the same.
 
     Arguments:
-      input_features: a dense (float32) tensor or a dictionary of feature names
-        and dense tensors. The shape of the tensor(s) should be either:
+      input_features: a dense (float32) tensor, a list of dense tensors, or a
+        dictionary of feature names and dense tensors. The shape of the
+        tensor(s) should be either:
         (a) pointwise samples: [batch_size, feat_len], or
         (b) sequence samples: [batch_size, seq_len, feat_len]
 
@@ -160,14 +185,14 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         This error is suppressed if `raise_invalid_gradient` is set to False
         (which is the default).
     """
-    single_feature = not isinstance(input_features, dict)
 
-    # Converts single-feature input to a dictionary to reuse following code.
-    if single_feature:
-      input_features = {'': input_features}
+    # Composes both features and feature_masks to dictionaries, so that the
+    # feature_masks can be looked up by key.
+    features = self._compose_as_dict(input_features)
+    feature_masks = self._compose_as_dict(self._adv_config.feature_mask)
 
     sparse_features, dense_features = {}, {}
-    for (key, feature) in input_features.items():
+    for (key, feature) in features.items():
       if isinstance(feature, tf.Tensor):
         dense_features[key] = feature
       else:
@@ -177,15 +202,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       sparse_keys = str(sparse_features.keys())
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb non-Tensor input: ' + sparse_keys)
-      tf.compat.v1.logging.warn('Cannot perturb non-Tensor input: ' +
-                                sparse_keys)
-
-    if self._adv_config.feature_mask is None:
-      feature_masks = {}  # missing key => no mask
-    elif single_feature:
-      feature_masks = {'': self._adv_config.feature_mask}
-    else:
-      feature_masks = self._adv_config.feature_mask
+      logging.warn('Cannot perturb non-Tensor input: %s', sparse_keys)
 
     # Computes the gradient of the loss w.r.t. each dense feature. The returned
     # value is a list of tensors, each with the same shape as the corresponding
@@ -206,14 +223,11 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       adv_neighbor[key] = tf.stop_gradient(
           feature if key not in perturbation else feature + perturbation[key])
 
-    # Converts the perturbed examples back to their original format.
-    if single_feature:
-      adv_neighbor = adv_neighbor['']
-
-    batch_size = tf.shape(
-        input=adv_neighbor if single_feature else list(adv_neighbor.values())[0]
-    )[0]
+    batch_size = tf.shape(list(adv_neighbor.values())[0])[0]
     adv_weight = tf.ones([batch_size, 1])
+
+    # Converts the perturbed examples back to their original structure.
+    adv_neighbor = self._decompose_as(input_features, adv_neighbor)
 
     return adv_neighbor, adv_weight
 
@@ -231,8 +245,9 @@ def gen_adv_neighbor(input_features,
   searching/calculating adversarial neighbor.
 
   Arguments:
-    input_features: A `Tensor` or a dictionary of `(feature_name, Tensor)`.
-      The shape of the tensor(s) should be either:
+    input_features: a dense (float32) tensor, a list of dense tensors, or a
+      dictionary of feature names and dense tensors. The shape of the tensor(s)
+      should be either:
       (a) pointwise samples: `[batch_size, feat_len]`, or
       (b) sequence samples: `[batch_size, seq_len, feat_len]`.
       Note that only dense (`float`) tensors in `input_features` will be

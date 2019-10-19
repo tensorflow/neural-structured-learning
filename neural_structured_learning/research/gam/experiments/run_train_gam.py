@@ -47,11 +47,15 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'data_source', 'tensorflow_datasets', 'Data source. Valid options are: '
     '`tensorflow_datasets`, `realistic_ssl`, `planetoid`.')
-flags.DEFINE_integer('target_num_train_per_class', 400,
-                     'Number of samples per class to use for training.')
-flags.DEFINE_integer('target_num_val', 1000,
-                     'Number of samples to be used for validation.')
-flags.DEFINE_integer('seed', 123, 'Seed used by the random number generators.')
+flags.DEFINE_integer(
+    'target_num_train_per_class', 400,
+    'Number of samples per class to use for training.')
+flags.DEFINE_integer(
+    'target_num_val', 1000,
+    'Number of samples to be used for validation.')
+flags.DEFINE_integer(
+    'seed', 123,
+    'Seed used by the random number generators.')
 flags.DEFINE_bool(
     'load_preprocessed', False,
     'Specifies whether to load data already preprocessed. If False, it reads'

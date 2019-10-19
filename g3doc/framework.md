@@ -15,10 +15,10 @@ Convolutional NNs and Recurrent NNs).
 
 Note that the generalized neighbor loss equation is flexible and can have other
 forms besides the one illustrated above. For example, we can also select
-\\(\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j))\\) to be the
-neighbor loss, which calculates the distance between the ground truth \\(y_i\\)
-and the prediction from the neighbor \\(g_\theta(x_j)\\). This is commonly used
-in adversarial learning
+$$\sum_{x_j \in \mathcal{N}(x_i)}\mathcal{E}(y_i,g_\theta(x_j))$$ to be the
+neighbor loss, which calculates the distance between the ground truth $$y_i$$
+and the prediction from the neighbor $$g_\theta(x_j)$$. This is commonly used in
+adversarial learning
 [(Goodfellow et al., ICLR'15)](https://arxiv.org/pdf/1412.6572.pdf). Therefore,
 NSL generalizes to **Neural Graph Learning** if neighbors are explicitly
 represented by a graph, and to **Adversarial Learning** if neighbors are
@@ -60,8 +60,8 @@ NSL brings the following advantages:
     model's prediction or classification
     ([Goodfellow et al., ICLR'15](https://arxiv.org/pdf/1412.6572.pdf) &
     [Miyato et al., ICLR'16](https://arxiv.org/pdf/1704.03976.pdf)). When the
-    number of training samples is small, training with
-    adversarial examples also helps improve model accuracy
+    number of training samples is small, training with adversarial examples also
+    helps improve model accuracy
     ([Tsipras et al., ICLR'19](https://arxiv.org/pdf/1805.12152.pdf)).
 *   **Less labeled data required**: NSL enables neural networks to harness both
     labeled and unlabeled data, which extends the learning paradigm to

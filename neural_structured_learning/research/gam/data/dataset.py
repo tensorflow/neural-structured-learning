@@ -251,6 +251,7 @@ class GraphDataset(Dataset):
   """Data container for SSL datasets."""
 
   class Edge(object):
+
     def __init__(self, src, tgt, weight=None):
       self.src = src
       self.tgt = tgt
@@ -274,18 +275,18 @@ class GraphDataset(Dataset):
     if indices_val is None:
       rng = np.random.RandomState(seed=seed)
       indices_train, indices_val = split_train_val(
-        np.arange(indices_train.shape[0]), percent_val, rng)
+          np.arange(indices_train.shape[0]), percent_val, rng)
 
-    super().__init__(
-      name=name,
-      features=features,
-      labels=labels,
-      indices_train=indices_train,
-      indices_test=indices_test,
-      indices_val=indices_val,
-      indices_unlabeled=indices_unlabeled,
-      num_classes=num_classes,
-      feature_preproc_fn=feature_preproc_fn)
+    super(GraphDataset, self).__init__(
+        name=name,
+        features=features,
+        labels=labels,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
 
   def copy(self,
            name=None,
@@ -353,7 +354,6 @@ class GraphDataset(Dataset):
       return self.get_labels(edge.src) == self.get_labels(edge.tgt)
 
     agreement_cond = _agreement_cond if label_must_match else lambda e: True
-
     return [
         e for e in self.edges if _labeled_cond(e.src, src_labeled) and
         _labeled_cond(e.tgt, tgt_labeled) and agreement_cond(e)
@@ -372,7 +372,6 @@ class PlanetoidDataset(GraphDataset):
                test_mask,
                labels,
                row_normalize=False):
-
     # Extract train, val, test, unlabeled indices.
     train_indices = np.where(train_mask)[0]
     test_indices = np.where(test_mask)[0]
@@ -392,7 +391,6 @@ class PlanetoidDataset(GraphDataset):
 
     # Extract edges.
     adj = scipy.sparse.coo_matrix(adj)
-
     edges = [
         self.Edge(src, tgt, val)
         for src, tgt, val in zip(adj.row, adj.col, adj.data)

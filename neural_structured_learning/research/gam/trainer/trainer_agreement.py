@@ -468,6 +468,7 @@ class TrainerAgreement(Trainer):
 
   def _eval_validation(self, data_iterator_val, num_samples_val, session):
     """Evaluate the current model on validation data.
+
     Args:
       data_iterator_val: An iterator that generates batches of edges and
         agreement labels.
@@ -475,6 +476,7 @@ class TrainerAgreement(Trainer):
         number of combinations of samples in `labeled_nodes_val` can be very
         high, for validation we use only `num_samples_val` pairs.
       session: A TensorFlow session.
+
     Returns:
       Total accuracy on random pairs of samples.
     """
@@ -483,11 +485,11 @@ class TrainerAgreement(Trainer):
     samples_seen = 0
     while feed_dict_val is not None and samples_seen < num_samples_val:
       val_acc, batch_size_actual = session.run(
-        (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
+          (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
       cummulative_val_acc += val_acc * batch_size_actual
       samples_seen += batch_size_actual
       feed_dict_val = self._construct_feed_dict(
-        data_iterator_val, is_train=False)
+          data_iterator_val, is_train=False)
     cummulative_val_acc /= samples_seen
     return cummulative_val_acc
 
@@ -584,8 +586,8 @@ class TrainerAgreement(Trainer):
       labeled_samples = data.get_indices_train()
       num_labeled_samples = len(labeled_samples)
       num_samples_train = num_labeled_samples * num_labeled_samples
-      num_samples_val = min(int(num_samples_train * self.ratio_val),
-                            self.max_num_samples_val)
+      num_samples_val = min(
+          int(num_samples_train * self.ratio_val), self.max_num_samples_val)
 
     if num_samples_train == 0:
       logging.info('No samples to train agreement. Skipping...')
@@ -684,20 +686,16 @@ class TrainerAgreement(Trainer):
         # sure the agreement model is able to fit the training data, but can be
         # eliminated if efficiency is an issue.
         acc_train, acc_0_train, acc_1_train = self._eval_train(
-          session, feed_dict)
+            session, feed_dict)
 
         if self.enable_summaries:
           summary = tf.Summary()
           summary.value.add(
-            tag='AgreementModel/train_acc',
-            simple_value=acc_train)
-          summary.value.add(
-            tag='AgreementModel/val_acc',
-            simple_value=val_acc)
+              tag='AgreementModel/train_acc', simple_value=acc_train)
+          summary.value.add(tag='AgreementModel/val_acc', simple_value=val_acc)
           if acc_random is not None:
             summary.value.add(
-              tag='AgreementModel/random_acc',
-              simple_value=acc_random)
+                tag='AgreementModel/random_acc', simple_value=acc_random)
           iter_total = session.run(self.iter_agr_total)
           summary_writer.add_summary(summary, iter_total)
           summary_writer.flush()
@@ -706,7 +704,7 @@ class TrainerAgreement(Trainer):
               'Agreement step %6d | Loss: %10.4f | val_acc: %.4f |'
               'random_acc: %.4f | acc_train: %.4f | acc_train_cls_0: %.4f | '
               'acc_train_cls_1: %.4f', step, loss_val, val_acc, acc_random,
-              acc_train,acc_0_train, acc_1_train)
+              acc_train, acc_0_train, acc_1_train)
         if val_acc > best_val_acc:
           best_val_acc = val_acc
           if self.checkpoint_path:

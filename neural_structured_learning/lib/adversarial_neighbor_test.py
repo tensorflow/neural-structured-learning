@@ -46,6 +46,25 @@ class GenAdvNeighborTest(tf.test.TestCase):
     actual_neighbor = self.evaluate(adv_neighbor)
     self.assertAllClose(expected_neighbor, actual_neighbor)
 
+  def test_gen_adv_neighbor_for_tensor_list(self):
+    x = [tf.constant([[-1.0]]), tf.constant([[1.0]])]
+    y = tf.constant([0.0])
+    w = [tf.constant([[3.0]]), tf.constant([[4.0]])]
+    with tf.GradientTape() as tape:
+      tape.watch(x)
+      y_hat = tf.matmul(x[0], w[0]) + tf.matmul(x[1], w[1])
+      loss = tf.math.squared_difference(y, y_hat)
+
+    adv_config = configs.AdvNeighborConfig(
+        feature_mask=tf.constant(1.0), adv_step_size=0.1, adv_grad_norm='l2')
+    adv_neighbor, _ = adv_lib.gen_adv_neighbor(
+        x, loss, adv_config, gradient_tape=tape)
+
+    # gradient = [[6, 8]], normalized gradient = [[0.6, 0.8]]
+    expected_neighbor = [[[-1.0 + 0.1 * 0.6]], [[1.0 + 0.1 * 0.8]]]
+    actual_neighbor = self.evaluate(adv_neighbor)
+    self.assertAllClose(expected_neighbor, actual_neighbor)
+
   def _test_gen_adv_neighbor_for_feature_columns_setup(self):
     # For linear regression
     x = {
