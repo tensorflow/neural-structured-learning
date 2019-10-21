@@ -18,6 +18,7 @@ import os
 import pickle
 
 from gam.data.preprocessing import split_train_val
+
 import numpy as np
 import scipy
 import tensorflow as tf
@@ -121,6 +122,43 @@ class Dataset(object):
       indices_train, indices_val = split_train_val(
           np.arange(indices_train.shape[0]), percent_val, rng)
 
+    return Dataset(
+        name=name,
+        features=features,
+        labels=labels,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
+
+  def copy(self,
+           name=None,
+           features=None,
+           labels=None,
+           indices_train=None,
+           indices_test=None,
+           indices_val=None,
+           indices_unlabeled=None,
+           num_classes=None,
+           feature_preproc_fn=None):
+    """Copies Dataset."""
+    name = name if name is not None else self.name
+    features = features if features is not None else self.features
+    labels = labels if labels is not None else self.labels
+    indices_train = (
+        indices_train if indices_train is not None else self.indices_train)
+    indices_test = (
+        indices_test if indices_test is not None else self.indices_test)
+    indices_val = indices_val if indices_val is not None else self.indices_val
+    indices_unlabeled = (
+        indices_unlabeled
+        if indices_unlabeled is not None else self.indices_unlabeled)
+    num_classes = num_classes if num_classes is not None else self.num_classes
+    feature_preproc_fn = (
+        feature_preproc_fn
+        if feature_preproc_fn is not None else self.feature_preproc_fn)
     return Dataset(
         name=name,
         features=features,
@@ -253,11 +291,64 @@ class GraphDataset(Dataset):
         num_classes=num_classes,
         feature_preproc_fn=feature_preproc_fn)
 
+  def copy(self,
+           name=None,
+           features=None,
+           labels=None,
+           edges=None,
+           indices_train=None,
+           indices_test=None,
+           indices_val=None,
+           indices_unlabeled=None,
+           num_classes=None,
+           feature_preproc_fn=None):
+    name = name if name is not None else self.name
+    features = features if features is not None else self.features
+    labels = labels if labels is not None else self.labels
+    indices_train = (
+        indices_train if indices_train is not None else self.indices_train)
+    indices_test = (
+        indices_test if indices_test is not None else self.indices_test)
+    indices_val = indices_val if indices_val is not None else self.indices_val
+    indices_unlabeled = (
+        indices_unlabeled
+        if indices_unlabeled is not None else self.indices_unlabeled)
+    num_classes = num_classes if num_classes is not None else self.num_classes
+    feature_preproc_fn = (
+        feature_preproc_fn
+        if feature_preproc_fn is not None else self.feature_preproc_fn)
+    edges = edges if edges is not None else self.edges
+    return GraphDataset(
+        name=name,
+        features=features,
+        labels=labels,
+        edges=edges,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn)
+
   def get_edges(self,
                 src_labeled=None,
                 tgt_labeled=None,
                 label_must_match=False):
-    """Returns edges given source and target labeled nodes."""
+    """Returns the graph edges satisfying the requested labeling.
+
+    Args:
+        src_labeled: Boolean specifying whether the source of the edge should be
+          labeled (if True), or unlabeled (if False). If None, then the source
+          can be either labeled or unlabeled.
+        tgt_labeled: Boolean specifying whether the target of the edge should be
+          labeled (if True), or unlabeled (if False). If None, then the target
+          can be either labeled or unlabeled.
+        label_must_match: Boolean specifying whether the source and the target
+          nodes of the returned edges are required to have the same label.
+
+    Returns:
+        A list of edges.
+    """
     labeled_mask = np.full((self.num_samples,), False)
     labeled_mask[self.get_indices_train()] = True
 

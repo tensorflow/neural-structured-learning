@@ -106,7 +106,7 @@ class TrainerClassification(Trainer):
     first_iter_original:  A boolean specifying whether the first cotrain
       iteration trains the original classification model (with no agreement
       term).
-    use_l2_clssif: Whether to use L2 loss for classification, as opposed to the
+    use_l2_classif: Whether to use L2 loss for classification, as opposed to the
       whichever loss is specified in the provided model_cls.
     seed: Seed used by all the random number generators in this class.
     use_graph: Boolean specifying whether the agreement loss is applied to graph
