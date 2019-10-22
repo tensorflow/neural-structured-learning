@@ -44,8 +44,7 @@ class GCN(Model):
                input_dim,
                output_dim,
                hidden,
-               dropout,
-               data,
+               dropout=0.5,
                aggregation=None,
                hidden_aggregation=(),
                activation=tf.nn.leaky_relu,
@@ -56,6 +55,8 @@ class GCN(Model):
       hidden_aggregation=hidden_aggregation,
       activation=activation)
 
+    dropout = 0.5 if dropout is None else dropout
+
     self.input_dim = input_dim
     self.output_dim = output_dim
     self.num_supports = 1
@@ -64,21 +65,12 @@ class GCN(Model):
     self.name = name
     self.is_binary_classification = is_binary_classification
 
-    self.num_features_nonzero = data.features[1].shape
-
-    # Create some Tensorflow placeholders that are specific to GCN.
-    self.support_op = tf.sparse_placeholder(tf.float32, name='support')
-    self.features_op = tf.sparse_placeholder(
-        tf.float32,
-        shape=tf.constant((data.num_nodes, data.num_features), dtype=tf.int64),
-        name='features')
-    # Save the data required to fill in these placeholders. We don't add them
-    # directly in the graph as constants in order to avoid saving large
-    # checkpoints.
-    self.support = data.support
-    self.features = data.features
-
-  def get_encoding_and_params(self, inputs, is_train, **unused_kwargs):
+  def get_encoding_and_params(self,
+                              inputs,
+                              is_train,
+                              support,
+                              num_features_nonzero,
+                              **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
     For this model, the hidden representation is the last layer of the MLP,
@@ -98,16 +90,9 @@ class GCN(Model):
         parameters which will be used for regularization.
     """
     # Build layers.
-    with tf.variable_scope(self.name):
-      if isinstance(inputs, (tuple, list)):
-        with tf.variable_scope('encoding'):
-          hidden1, reg_params = self._construct_encoding(inputs[0], is_train)
-        with tf.variable_scope('encoding', reuse=True):
-          hidden2, _ = self._construct_encoding(inputs[1], is_train)
-        hidden = self._aggregate((hidden1, hidden2))
-      else:
-        with tf.variable_scope('encoding'):
-          hidden, reg_params = self._construct_encoding(inputs, is_train)
+    with tf.variable_scope(self.name+'/encoding'):
+      hidden, reg_params = self._construct_encoding(
+          inputs, is_train, support, num_features_nonzero)
 
       # Store model variables for easy access.
       variables = tf.get_collection(
@@ -117,7 +102,11 @@ class GCN(Model):
 
     return hidden, all_vars, reg_params
 
-  def _construct_encoding(self, inputs, is_train):
+  def _construct_encoding(self,
+                          inputs,
+                          is_train,
+                          support,
+                          num_features_nonzero):
       """Create weight variables."""
       dropout = (
           tf.constant(self.dropout, tf.float32) * tf.cast(is_train, tf.float32))
@@ -128,14 +117,13 @@ class GCN(Model):
           act=tf.nn.relu,
           dropout=dropout,
           sparse_inputs=True,
-          num_features_nonzero=self.num_features_nonzero,
-          support=self.support,
+          num_features_nonzero=num_features_nonzero,
+          support=support,
           name='GraphConvolution1')
       encoding = layer_1(inputs)
       reg_params = layer_1.vars
 
       return encoding, reg_params
-
 
   def get_predictions_and_params(self, encoding, is_train, **kwargs):
     """Creates the model prediction op.
@@ -162,6 +150,8 @@ class GCN(Model):
         parameters which will be used for regularization.
     """
     reg_params = {}
+    support = kwargs['support']
+    num_features_nonzero = kwargs['num_features_nonzero']
 
     # Build layers.
     with tf.variable_scope(self.name + '/prediction'):
@@ -173,8 +163,8 @@ class GCN(Model):
         output_dim=self.output_dim,
         act=lambda x: x,
         dropout=dropout,
-        num_features_nonzero=self.num_features_nonzero,
-        support=self.support,
+        num_features_nonzero=num_features_nonzero,
+        support=support,
         name='GraphConvolution2')
       predictions = layer_2(encoding)
 
@@ -189,11 +179,9 @@ class GCN(Model):
 
     return predictions, all_vars, reg_params
 
-
   def get_loss(self,
                predictions,
                targets,
-               input_indices,
                name_scope='loss',
                reg_params=None,
                **kwargs):
@@ -226,17 +214,13 @@ class GCN(Model):
     weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else None
 
     with tf.name_scope(name_scope):
-      selected_predictions = tf.gather(predictions, input_indices)
-      selected_targets = tf.gather(targets, input_indices)
-
       # Cross entropy error.
       if self.is_binary_classification:
         loss = tf.reduce_sum(
           tf.nn.sigmoid_cross_entropy_with_logits(
-            labels=selected_targets, logits=selected_predictions))
+            labels=targets, logits=predictions))
       else:
-        loss = tf.losses.softmax_cross_entropy(
-          selected_targets, selected_predictions)
+        loss = tf.losses.softmax_cross_entropy(targets, predictions)
       # Weight decay loss.
       if weight_decay is not None:
         for var in reg_params.values():
@@ -260,10 +244,6 @@ class GCN(Model):
       return tf.nn.sigmoid(predictions)
     return tf.nn.softmax(predictions, axis=-1)
 
-  def add_to_feed_dict(self):
-    return {
-        self.support_op: self.support,
-        self.features_op: self.features}
 
 class GraphConvolution(object):
   """Graph convolution layer."""

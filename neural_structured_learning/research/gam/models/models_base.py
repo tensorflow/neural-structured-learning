@@ -174,6 +174,3 @@ class Model(object):
             use_resource=True)
         hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, bias))
       return hidden
-
-  def add_to_feed_dict(self):
-    return {}

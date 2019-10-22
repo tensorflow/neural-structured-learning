@@ -31,12 +31,14 @@ import logging
 import os
 
 from gam.data.dataset import CotrainDataset
+from gam.models.gcn import GCN
 from gam.trainer.trainer_agreement import TrainerAgreement
 from gam.trainer.trainer_agreement import TrainerAgreementAlwaysAgree
 from gam.trainer.trainer_agreement import TrainerPerfectAgreement
 from gam.trainer.trainer_base import Trainer
 from gam.trainer.trainer_classification import TrainerClassification
 from gam.trainer.trainer_classification import TrainerPerfectClassification
+from gam.trainer.trainer_classification_gcn import TrainerClassificationGCN
 
 import numpy as np
 import tensorflow as tf
@@ -266,8 +268,7 @@ class TrainerCotraining(Trainer):
                load_from_checkpoint=False,
                use_graph=False,
                always_agree=False,
-               add_negative_edges_agr=False,
-               include_indices_cls=False):
+               add_negative_edges_agr=False):
     assert not enable_summaries or (enable_summaries and
                                     summary_dir is not None)
     assert checkpoints_step is None or (checkpoints_step is not None and
@@ -339,7 +340,6 @@ class TrainerCotraining(Trainer):
     self.use_graph = use_graph
     self.always_agree = always_agree
     self.add_negative_edges_agr = add_negative_edges_agr
-    self.include_indices_cls = include_indices_cls
 
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
@@ -503,7 +503,10 @@ class TrainerCotraining(Trainer):
       trainer_cls = TrainerPerfectClassification(data=data)
     else:
       with tf.variable_scope('ClassificationModel'):
-        trainer_cls = TrainerClassification(
+        trainer_cls_class = (
+          TrainerClassificationGCN if isinstance(self.model_cls, GCN) else
+          TrainerClassification)
+        trainer_cls = trainer_cls_class(
             model=self.model_cls,
             data=data,
             trainer_agr=trainer_agr,
@@ -540,7 +543,6 @@ class TrainerCotraining(Trainer):
             lr_decay_rate=self.lr_decay_rate_cls,
             lr_decay_steps=self.lr_decay_steps_cls,
             lr_initial=self.learning_rate_cls,
-            include_indices=self.include_indices_cls,
             use_graph=self.use_graph)
 
     # Create a saver which saves only the variables that we would need to

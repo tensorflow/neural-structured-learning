@@ -29,11 +29,12 @@ import os
 from absl import app
 from absl import flags
 
+from gam.data.dataset import GCNDataset
+from gam.data.dataset import PlanetoidDataset
 from gam.data.loaders import load_data_planetoid
 from gam.experiments.helper import get_model_agr
 from gam.experiments.helper import get_model_cls
 from gam.trainer.trainer_cotrain import TrainerCotraining
-from gam.models.gcn import GCN
 import numpy as np
 import tensorflow as tf
 
@@ -59,7 +60,7 @@ flags.DEFINE_string(
 flags.DEFINE_string('logging_config', '', 'Path to logging configuration file.')
 flags.DEFINE_string(
     'model_cls', 'mlp', 'Model type for the classification model. '
-    'Options are: `mlp`, `cnn`, `wide_resnet`')
+    'Options are: `mlp`, `cnn`, `wide_resnet`, `gcn`.')
 flags.DEFINE_string(
     'model_agr', 'mlp',
     'Model type for the agreement model. Options are: `mlp`, `cnn`, '
@@ -270,10 +271,12 @@ def main(argv):
   #                               DATA                                       #
   ############################################################################
   # Load data.
+  data_class = GCNDataset if FLAGS.model_cls == 'gcn' else PlanetoidDataset
   data = load_data_planetoid(
       name=FLAGS.dataset_name,
       path=FLAGS.data_path,
-      row_normalize=FLAGS.row_normalize)
+      row_normalize=FLAGS.row_normalize,
+      data_container_class=data_class)
 
   ############################################################################
   #                            PREPARE OUTPUTS                               #
@@ -406,8 +409,7 @@ def main(argv):
       load_from_checkpoint=FLAGS.load_from_checkpoint,
       use_graph=FLAGS.use_graph,
       always_agree=FLAGS.always_agree,
-      add_negative_edges_agr=FLAGS.add_negative_edges_agr,
-      include_indices_cls=(model_cls==GCN))
+      add_negative_edges_agr=FLAGS.add_negative_edges_agr)
 
   ############################################################################
   #                            TRAIN                                         #

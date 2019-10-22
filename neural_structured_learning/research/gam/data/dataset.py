@@ -369,20 +369,22 @@ class GCNDataset(GraphDataset):
       for src, tgt, val in zip(adj.row, adj.col, adj.data)
     ]
 
-    # Preprocessing of adjacency matrix for simple GCN model and conversion to tuple representation."
+    # Preprocessing of adjacency matrix for simple GCN model and conversion to
+    # tuple representation.
     adj_normalized = self.normalize_adj(
       adj + scipy.eye(adj.shape[0])).astype(np.float32)
     self.support = self.sparse_to_tuple(adj_normalized)
 
-    features_matrix = (self.row_normalize(features).astype(np.float32)
-                       if row_normalize else features.astype(np.float32))
-    features = self.sparse_to_tuple(features_matrix)
-
+    features_matrix = (
+      self.row_normalize(features).astype(np.float32)
+      if row_normalize else features.astype(np.float32))
+    self.features_sparse = self.sparse_to_tuple(features_matrix)
+    self.num_features_nonzero = self.features_sparse[1].shape
 
     # Convert to Dataset format.
     super(GCNDataset, self).__init__(
       name=name,
-      features=features,
+      features=features_matrix,
       labels=labels,
       edges=edges,
       indices_train=train_indices,
@@ -405,11 +407,11 @@ class GCNDataset(GraphDataset):
   @staticmethod
   def normalize_adj(adj):
     """Symmetrically normalize adjacency matrix."""
-    adj = scipy.coo_matrix(adj)
+    adj = scipy.sparse.coo_matrix(adj)
     rowsum = np.array(adj.sum(1))
     d_inv_sqrt = np.power(rowsum, -0.5).flatten()
     d_inv_sqrt[np.isinf(d_inv_sqrt)] = 0.
-    d_mat_inv_sqrt = scipy.diags(d_inv_sqrt)
+    d_mat_inv_sqrt = scipy.sparse.diags(d_inv_sqrt)
     return adj.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt).tocoo()
 
   @staticmethod
@@ -426,8 +428,8 @@ class GCNDataset(GraphDataset):
   def sparse_to_tuple(sparse_mx):
     """Convert sparse matrix to tuple representation."""
     def to_tuple(mx):
-      if not scipy.isspmatrix_coo(mx):
-        mx = mx.tocoo()
+      if not scipy.sparse.isspmatrix_coo(mx):
+        mx = scipy.sparse.coo_matrix(mx)
       coords = np.vstack((mx.row, mx.col)).transpose()
       values = mx.data
       shape = mx.shape
@@ -623,6 +625,14 @@ class CotrainDataset(object):
     return self.dataset.num_features
 
   @property
+  def features(self):
+    """Returns the entire features matrix.
+
+    This includes all of train, validation, test and unlabeled samples.
+    """
+    return self.dataset.features
+
+  @property
   def features_shape(self):
     """Returns the shape of the input features, not including batch size."""
     return self.dataset.features_shape
@@ -631,6 +641,27 @@ class CotrainDataset(object):
   def num_classes(self):
     """Returns the number of classes of the samples in the dataset."""
     return self.dataset.num_classes
+
+  @property
+  def support(self):
+    """Returns the number of support of the features matrix.
+
+    This is only supported if the dataset is a GCNDataset.
+    """
+    assert (isinstance(self.dataset, GCNDataset),
+            'The property `support` is only supported by GCNDataset.')
+    return self.dataset.support
+
+  @property
+  def num_features_nonzero(self):
+    """Returns the number of features that are non-zero.
+
+    This is only supported if the dataset is a GCNDataset.
+    """
+    assert (isinstance(self.dataset, GCNDataset),
+            'The property `num_features_nonzero` is only supported by'
+            'GCNDataset.')
+    return self.dataset.num_features_nonzero
 
   def num_train(self):
     """Returns the number of training samples in the dataset."""

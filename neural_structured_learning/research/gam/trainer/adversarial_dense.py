@@ -1,3 +1,5 @@
+"""Functions used for Virtual Adversarial Training on dense feature matrices."""
+
 import tensorflow as tf
 
 epsilon = 5
