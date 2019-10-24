@@ -17,7 +17,7 @@ import logging
 import os
 import pickle
 
-from gam.data.preprocessing import split_train_val
+from .preprocessing import split_train_val
 
 import numpy as np
 import scipy

@@ -30,13 +30,13 @@ from __future__ import print_function
 import logging
 import os
 
-from gam.data.dataset import CotrainDataset
-from gam.trainer.trainer_agreement import TrainerAgreement
-from gam.trainer.trainer_agreement import TrainerAgreementAlwaysAgree
-from gam.trainer.trainer_agreement import TrainerPerfectAgreement
-from gam.trainer.trainer_base import Trainer
-from gam.trainer.trainer_classification import TrainerClassification
-from gam.trainer.trainer_classification import TrainerPerfectClassification
+from ..data.dataset import CotrainDataset
+from .trainer_agreement import TrainerAgreement
+from .trainer_agreement import TrainerAgreementAlwaysAgree
+from .trainer_agreement import TrainerPerfectAgreement
+from .trainer_base import Trainer
+from .trainer_classification import TrainerClassification
+from .trainer_classification import TrainerPerfectClassification
 
 import numpy as np
 import tensorflow as tf

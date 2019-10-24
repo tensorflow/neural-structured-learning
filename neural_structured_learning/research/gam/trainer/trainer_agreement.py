@@ -27,9 +27,9 @@ import collections
 import logging
 import os
 
-from gam.data.preprocessing import split_train_val
-from gam.trainer.trainer_base import batch_iterator
-from gam.trainer.trainer_base import Trainer
+from ..data.preprocessing import split_train_val
+from .trainer_base import batch_iterator
+from .trainer_base import Trainer
 
 import numpy as np
 import tensorflow as tf
