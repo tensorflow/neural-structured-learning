@@ -368,15 +368,15 @@ class GraphDataset(Dataset):
 class PlanetoidDataset(GraphDataset):
   """Data container for Planetoid datasets."""
 
-  def __init__(self,
-               name,
-               adj,
-               features,
-               train_mask,
-               val_mask,
-               test_mask,
-               labels,
-               row_normalize=False):
+  @staticmethod
+  def build_from_adjacency_matrix(name,
+                                  adj,
+                                  features,
+                                  train_mask,
+                                  val_mask,
+                                  test_mask,
+                                  labels,
+                                  row_normalize=False):
     # Extract train, val, test, unlabeled indices.
     train_indices = np.where(train_mask)[0]
     test_indices = np.where(test_mask)[0]
@@ -386,7 +386,7 @@ class PlanetoidDataset(GraphDataset):
 
     # Extract node features.
     if row_normalize:
-      features = self.preprocess_features(features)
+      features = PlanetoidDataset.preprocess_features(features)
 
     features = np.float32(features.todense())
 
@@ -397,22 +397,19 @@ class PlanetoidDataset(GraphDataset):
     # Extract edges.
     adj = scipy.sparse.coo_matrix(adj)
     edges = [
-        self.Edge(src, tgt, val)
-        for src, tgt, val in zip(adj.row, adj.col, adj.data)
-    ]
+        PlanetoidDataset.Edge(src, tgt, val)
+        for src, tgt, val in zip(adj.row, adj.col, adj.data)]
 
-    # Convert to Dataset format.
-    super(PlanetoidDataset, self).__init__(
-        name=name,
-        features=features,
-        labels=labels,
-        edges=edges,
-        indices_train=train_indices,
-        indices_test=test_indices,
-        indices_val=val_indices,
-        indices_unlabeled=unlabeled_indices,
-        num_classes=num_classes,
-        feature_preproc_fn=lambda x: x)
+    return PlanetoidDataset(
+      name=name,
+      features=features,
+      labels=labels,
+      edges=edges,
+      indices_train=train_indices,
+      indices_test=test_indices,
+      indices_val=val_indices,
+      indices_unlabeled=unlabeled_indices,
+      num_classes=num_classes)
 
   @staticmethod
   def preprocess_features(features):
@@ -430,13 +427,45 @@ class GCNDataset(GraphDataset):
 
   def __init__(self,
                name,
-               adj,
                features,
-               train_mask,
-               val_mask,
-               test_mask,
+               support,
+               num_features_nonzero,
+               features_sparse,
                labels,
-               row_normalize=False):
+               edges,
+               indices_train,
+               indices_test,
+               indices_val,
+               indices_unlabeled,
+               num_classes,
+               feature_preproc_fn=lambda x: x):
+    # Convert to Dataset format.
+    super(GCNDataset, self).__init__(
+      name=name,
+      features=features,
+      labels=labels,
+      edges=edges,
+      indices_train=indices_train,
+      indices_test=indices_test,
+      indices_val=indices_val,
+      indices_unlabeled=indices_unlabeled,
+      num_classes=num_classes,
+      feature_preproc_fn=feature_preproc_fn)
+
+    # Save the GCN specific information.
+    self.support = support
+    self.num_features_nonzero = num_features_nonzero
+    self.features_sparse = features_sparse
+
+  @staticmethod
+  def build_from_adjacency_matrix(name,
+                                  adj,
+                                  features,
+                                  train_mask,
+                                  val_mask,
+                                  test_mask,
+                                  labels,
+                                  row_normalize=False):
     # Extract train, val, test, unlabeled indices.
     train_indices = np.where(train_mask)[0]
     test_indices = np.where(test_mask)[0]
@@ -446,7 +475,7 @@ class GCNDataset(GraphDataset):
 
     # Extract node features.
     if row_normalize:
-      features = self.preprocess_features(features)
+      features = GCNDataset.preprocess_features(features)
 
     features = np.float32(features.todense())
 
@@ -457,26 +486,26 @@ class GCNDataset(GraphDataset):
     # Extract edges.
     adj = scipy.sparse.coo_matrix(adj)
     edges = [
-      self.Edge(src, tgt, val)
-      for src, tgt, val in zip(adj.row, adj.col, adj.data)
-    ]
+        GCNDataset.Edge(src, tgt, val)
+        for src, tgt, val in zip(adj.row, adj.col, adj.data)]
 
     # Preprocessing of adjacency matrix for simple GCN model and conversion to
     # tuple representation.
-    adj_normalized = self.normalize_adj(
-      adj + scipy.eye(adj.shape[0])).astype(np.float32)
-    self.support = self.sparse_to_tuple(adj_normalized)
+    adj_normalized = GCNDataset.normalize_adj(
+        adj + scipy.eye(adj.shape[0])).astype(np.float32)
+    support = GCNDataset.sparse_to_tuple(adj_normalized)
 
     features_matrix = (
-      self.row_normalize(features).astype(np.float32)
+      GCNDataset.row_normalize(features).astype(np.float32)
       if row_normalize else features.astype(np.float32))
-    self.features_sparse = self.sparse_to_tuple(features_matrix)
-    self.num_features_nonzero = self.features_sparse[1].shape
-
-    # Convert to Dataset format.
-    super(GCNDataset, self).__init__(
+    features_sparse = GCNDataset.sparse_to_tuple(features_matrix)
+    num_features_nonzero = features_sparse[1].shape
+    return GCNDataset(
       name=name,
       features=features_matrix,
+      support=support,
+      num_features_nonzero=num_features_nonzero,
+      features_sparse=features_sparse,
       labels=labels,
       edges=edges,
       indices_train=train_indices,
@@ -484,7 +513,8 @@ class GCNDataset(GraphDataset):
       indices_val=val_indices,
       indices_unlabeled=unlabeled_indices,
       num_classes=num_classes,
-      feature_preproc_fn=lambda x: x)
+      feature_preproc_fn=lambda x: x
+    )
 
   @staticmethod
   def preprocess_features(features):
@@ -521,7 +551,7 @@ class GCNDataset(GraphDataset):
     """Convert sparse matrix to tuple representation."""
     def to_tuple(mx):
       if not scipy.sparse.isspmatrix_coo(mx):
-        mx = scipy.sparse.coo_matrix(mx)
+          mx = scipy.sparse.coo_matrix(mx)
       coords = np.vstack((mx.row, mx.col)).transpose()
       values = mx.data
       shape = mx.shape
@@ -534,6 +564,56 @@ class GCNDataset(GraphDataset):
       sparse_mx = to_tuple(sparse_mx)
 
     return sparse_mx
+
+  def copy(self,
+           name=None,
+           features=None,
+           labels=None,
+           edges=None,
+           indices_train=None,
+           indices_test=None,
+           indices_val=None,
+           indices_unlabeled=None,
+           num_classes=None,
+           feature_preproc_fn=lambda x: x,
+           support=None,
+           num_features_nonzero=None,
+           features_sparse=None):
+    name = name if name is not None else self.name
+    features = features if features is not None else self.features
+    labels = labels if labels is not None else self.labels
+    edges = edges if edges is not None else self.edges
+    indices_train = (indices_train if indices_train is not None else
+                     self.indices_train)
+    indices_val = (indices_val if indices_val is not None else
+                   self.indices_val)
+    indices_test = (indices_test if indices_test is not None else
+                    self.indices_test)
+    indices_unlabeled = (indices_unlabeled if indices_unlabeled is not None else
+                         self.indices_unlabeled)
+    num_classes = num_classes if num_classes is not None else self.num_classes
+    feature_preproc_fn = (feature_preproc_fn if feature_preproc_fn is not None
+                          else self.feature_preproc_fn)
+    support = support if support is not None else self.support
+    num_features_nonzero = (
+        num_features_nonzero if num_features_nonzero is not None else
+        self.num_features_nonzero)
+    features_sparse = (features_sparse if features_sparse is not None else
+                       self.features_sparse)
+    return GCNDataset(
+        name=name,
+        features=features,
+        labels=labels,
+        edges=edges,
+        indices_train=indices_train,
+        indices_test=indices_test,
+        indices_val=indices_val,
+        indices_unlabeled=indices_unlabeled,
+        num_classes=num_classes,
+        feature_preproc_fn=feature_preproc_fn,
+        support=support,
+        num_features_nonzero=num_features_nonzero,
+        features_sparse=features_sparse)
 
 class CotrainDataset(object):
   """A wrapper around a Dataset object, adding co-training functionality.

@@ -244,7 +244,7 @@ def load_data_planetoid(name, path, splits_path=None, row_normalize=False,
     (adj, features, _, _, _, train_mask, val_mask, test_mask,
      labels) = pickle.load(open(splits_path, 'rb'))
 
-  return data_container_class(
+  return data_container_class.build_from_adjacency_matrix(
       name,
       adj,
       features,
