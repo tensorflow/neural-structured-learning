@@ -11,21 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for neural_structured_learning.tools.graph_builder_lib."""
+"""Tests for neural_structured_learning.tools.build_graph."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
 from absl.testing import absltest
-from neural_structured_learning.tools import graph_builder_lib
+from neural_structured_learning.tools import build_graph as build_graph_lib
 from neural_structured_learning.tools import graph_utils
 import tensorflow as tf
 
 from google.protobuf import text_format
 
 
-class BuildGraphLibTest(absltest.TestCase):
+class BuildGraphTest(absltest.TestCase):
 
   def _create_embedding_file(self):
     return self.create_tempfile('embeddings.tfr').full_path
@@ -82,9 +82,9 @@ class BuildGraphLibTest(absltest.TestCase):
     embedding_path = self._create_embedding_file()
     self._write_embeddings(embedding_path)
     graph_path = self._create_graph_file()
-    graph_builder_lib.build_graph([embedding_path],
-                                  graph_path,
-                                  similarity_threshold=0)
+    build_graph_lib.build_graph([embedding_path],
+                                graph_path,
+                                similarity_threshold=0)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(
         g_actual, {
@@ -107,9 +107,9 @@ class BuildGraphLibTest(absltest.TestCase):
     embedding_path = self._create_embedding_file()
     self._write_embeddings(embedding_path)
     graph_path = self._create_graph_file()
-    graph_builder_lib.build_graph([embedding_path],
-                                  graph_path,
-                                  similarity_threshold=0.51)
+    build_graph_lib.build_graph([embedding_path],
+                                graph_path,
+                                similarity_threshold=0.51)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(g_actual, {})
 

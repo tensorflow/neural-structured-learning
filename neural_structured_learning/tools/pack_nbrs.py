@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Library to prepare input for graph-based Neural Structured Learning.
-
-A python-based program for preparing graph input also exists on
-[GitHub](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/tools/input_maker.py).
-"""
+r"""Program & library to prepare input for graph-based NSL."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -25,6 +21,8 @@ from __future__ import print_function
 import collections
 import time
 
+from absl import app
+from absl import flags
 from absl import logging
 from neural_structured_learning.tools import graph_utils
 import six
@@ -228,6 +226,18 @@ def pack_nbrs(labeled_examples_path,
   Finally, the merged examples are written to a TFRecord file named by
   `output_training_data_path`.
 
+  Note that this function can also be invoked as a binary from a shell. Sample
+  usage:
+
+  `python -m neural_structured_learning.tools.pack_nbrs` [*flags*]
+  *labeled.tfr unlabeled.tfr graph.tsv output.tfr*
+
+  For details about this program's flags, run:
+
+  ```
+  python -m neural_structured_learning.tools.pack_nbrs --help
+  ```
+
   Args:
     labeled_examples_path: Names a TFRecord file containing labeled
       `tf.train.Example` instances.
@@ -270,3 +280,44 @@ def pack_nbrs(labeled_examples_path,
                output_training_data_path)
   logging.info('Total running time: %.2f minutes.',
                (time.time() - start_time) / 60.0)
+
+
+def _main(argv):
+  """Main function for invoking the `nsl.tools.pack_nbrs` function."""
+  flag = flags.FLAGS
+  flag.showprefixforinfo = False
+  # Check that the correct number of arguments have been provided.
+  if len(argv) != 5:
+    raise app.UsageError('Invalid number of arguments; expected 4, got %d' %
+                         (len(argv) - 1))
+
+  pack_nbrs(
+      labeled_examples_path=argv[1],
+      unlabeled_examples_path=argv[2],
+      graph_path=argv[3],
+      output_training_data_path=argv[4],
+      add_undirected_edges=flag.add_undirected_edges,
+      max_nbrs=flag.max_nbrs,
+      id_feature_name=flag.id_feature_name)
+
+
+if __name__ == '__main__':
+  flags.DEFINE_integer(
+      'max_nbrs', None,
+      'The maximum number of neighbors to merge into each labeled Example.')
+  flags.DEFINE_string(
+      'id_feature_name', 'id',
+      """Name of the singleton bytes_list feature in each input Example
+      whose value is the Example's ID.""")
+  flags.DEFINE_bool(
+      'add_undirected_edges', False,
+      """By default, the set of neighbors of a node S are
+      only those nodes T such that there is an edge S-->T in the input graph. If
+      this flag is True, all edges of the graph will be made symmetric before
+      determining each node's neighbors (and in the case where edges S-->T and
+      T-->S exist in the input graph with weights w1 and w2, respectively, the
+      weight of the symmetric edge will be max(w1, w2)).""")
+
+  # Ensure TF 2.0 behavior even if TF 1.X is installed.
+  tf.compat.v1.enable_v2_behavior()
+  app.run(_main)

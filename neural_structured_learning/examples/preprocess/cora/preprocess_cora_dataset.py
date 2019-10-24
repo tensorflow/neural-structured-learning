@@ -57,6 +57,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import random
 import time
 
@@ -64,7 +65,6 @@ from absl import app
 from absl import flags
 from absl import logging
 from neural_structured_learning.tools import graph_utils
-from neural_structured_learning.tools import pack_nbrs
 import six
 import tensorflow as tf
 
@@ -147,6 +147,108 @@ def parse_cora_content(in_file, train_percentage):
   return train_examples, test_examples
 
 
+def _join_examples(seed_exs, nbr_exs, graph, max_nbrs):
+  r"""Joins the `seeds` and `nbrs` Examples using the edges in `graph`.
+
+  This generator joins and augments each labeled Example in `seed_exs` with the
+  features of at most `max_nbrs` of the seed's neighbors according to the given
+  `graph`, and yields each merged result.
+
+  Args:
+    seed_exs: A `dict` mapping node IDs to labeled Examples.
+    nbr_exs: A `dict` mapping node IDs to unlabeled Examples.
+    graph: A `dict`: source -> (target, weight).
+    max_nbrs: The maximum number of neighbors to merge into each seed Example,
+      or `None` if the number of neighbors per node is unlimited.
+
+  Yields:
+    The result of merging each seed Example with the features of its neighbors,
+    as described by the module comment.
+  """
+  # A histogram of the out-degrees of all seed Examples. The keys of this dict
+  # range from 0 to 'max_nbrs' (inclusive) if 'max_nbrs' is finite.
+  out_degree_count = collections.Counter()
+
+  def has_ex(node_id):
+    """Returns true iff 'node_id' is in the 'seed_exs' or 'nbr_exs dict'."""
+    result = (node_id in seed_exs) or (node_id in nbr_exs)
+    if not result:
+      logging.warning('No tf.train.Example found for edge target ID: "%s"',
+                      node_id)
+    return result
+
+  def lookup_ex(node_id):
+    """Returns the Example from `seed_exs` or `nbr_exs` with the given ID."""
+    return seed_exs[node_id] if node_id in seed_exs else nbr_exs[node_id]
+
+  def join_seed_to_nbrs(seed_id):
+    """Joins the seed with ID `seed_id` to its out-edge graph neighbors.
+
+    This also has the side-effect of maintaining the `out_degree_count`.
+
+    Args:
+      seed_id: The ID of the seed Example to start from.
+
+    Returns:
+      A list of (nbr_wt, nbr_id) pairs (in decreasing weight order) of the
+      seed Example's top `max_nbrs` neighbors. So the resulting list will have
+      size at most `max_nbrs`, but it may be less (or even empty if the seed
+      Example has no out-edges).
+    """
+    nbr_dict = graph[seed_id] if seed_id in graph else {}
+    nbr_wt_ex_list = [(nbr_wt, nbr_id)
+                      for (nbr_id, nbr_wt) in six.iteritems(nbr_dict)
+                      if has_ex(nbr_id)]
+    result = sorted(nbr_wt_ex_list, reverse=True)[:max_nbrs]
+    out_degree_count[len(result)] += 1
+    return result
+
+  def merge_examples(seed_ex, nbr_wt_ex_list):
+    """Merges neighbor Examples into the given seed Example `seed_ex`.
+
+    Args:
+      seed_ex: A labeled Example.
+      nbr_wt_ex_list: A list of (nbr_wt, nbr_id) pairs (in decreasing nbr_wt
+        order) representing the neighbors of 'seed_ex'.
+
+    Returns:
+      The Example that results from merging the features of the neighbor
+      Examples (as well as creating a feature for each neighbor's edge weight)
+      into `seed_ex`. See the `join()` description above for how the neighbor
+      features are named in the result.
+    """
+    # Make a deep copy of the seed Example to augment.
+    merged_ex = tf.train.Example()
+    merged_ex.CopyFrom(seed_ex)
+
+    # Add a feature for the number of neighbors.
+    merged_ex.features.feature['NL_num_nbrs'].int64_list.value.append(
+        len(nbr_wt_ex_list))
+
+    # Enumerate the neighbors, and merge in the features of each.
+    for index, (nbr_wt, nbr_id) in enumerate(nbr_wt_ex_list):
+      prefix = 'NL_nbr_{}_'.format(index)
+      # Add the edge weight value as a new singleton float feature.
+      weight_feature = prefix + 'weight'
+      merged_ex.features.feature[weight_feature].float_list.value.append(nbr_wt)
+      # Copy each of the neighbor Examples features, prefixed with 'prefix'.
+      nbr_ex = lookup_ex(nbr_id)
+      for (feature_name, feature_val) in six.iteritems(nbr_ex.features.feature):
+        new_feature = merged_ex.features.feature[prefix + feature_name]
+        new_feature.CopyFrom(feature_val)
+    return merged_ex
+
+  start_time = time.time()
+  logging.info(
+      'Joining seed and neighbor tf.train.Examples with graph edges...')
+  for (seed_id, seed_ex) in six.iteritems(seed_exs):
+    yield merge_examples(seed_ex, join_seed_to_nbrs(seed_id))
+  logging.info(
+      'Done creating and writing %d merged tf.train.Examples (%.2f seconds).',
+      len(seed_exs), (time.time() - start_time))
+  logging.info('Out-degree histogram: %s', sorted(out_degree_count.items()))
+
+
 def main(unused_argv):
   start_time = time.time()
 
@@ -161,11 +263,8 @@ def main(unused_argv):
   # neighbors for transductive learning purpose. In other words, the labels of
   # test_examples are not used.
   with tf.io.TFRecordWriter(FLAGS.output_train_data) as writer:
-    # Here we call a private function in pack_nbrs to join the examples. This is
-    # one-off for demonstration purpose only. Later on we will refactor that
-    # function to a public API.
-    for merged_example in pack_nbrs._join_examples(  # pylint: disable=protected-access
-        train_examples, test_examples, graph, FLAGS.max_nbrs):
+    for merged_example in _join_examples(train_examples, test_examples, graph,
+                                         FLAGS.max_nbrs):
       writer.write(merged_example.SerializeToString())
 
   logging.info('Output training data written to TFRecord file: %s.',
