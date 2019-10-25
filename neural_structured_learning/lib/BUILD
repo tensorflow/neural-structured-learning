@@ -123,6 +123,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//neural_structured_learning/configs",
+        # package six
         # package tensorflow
     ],
 )

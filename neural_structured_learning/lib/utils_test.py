@@ -107,6 +107,24 @@ class UtilsTest(tf.test.TestCase):
       expected = tf.constant([[0.6, -0.8], [-0.28, 0.96]])
       self.assertAllEqual(actual, expected)
 
+  def testMaximizeWithinUnitNormWithNestedStructure(self):
+    weights = {'w': tf.constant([[3., -4.], [-4., 4.]])}
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, 'l1'))
+    expected = {'w': np.array([[0., -1.], [-0.5, 0.5]])}
+    self.assertAllClose(actual, expected)
+
+  def testMaximizeWithinUnitNormWithMultipleInputs(self):
+    weights = {
+        'w1': tf.constant([[1., 2.], [-4., 4.]]),
+        'w2': tf.constant([[-2.], [-7.]]),
+    }
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, 'l2'))
+    expected = {
+        'w1': np.array([[1. / 3., 2. / 3.], [-4. / 9., 4. / 9.]]),
+        'w2': np.array([[-2. / 3.], [-7. / 9.]]),
+    }
+    self.assertAllClose(actual, expected)
+
   def testReplicateEmbeddingsWithConstant(self):
     """Test the replicate_embeddings function with constant replicate_times."""
     input_embeddings = tf.constant(

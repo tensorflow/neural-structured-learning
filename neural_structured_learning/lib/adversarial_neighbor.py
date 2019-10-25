@@ -79,13 +79,11 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       ValueError: if 'raise_invalid_gradient' is set and gradients cannot be
         computed on some input features.
     """
-    grads_to_concat = []
-    dim_index_and_sizes = {}
-    total_dims = 0
+    masked_grads = {}
     for (key, grad) in keyed_grads.items():
       if grad is None:
         # Two cases that grad can be None:
-        # (1) The feature is not differentiable, like strings, integer indices.
+        # (1) The feature is not differentiable, like strings or integers.
         # (2) The feature is not involved in loss computation.
         # In either case, no gradient will be calculated for this feature.
         if self._raise_invalid_gradient:
@@ -100,36 +98,14 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       # Applies feature masks if available.
       if key in feature_masks:
         grad *= tf.cast(feature_masks[key], grad.dtype)
+      masked_grads[key] = grad
 
-      # The gradients are reshaped to 2-D (batch_size x total_feature_len;
-      # sequence data will be processed in the same way) so they can be
-      # concatenated and normalized across features. They will be reshaped back
-      # to the original shape after normalization.
-      feature_dim = tf.reduce_prod(input_tensor=grad.get_shape()[1:])
-      grad = tf.reshape(grad, [-1, feature_dim])
-      grads_to_concat.append(grad)
-      dim_index_and_sizes[key] = (total_dims, total_dims + feature_dim)
-      total_dims += feature_dim
-
-    if not grads_to_concat:
-      return {}  # no perturbation
-
-    # Concatenates all the gradients so they can be normalized together.
-    concat_grads = tf.concat(grads_to_concat, axis=-1)
+    if not masked_grads:
+      return {}
     adv_perturbation = utils.maximize_within_unit_norm(
-        concat_grads, self._adv_config.adv_grad_norm)
-    adv_perturbation = self._adv_config.adv_step_size * adv_perturbation
-
-    perturbation = {}
-    for (key, grad) in keyed_grads.items():
-      if key not in dim_index_and_sizes:
-        continue
-      dim_idx_begin, dim_idx_end = dim_index_and_sizes[key]
-      sub_grad = adv_perturbation[:, dim_idx_begin:dim_idx_end]
-      if grad.get_shape().rank > 2:
-        sub_grad = tf.reshape(sub_grad, [-1] + grad.get_shape().as_list()[1:])
-      perturbation[key] = sub_grad
-    return perturbation
+        masked_grads, self._adv_config.adv_grad_norm)
+    return tf.nest.map_structure(lambda t: t * self._adv_config.adv_step_size,
+                                 adv_perturbation)
 
   # The _compose_as_dict and _decompose_as functions are similar to
   # tf.nest.{flatten, pack_sequence_as} except that the composed representation
