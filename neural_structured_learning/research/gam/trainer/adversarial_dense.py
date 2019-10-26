@@ -29,7 +29,7 @@ def kl_divergence_with_logit(q_logit, p_logit):
 
 
 def get_normalized_vector(d):
-  """Normalizes the providede input vector."""
+  """Normalizes the provided input vector."""
   d /= (1e-12 + tf.reduce_max(tf.abs(d), keep_dims=True))
   d /= tf.sqrt(1e-6 + tf.reduce_sum(tf.pow(d, 2.0), keep_dims=True))
   return d

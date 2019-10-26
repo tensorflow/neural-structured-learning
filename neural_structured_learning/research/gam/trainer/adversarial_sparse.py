@@ -9,7 +9,6 @@ epsilon = 5
 num_power_iterations = 1
 xi = 1e-6
 scale_r = False
-perturb_only_nonzero = False
 
 
 def kl_divergence_with_logit(q_logit, p_logit, mask):
@@ -94,25 +93,16 @@ def generate_virtual_adversarial_perturbation(inputs,
     A Tensor of the same shape as the inputs containing the adversarial
     perturbation for these inputs.
   """
+  # Generate random perturbations.
   d = tf.random_normal(shape=tf.shape(inputs))
+  # Only apply perturbations on the masked samples.
+  d = tf.multiply(d, mask[:, None])
 
   for _ in range(num_power_iterations):
     d = xi * get_normalized_vector(d)
     logit_p = logits
-    if perturb_only_nonzero:
-      # Apply adversarial perturbation only to the non-zero entries of the
-      # sparse tensor.
-      d_sparse = tf.SparseTensor(
-          indices=inputs.indices,
-          values=tf.gather_nd(d, inputs.indices),
-          dense_shape=inputs.dense_shape)
-      new_inputs = tf.SparseTensor(
-          indices=inputs.indices,
-          values=inputs.values + d_sparse.values,
-          dense_shape=inputs.dense_shape)
-    else:
-      new_inputs = tf.add(tf.sparse_tensor_to_dense(inputs), d)
-      new_inputs = tf.contrib.layers.dense_to_sparse(new_inputs)
+    new_inputs = tf.add(tf.sparse_tensor_to_dense(inputs), d)
+    new_inputs = tf.contrib.layers.dense_to_sparse(new_inputs)
     with tf.variable_scope(
           predictions_var_scope, auxiliary_name_scope=False, reuse=True):
       encoding_m, _, _ = model.get_encoding_and_params(
@@ -125,10 +115,7 @@ def generate_virtual_adversarial_perturbation(inputs,
         is_train=is_train,
         **placeholders)
     dist = kl_divergence_with_logit(logit_p, logit_m, mask)
-    if perturb_only_nonzero:
-      grad = tf.gradients(dist, [d_sparse.values], aggregation_method=2)[0]
-    else:
-      grad = tf.gradients(dist, [d], aggregation_method=2)[0]
+    grad = tf.gradients(dist, [d], aggregation_method=2)[0]
     d = tf.stop_gradient(grad)
 
   r_vadv = get_normalized_vector(d)
@@ -136,11 +123,6 @@ def generate_virtual_adversarial_perturbation(inputs,
     r_vadv *= get_normalizing_constant(inputs.values)
   r_vadv *= epsilon
 
-  if perturb_only_nonzero:
-    return tf.SparseTensor(
-        indices=inputs.indices,
-        values=r_vadv,
-        dense_shape=inputs.dense_shape)
   return tf.contrib.layers.dense_to_sparse(r_vadv)
 
 
