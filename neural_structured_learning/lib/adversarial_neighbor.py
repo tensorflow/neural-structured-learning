@@ -95,10 +95,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       # -inf, or NaN) on a dimension, replace it with 0, which has the effect of
       # not perturbing the original sample along that perticular dimension.
       grad = tf.where(tf.math.is_finite(grad), grad, tf.zeros_like(grad))
-      # Applies feature masks if available.
-      if key in feature_masks:
-        grad *= tf.cast(feature_masks[key], grad.dtype)
-      masked_grads[key] = grad
+      masked_grads[key] = utils.apply_feature_mask(grad,
+                                                   feature_masks.get(key, None))
 
     if not masked_grads:
       return {}

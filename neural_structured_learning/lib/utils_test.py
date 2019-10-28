@@ -28,84 +28,68 @@ import tensorflow as tf
 class UtilsTest(tf.test.TestCase):
 
   def testNormalizeInf(self):
-    with self.cached_session() as sess:
-      target_tensor = tf.constant([[1.0, 2.0, -4.0], [-1.0, 5.0, -3.0]])
-      normalized_tensor = utils.normalize(target_tensor, 'infinity')
-      expected_tensor = tf.constant([[0.25, 0.5, -1.0], [-0.2, 1.0, -0.6]])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    target_tensor = tf.constant([[1.0, 2.0, -4.0], [-1.0, 5.0, -3.0]])
+    normalized_tensor = self.evaluate(
+        utils.normalize(target_tensor, 'infinity'))
+    expected_tensor = tf.constant([[0.25, 0.5, -1.0], [-0.2, 1.0, -0.6]])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testNormalizeInfWithOnes(self):
-    with self.cached_session() as sess:
-      target_tensor = tf.constant(1.0, shape=[2, 4])
-      normalized_tensor = utils.normalize(target_tensor, 'infinity')
-      expected_tensor = tf.constant(1.0, shape=[2, 4])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    target_tensor = tf.constant(1.0, shape=[2, 4])
+    normalized_tensor = self.evaluate(
+        utils.normalize(target_tensor, 'infinity'))
+    expected_tensor = tf.constant(1.0, shape=[2, 4])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testNormalizeInfWithZero(self):
-    with self.cached_session() as sess:
-      tensor = tf.constant(0.0, shape=[2, 3])
-      normalized_tensor = utils.normalize(tensor, 'infinity')
-      expected_tensor = tf.constant(0.0, shape=[2, 3])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    tensor = tf.constant(0.0, shape=[2, 3])
+    normalized_tensor = self.evaluate(utils.normalize(tensor, 'infinity'))
+    expected_tensor = tf.constant(0.0, shape=[2, 3])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testNormalizeL1(self):
-    with self.cached_session() as sess:
-      # target_tensor = [[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]]
-      target_tensor = tf.constant(1.0, shape=[2, 4])
-      normalized_tensor = utils.normalize(target_tensor, 'l1')
-      # L1 norm of target_tensor (other than batch/1st dim) is [4, 4]; therefore
-      # target_tensor = [[0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25]]
-      expected_tensor = tf.constant(0.25, shape=[2, 4])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    # target_tensor = [[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]]
+    target_tensor = tf.constant(1.0, shape=[2, 4])
+    normalized_tensor = self.evaluate(utils.normalize(target_tensor, 'l1'))
+    # L1 norm of target_tensor (other than batch/1st dim) is [4, 4]; therefore
+    # normalized_tensor = [[0.25, 0.25, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25]]
+    expected_tensor = tf.constant(0.25, shape=[2, 4])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testNormalizeL1WithZero(self):
-    with self.cached_session() as sess:
-      tensor = tf.constant(0.0, shape=[2, 3])
-      normalized_tensor = utils.normalize(tensor, 'l1')
-      expected_tensor = tf.constant(0.0, shape=[2, 3])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    tensor = tf.constant(0.0, shape=[2, 3])
+    normalized_tensor = self.evaluate(utils.normalize(tensor, 'l1'))
+    expected_tensor = tf.constant(0.0, shape=[2, 3])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testNormalizeL2(self):
-    with self.cached_session() as sess:
-      # target_tensor = [[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]]
-      target_tensor = tf.constant(1.0, shape=[2, 4])
-      normalized_tensor = utils.normalize(target_tensor, 'l2')
-      # L2 norm of target_tensor (other than batch/1st dim) is:
-      # [sqrt(1^2+1^2+1^2+1^2), sqrt(1^2+1^2+1^2+1^2)] = [2, 2], and therefore
-      # target_tensor = [[0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]
-      expected_tensor = tf.constant(0.5, shape=[2, 4])
-      sess.run(normalized_tensor)
-      self.assertAllEqual(normalized_tensor, expected_tensor)
+    # target_tensor = [[1.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0]]
+    target_tensor = tf.constant(1.0, shape=[2, 4])
+    normalized_tensor = self.evaluate(utils.normalize(target_tensor, 'l2'))
+    # L2 norm of target_tensor (other than batch/1st dim) is:
+    # [sqrt(1^2+1^2+1^2+1^2), sqrt(1^2+1^2+1^2+1^2)] = [2, 2], and therefore
+    # normalized_tensor = [[0.5, 0.5, 0.5, 0.5], [0.5, 0.5, 0.5, 0.5]]
+    expected_tensor = tf.constant(0.5, shape=[2, 4])
+    self.assertAllEqual(normalized_tensor, expected_tensor)
 
   def testMaximizeWithinUnitNormInf(self):
-    with self.cached_session() as sess:
-      weights = tf.constant([[1.0, 2.0, -4.0], [-1.0, 5.0, -3.0]])
-      actual = utils.maximize_within_unit_norm(weights, 'infinity')
-      sess.run(actual)
-      expected = tf.constant([[1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]])
-      self.assertAllEqual(actual, expected)
+    weights = tf.constant([[1.0, 2.0, -4.0], [-1.0, 5.0, -3.0]])
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, 'infinity'))
+    expected = tf.constant([[1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]])
+    self.assertAllEqual(actual, expected)
 
   def testMaximizeWithinUnitNormL1(self):
-    with self.cached_session() as sess:
-      weights = tf.constant([[3.0, -4.0, -5.0], [1.0, 1.0, 0.0]])
-      actual = utils.maximize_within_unit_norm(weights, 'l1')
-      sess.run(actual)
-      expected = tf.constant([[0.0, 0.0, -1.0], [0.5, 0.5, 0.0]])
-      self.assertAllEqual(actual, expected)
+    weights = tf.constant([[3.0, -4.0, -5.0], [1.0, 1.0, 0.0]])
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, 'l1'))
+    expected = tf.constant([[0.0, 0.0, -1.0], [0.5, 0.5, 0.0]])
+    self.assertAllEqual(actual, expected)
 
   def testMaximizeWithinUnitNormL2(self):
-    with self.cached_session() as sess:
-      weights = tf.constant([[3.0, -4.0], [-7.0, 24.0]])
-      actual = utils.maximize_within_unit_norm(weights, 'l2')
-      sess.run(actual)
-      # Weights are normalized by their L2 norm: [[5], [25]]
-      expected = tf.constant([[0.6, -0.8], [-0.28, 0.96]])
-      self.assertAllEqual(actual, expected)
+    weights = tf.constant([[3.0, -4.0], [-7.0, 24.0]])
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, 'l2'))
+    # Weights are normalized by their L2 norm: [[5], [25]]
+    expected = tf.constant([[0.6, -0.8], [-0.28, 0.96]])
+    self.assertAllEqual(actual, expected)
 
   def testMaximizeWithinUnitNormWithNestedStructure(self):
     weights = {'w': tf.constant([[3., -4.], [-4., 4.]])}
@@ -127,29 +111,39 @@ class UtilsTest(tf.test.TestCase):
 
   def testReplicateEmbeddingsWithConstant(self):
     """Test the replicate_embeddings function with constant replicate_times."""
-    input_embeddings = tf.constant(
-        [[[1, 2, 4], [3, 5, 8]], [[2, 10, 3], [1, 1, 1]], [[4, 8, 1], [8, 4, 1]]
-        ],
-        dtype='float32')
-    output_embeddings = utils.replicate_embeddings(input_embeddings, 2)
-    with self.cached_session() as sess:
-      self.assertAllEqual([[[1, 2, 4], [3, 5, 8]], [[1, 2, 4], [3, 5, 8]],
-                           [[2, 10, 3], [1, 1, 1]], [[2, 10, 3], [1, 1, 1]],
-                           [[4, 8, 1], [8, 4, 1]], [[4, 8, 1], [8, 4, 1]]],
-                          sess.run(output_embeddings))
+    input_embeddings = tf.constant([
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[2., 10., 3.], [1., 1., 1.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+    ])
+    output_embeddings = self.evaluate(
+        utils.replicate_embeddings(input_embeddings, 2))
+    expected_embeddings = [
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[2., 10., 3.], [1., 1., 1.]],
+        [[2., 10., 3.], [1., 1., 1.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+    ]
+    self.assertAllEqual(expected_embeddings, output_embeddings)
 
   def testReplicateEmbeddingsWithIndexArray(self):
     """Test the replicate_embeddings function with 1-D replicate_times."""
-    input_embeddings = tf.constant(
-        [[[1, 2, 4], [3, 5, 8]], [[2, 10, 3], [1, 1, 1]], [[4, 8, 1], [8, 4, 1]]
-        ],
-        dtype='float32')
+    input_embeddings = tf.constant([
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[2., 10., 3.], [1., 1., 1.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+    ])
     replicate_times = tf.constant([2, 0, 1])
-    output_embeddings = utils.replicate_embeddings(input_embeddings,
-                                                   replicate_times)
-    with self.cached_session() as sess:
-      self.assertAllEqual([[[1, 2, 4], [3, 5, 8]], [[1, 2, 4], [3, 5, 8]],
-                           [[4, 8, 1], [8, 4, 1]]], sess.run(output_embeddings))
+    output_embeddings = self.evaluate(
+        utils.replicate_embeddings(input_embeddings, replicate_times))
+    expected_embeddings = [
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+    ]
+    self.assertAllEqual(expected_embeddings, output_embeddings)
 
   def testReplicateEmbeddingsWithDynamicBatchSize(self):
     """Test the replicate_embeddings function with a dynamic batch size."""
@@ -171,16 +165,15 @@ class UtilsTest(tf.test.TestCase):
 
   def testInvalidRepeatTimes(self):
     """Test the replicate_embeddings function with invalid repeat_times."""
-    input_embeddings = tf.constant(
-        [[[1, 2, 4], [3, 5, 8]], [[2, 10, 3], [1, 1, 1]], [[4, 8, 1], [8, 4, 1]]
-        ],
-        dtype='float32')
+    input_embeddings = tf.constant([
+        [[1., 2., 4.], [3., 5., 8.]],
+        [[2., 10., 3.], [1., 1., 1.]],
+        [[4., 8., 1.], [8., 4., 1.]],
+    ])
     replicate_times = tf.constant([-1, 0, 1])
-    with self.cached_session():
-      with self.assertRaises(tf.errors.InvalidArgumentError):
-        output_embeddings = utils.replicate_embeddings(input_embeddings,
-                                                       replicate_times)
-        output_embeddings.eval()
+    with self.assertRaises(tf.errors.InvalidArgumentError):
+      self.evaluate(
+          utils.replicate_embeddings(input_embeddings, replicate_times))
 
 
 class GetTargetIndicesTest(tf.test.TestCase):
@@ -191,10 +184,10 @@ class GetTargetIndicesTest(tf.test.TestCase):
     labels = tf.constant([2, 1], dtype='int32')
     adv_target_config = configs.AdvTargetConfig(
         target_method=configs.AdvTargetType.SECOND)
-    with self.cached_session() as sess:
-      self.assertAllEqual(
-          tf.constant([1, 0], dtype='int32'),
-          sess.run(utils.get_target_indices(logits, labels, adv_target_config)))
+    self.assertAllEqual(
+        tf.constant([1, 0], dtype='int32'),
+        self.evaluate(
+            utils.get_target_indices(logits, labels, adv_target_config)))
 
   def testGetLeastIndices(self):
     """Test get_target_indices function with AdvTargetType.LEAST."""
@@ -202,10 +195,10 @@ class GetTargetIndicesTest(tf.test.TestCase):
     labels = tf.constant([2, 1], dtype='int32')
     adv_target_config = configs.AdvTargetConfig(
         target_method=configs.AdvTargetType.LEAST)
-    with self.cached_session() as sess:
-      self.assertAllEqual(
-          tf.constant([0, 2], dtype='int32'),
-          sess.run(utils.get_target_indices(logits, labels, adv_target_config)))
+    self.assertAllEqual(
+        tf.constant([0, 2], dtype='int32'),
+        self.evaluate(
+            utils.get_target_indices(logits, labels, adv_target_config)))
 
   def testGetGroundTruthIndices(self):
     """Test get_target_indices function with AdvTargetType.GROUND_TRUTH."""
@@ -213,10 +206,10 @@ class GetTargetIndicesTest(tf.test.TestCase):
     labels = tf.constant([2, 1], dtype='int32')
     adv_target_config = configs.AdvTargetConfig(
         target_method=configs.AdvTargetType.GROUND_TRUTH)
-    with self.cached_session() as sess:
-      self.assertAllEqual(
-          tf.constant([2, 1], dtype='int32'),
-          sess.run(utils.get_target_indices(logits, labels, adv_target_config)))
+    self.assertAllEqual(
+        tf.constant([2, 1], dtype='int32'),
+        self.evaluate(
+            utils.get_target_indices(logits, labels, adv_target_config)))
 
   def testGetRandomIndices(self):
     """Test get_target_indices function with AdvTargetType.RANDOM."""
@@ -224,10 +217,10 @@ class GetTargetIndicesTest(tf.test.TestCase):
     labels = tf.constant([2, 1], dtype='int32')
     adv_target_config = configs.AdvTargetConfig(
         target_method=configs.AdvTargetType.RANDOM, random_seed=1)
-    with self.cached_session() as sess:
-      self.assertAllEqual(
-          tf.constant([0, 2], dtype='int32'),
-          sess.run(utils.get_target_indices(logits, labels, adv_target_config)))
+    self.assertAllEqual(
+        tf.constant([0, 2], dtype='int32'),
+        self.evaluate(
+            utils.get_target_indices(logits, labels, adv_target_config)))
 
 
 def decay_over_time_wrapper(config):
@@ -305,16 +298,14 @@ class DecayOverTimeTest(tf.test.TestCase):
     mask = [0.0, 1.0]
     masked_features = utils.apply_feature_mask(
         tf.constant(features), tf.constant(mask))
-    with self.cached_session() as sess:
-      actual = sess.run(masked_features)
+    actual = self.evaluate(masked_features)
     self.assertAllClose(actual, [[0.0, 1.0], [0.0, 2.0]], 1e-6)
 
   def testApplyFeatureMaskWithNone(self):
     """Test the apply_feature_mask function with 'None' feature mask."""
     features = [[1.0, 1.0], [2.0, 2.0]]
     masked_features = utils.apply_feature_mask(tf.constant(features))
-    with self.cached_session() as sess:
-      actual = sess.run(masked_features)
+    actual = self.evaluate(masked_features)
     self.assertAllClose(actual, features, 1e-6)
 
   def testApplyFeatureMaskWithInvalidMaskNegative(self):
@@ -374,11 +365,11 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
         features, neighbor_config)
     self.assertIsNone(nbr_weights)
 
-    with self.cached_session() as sess:
-      sess.run([sample_features, nbr_features])
-      self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
-      self.assertAllEqual(sample_features['F1'], expected_sample_features['F1'])
-      self.assertEmpty(nbr_features)
+    sample_features, nbr_features = self.evaluate(
+        [sample_features, nbr_features])
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(sample_features['F1'], expected_sample_features['F1'])
+    self.assertEmpty(nbr_features)
 
   def testSampleFeatureOnlyExtractionWithNeighbors(self):
     """Test sample feature extraction with neighbor features."""
@@ -404,11 +395,11 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
         features, neighbor_config)
     self.assertIsNone(nbr_weights)
 
-    with self.cached_session() as sess:
-      sess.run([sample_features, nbr_features])
-      self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
-      self.assertAllEqual(sample_features['F1'], expected_sample_features['F1'])
-      self.assertEmpty(nbr_features)
+    sample_features, nbr_features = self.evaluate(
+        [sample_features, nbr_features])
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(sample_features['F1'], expected_sample_features['F1'])
+    self.assertEmpty(nbr_features)
 
   def testBatchedSampleAndNeighborFeatureExtraction(self):
     """Test input contains two samples with one feature and three neighbors."""
@@ -441,14 +432,12 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
                                              [0.75], [1.0]])
 
     neighbor_config = configs.GraphNeighborConfig(max_neighbors=3)
-    sample_features, nbr_features, nbr_weights = utils.unpack_neighbor_features(
-        features, neighbor_config)
+    sample_features, nbr_features, nbr_weights = self.evaluate(
+        utils.unpack_neighbor_features(features, neighbor_config))
 
-    with self.cached_session() as sess:
-      sess.run([sample_features, nbr_features, nbr_weights])
-      self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
-      self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
-      self.assertAllEqual(nbr_weights, expected_neighbor_weights)
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
+    self.assertAllEqual(nbr_weights, expected_neighbor_weights)
 
   def testExtraNeighborFeaturesIgnored(self):
     """Test that extra neighbor features are ignored."""
@@ -471,14 +460,12 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
     expected_neighbor_weights = tf.constant([[0.25]])
 
     neighbor_config = configs.GraphNeighborConfig(max_neighbors=1)
-    sample_features, nbr_features, nbr_weights = utils.unpack_neighbor_features(
-        features, neighbor_config)
+    sample_features, nbr_features, nbr_weights = self.evaluate(
+        utils.unpack_neighbor_features(features, neighbor_config))
 
-    with self.cached_session() as sess:
-      sess.run([sample_features, nbr_features, nbr_weights])
-      self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
-      self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
-      self.assertAllEqual(nbr_weights, expected_neighbor_weights)
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
+    self.assertAllEqual(nbr_weights, expected_neighbor_weights)
 
   def testEmptyFeatures(self):
     """Test unpack_neighbor_features with empty input."""
@@ -488,12 +475,12 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
         features, neighbor_config)
     self.assertIsNone(nbr_weights)
 
-    with self.cached_session() as sess:
-      # We create a dummy tensor so that the computation graph is not empty.
-      dummy_tensor = tf.constant(1.0)
-      sess.run([sample_features, nbr_features, dummy_tensor])
-      self.assertEmpty(sample_features)
-      self.assertEmpty(nbr_features)
+    # We create a dummy tensor so that the computation graph is not empty.
+    dummy_tensor = tf.constant(1.0)
+    sample_features, nbr_features, dummy_tensor = self.evaluate(
+        [sample_features, nbr_features, dummy_tensor])
+    self.assertEmpty(sample_features)
+    self.assertEmpty(nbr_features)
 
   def testInvalidRank(self):
     """Input containing rank 1 tensors raises ValueError."""
@@ -655,26 +642,24 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
     expected_neighbor_weights = tf.constant([[0.25], [0.75], [0.25], [0.75]])
 
     neighbor_config = configs.GraphNeighborConfig(max_neighbors=2)
-    sample_features, nbr_features, nbr_weights = utils.unpack_neighbor_features(
-        features, neighbor_config)
+    sample_features, nbr_features, nbr_weights = self.evaluate(
+        utils.unpack_neighbor_features(features, neighbor_config))
 
-    with self.cached_session() as sess:
-      sess.run([sample_features, nbr_features, nbr_weights])
-      self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
-      self.assertAllEqual(sample_features['F1'].values,
-                          expected_sample_features['F1'].values)
-      self.assertAllEqual(sample_features['F1'].indices,
-                          expected_sample_features['F1'].indices)
-      self.assertAllEqual(sample_features['F1'].dense_shape,
-                          expected_sample_features['F1'].dense_shape)
-      self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
-      self.assertAllEqual(nbr_features['F1'].values,
-                          expected_neighbor_features['F1'].values)
-      self.assertAllEqual(nbr_features['F1'].indices,
-                          expected_neighbor_features['F1'].indices)
-      self.assertAllEqual(nbr_features['F1'].dense_shape,
-                          expected_neighbor_features['F1'].dense_shape)
-      self.assertAllEqual(nbr_weights, expected_neighbor_weights)
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(sample_features['F1'].values,
+                        expected_sample_features['F1'].values)
+    self.assertAllEqual(sample_features['F1'].indices,
+                        expected_sample_features['F1'].indices)
+    self.assertAllEqual(sample_features['F1'].dense_shape,
+                        expected_sample_features['F1'].dense_shape)
+    self.assertAllEqual(nbr_features['F0'], expected_neighbor_features['F0'])
+    self.assertAllEqual(nbr_features['F1'].values,
+                        expected_neighbor_features['F1'].values)
+    self.assertAllEqual(nbr_features['F1'].indices,
+                        expected_neighbor_features['F1'].indices)
+    self.assertAllEqual(nbr_features['F1'].dense_shape,
+                        expected_neighbor_features['F1'].dense_shape)
+    self.assertAllEqual(nbr_weights, expected_neighbor_weights)
 
   def testDynamicBatchSizeAndFeatureShape(self):
     """Test the case when the batch size and feature shape are both dynamic."""
