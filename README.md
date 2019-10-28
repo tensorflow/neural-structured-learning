@@ -36,14 +36,6 @@ only during training, so the performance of the serving/inference workflow
 remains unchanged. Please check out our tutorials for a practical introduction
 to NSL.
 
-## Research
-
-See our [research](research) directory for research projects in Neural
-Structured Learning:
-
-*   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
-*   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
-
 ## Getting started
 
 You can install the prebuilt NSL pip package by running:
@@ -86,6 +78,14 @@ contribute to TF Neural Structured Learning:
     [tensorflow.org/neural_structured_learning](http://www.tensorflow.org/neural_structured_learning).
 
 Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
+
+## Research
+
+See our [research](research) directory for research projects in Neural
+Structured Learning:
+
+*   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
+*   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 
 ## Issues and Questions
 
