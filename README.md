@@ -87,13 +87,16 @@ Structured Learning:
 *   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
 *   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 
-## Issues and Questions
+## Issues, Questions, and Feedback
 
-For issues, please use
+Please use
 [GitHub issues](https://github.com/tensorflow/neural-structured-learning/issues)
-for tracking requests and bugs. For questions, please direct them to
+to file issues, bugs, and feature requests. For questions, please direct them to
 [Stack Overflow](https://stackoverflow.com) with the
-["nsl"](https://stackoverflow.com/questions/tagged/nsl) tag.
+["nsl"](https://stackoverflow.com/questions/tagged/nsl) tag. For feedback,
+please fill this
+[form](https://docs.google.com/forms/d/1AQEcPSgmwWBJj3H2haEytF4C_fr1aotWaHjCEXpPm2A);
+we would love to hear from you.
 
 ## Release Notes
 
