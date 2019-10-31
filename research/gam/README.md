@@ -33,7 +33,6 @@ folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
 
-<<<<<<< HEAD:research/gam/README.md
 ## How to run
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer), from this folder
 run:
@@ -49,10 +48,7 @@ python3.7 -m gam.experiments.run_train_gam
 For running on different datasets and configuration, please check the command
 line flags in each of the run scripts.
 
-## Reference
-=======
 ## References
->>>>>>> upstream/master:research/gam/README.md
 
 [[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
 Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
