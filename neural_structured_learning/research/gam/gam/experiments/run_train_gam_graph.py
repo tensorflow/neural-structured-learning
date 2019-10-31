@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Run script for training Graph Agreement Models on MNIST and other datasets.
+"""Run script for training Graph Agreement Models on datasets with a graph.
 
 Throughout this file, the suffix "_cls" refers to the classification model, and
 "_agr" to the agreement model.
 
-The supported datasets are the following tensorflow_datasets:
-mnist, cifar10, cifar100, svhn_cropped, fashion_mnist.
+The supported datasets are the following datasets: cora, citeseer, pubmed.
 """
 from __future__ import absolute_import
 from __future__ import division
