@@ -15,21 +15,32 @@ likely to have the same label, thus guiding its parameters to a better local
 optima. The classification and agreement models are trained jointly in a
 co-training fashion.
 
-This code repository contains an implementation of Graph Agreement Models. The
-code is organized into the following folders:
+This code repository contains an implementation of Graph Agreement Models [3].
+The code is organized into the following folders:
 
 *   data: Classes and methods for accessing semi-supervised learning datasets.
 *   models: Classes and methods for classification models and graph agreement
     models.
 *   trainer: Classes and methods for training the classification models, and
     agreement models individually as well as in a co-traioning fashion.
-*   experiments: Python run script for training Graph Agreement Models on MNIST
-    and other datasets.
+*   experiments: Python run script for training Graph Agreement Models on
+    CIFAR10 and other datasets.
 
 The implementations of Graph Agreement Models (GAMs) are provided in the `gam`
 folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
+
+## How to run
+To run GAM on a graph-based dataset (e.g., Cora, Citeseer), from this folder
+run:
+python3.7 -m gam.experiments.run_train_gam_graph --data_path=<path_to_data>
+
+To run GAM on datasets without a graph (e.g., Cifar10), from this folder run:
+python3.7 -m gam.experiments.run_train_gam --data_path=<path_to_data>
+
+For running on different datasets and configuration, please check the command
+line flags in each of the run scripts.
 
 ## Reference
 
@@ -38,3 +49,8 @@ Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
 
 [[2] T. Kipf and M. Welling. "Semi-supervised classification with graph
 convolutional networks." ICLR 2017](https://arxiv.org/pdf/1609.02907.pdf)
+
+[[3] O. Stretcu, K. Viswanathan, D. Movshovitz-Attias, E.A. Platanios,
+A. Tomkins, S. Ravi. "Graph Agreement Models for Semi-Supervised 
+Learning." NeurIPS 2019](
+https://nips.cc/Conferences/2019/Schedule?showEvent=13925)
