@@ -81,11 +81,11 @@ Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
 
 ## Research
 
-See our [research](neural_structured_learning/research) directory for research projects in Neural
+See our [research](research) directory for research projects in Neural
 Structured Learning:
 
-*   [A2N: Attending to Neighbors for Knowledge Graph Inference](neural_structured_learning/research/a2n)
-*   [GAM: Graph Agreement Models for Semi-Supervised Learning](neural_structured_learning/research/gam)
+*   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
+*   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 
 ## Issues, Questions, and Feedback
 
