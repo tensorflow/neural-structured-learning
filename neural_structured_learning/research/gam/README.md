@@ -1,3 +1,5 @@
+# GAM: Graph Agreement Models for Semi-Supervised Learning
+
 Neural structured learning methods such as Neural Graph Machines [1], Graph
 Convolutional Networks [2] and their variants have successfully combined the
 expressiveness of neural networks with graph structures to improve on learning
@@ -31,6 +33,7 @@ folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
 
+<<<<<<< HEAD:research/gam/README.md
 ## How to run
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer), from this folder
 run:
@@ -47,6 +50,9 @@ For running on different datasets and configuration, please check the command
 line flags in each of the run scripts.
 
 ## Reference
+=======
+## References
+>>>>>>> upstream/master:research/gam/README.md
 
 [[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
 Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)

@@ -18,14 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import itertools
 import time
 
 from absl import app
 from absl import flags
 from absl import logging
-from neural_structured_learning.tools import graph_utils
 import numpy as np
 import six
 import tensorflow as tf
@@ -101,34 +99,37 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
   return embeddings
 
 
-def _add_edges(embeddings, threshold, g):
-  """Adds relevant edges to graph `g` among pairs of the given `embeddings`.
+def _write_edges(embeddings, threshold, f):
+  """Writes relevant edges to `f` among pairs of the given `embeddings`.
 
   This function considers all distinct pairs of nodes in `embeddings`,
-  computes the dot product between all such pairs, and augments 'g' to
-  contain any edge for which the similarity is at least the given 'threshold'.
+  computes the dot product between all such pairs, and writes any edge to `f`
+  for which the similarity is at least the given `threshold`.
 
   Args:
     embeddings: A `dict`: node_id -> embedding.
     threshold: A `float` representing an inclusive lower-bound on the cosine
         similarity for an edge to be added.
-    g: A `dict`: source_id -> (target_id -> weight) representing the graph.
+    f: A file object to which all edges are written in TSV format. The caller is
+        responsible for opening and closing this file.
 
   Returns:
-    `None`. Instead, this function has the side-effect of adding edges to `g`.
+    The number of bi-direction edges written to the file.
   """
   start_time = time.time()
-  logging.info('Building graph...')
   edge_cnt = 0
   all_combos = itertools.combinations(six.iteritems(embeddings), 2)
   for (i, emb_i), (j, emb_j) in all_combos:
     weight = np.dot(emb_i, emb_j)
     if weight >= threshold:
-      g[i][j] = weight
-      g[j][i] = weight
+      f.write('%s\t%s\t%f\n' % (i, j, weight))
+      f.write('%s\t%s\t%f\n' % (j, i, weight))
       edge_cnt += 1
-  logging.info('Built graph containing %d bi-directional edges (%.2f seconds).',
-               edge_cnt, (time.time() - start_time))
+      if (edge_cnt % 1000000) == 0:
+        logging.info('Wrote %d edges in %.2f seconds....', edge_cnt,
+                     (time.time() - start_time))
+
+  return edge_cnt
 
 
 def build_graph(embedding_files,
@@ -189,9 +190,14 @@ def build_graph(embedding_files,
   """
   embeddings = _read_tfrecord_examples(embedding_files, id_feature_name,
                                        embedding_feature_name)
-  graph = collections.defaultdict(dict)
-  _add_edges(embeddings, similarity_threshold, graph)
-  graph_utils.write_tsv_graph(output_graph_path, graph)
+  start_time = time.time()
+  logging.info('Building graph and writing edges to TSV file: %s',
+               output_graph_path)
+  with open(output_graph_path, 'w') as f:
+    edge_cnt = _write_edges(embeddings, similarity_threshold, f)
+    logging.info(
+        'Wrote graph containing %d bi-directional edges (%.2f seconds).',
+        edge_cnt, (time.time() - start_time))
 
 
 def _main(argv):

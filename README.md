@@ -79,13 +79,24 @@ contribute to TF Neural Structured Learning:
 
 Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
 
-## Issues and Questions
+## Research
 
-For issues, please use
+See our [research](neural_structured_learning/research) directory for research projects in Neural
+Structured Learning:
+
+*   [A2N: Attending to Neighbors for Knowledge Graph Inference](neural_structured_learning/research/a2n)
+*   [GAM: Graph Agreement Models for Semi-Supervised Learning](neural_structured_learning/research/gam)
+
+## Issues, Questions, and Feedback
+
+Please use
 [GitHub issues](https://github.com/tensorflow/neural-structured-learning/issues)
-for tracking requests and bugs. For questions, please direct them to
+to file issues, bugs, and feature requests. For questions, please direct them to
 [Stack Overflow](https://stackoverflow.com) with the
-["nsl"](https://stackoverflow.com/questions/tagged/nsl) tag.
+["nsl"](https://stackoverflow.com/questions/tagged/nsl) tag. For feedback,
+please fill this
+[form](https://docs.google.com/forms/d/1AQEcPSgmwWBJj3H2haEytF4C_fr1aotWaHjCEXpPm2A);
+we would love to hear from you.
 
 ## Release Notes
 
