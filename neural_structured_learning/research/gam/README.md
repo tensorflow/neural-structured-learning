@@ -40,7 +40,7 @@ python3.7 -m gam.experiments.run_train_gam_graph --data_path=<path_to_data>
 
 To run GAM on datasets without a graph (e.g., Cifar10), from this folder run:
 ```bash
-python3.7 -m gam.experiments.run_train_gam --data_path=<path_to_data>
+python3.7 -m gam.experiments.run_train_gam
 ```
 
 For running on different datasets and configuration, please check the command
