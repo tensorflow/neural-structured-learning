@@ -21,13 +21,12 @@ of samples.
 import logging
 import os
 
-from gam.trainer.adversarial import entropy_y_x
-from gam.trainer.adversarial import get_loss_vat
-from gam.trainer.trainer_base import batch_iterator
-from gam.trainer.trainer_base import Trainer
-
+from .adversarial import entropy_y_x
+from .adversarial import get_loss_vat
 import numpy as np
 import tensorflow as tf
+from .trainer_base import batch_iterator
+from .trainer_base import Trainer
 
 
 class TrainerClassification(Trainer):

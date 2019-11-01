@@ -22,41 +22,57 @@ mnist, cifar10, cifar100, svhn_cropped, fashion_mnist.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import logging
 from logging import config
-
 import os
+
 from absl import app
 from absl import flags
-
-from gam.data.loaders import load_data_planetoid
-from gam.data.robustness import add_noisy_edges
-from gam.experiments.helper import get_model_agr
-from gam.experiments.helper import get_model_cls
-from gam.trainer.trainer_cotrain import TrainerCotraining
+from ..data.dataset import Dataset
+from ..data.loaders import load_data_planetoid
+from ..data.loaders import load_data_realistic_ssl
+from ..data.loaders import load_data_tf_datasets
+from .helper import get_model_agr
+from .helper import get_model_cls
 import numpy as np
 import tensorflow as tf
-
+from ..trainer.trainer_cotrain import TrainerCotraining
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    'dataset_name', 'cora',
-    'Dataset name. Supported options are: cora, citeseer, pubmed.')
-flags.DEFINE_string('data_path', '', 'Path to data.')
-flags.DEFINE_bool('row_normalize', False,
-                  'Whether to row normalize the data. Important for GCN.')
+    'dataset_name', 'cifar10',
+    'Dataset name. Supported options are: mnist, cifar10, cifar100, '
+    'svhn_cropped, fashion_mnist.')
+flags.DEFINE_string(
+    'data_source', 'tensorflow_datasets', 'Data source. Valid options are: '
+    '`tensorflow_datasets`, `realistic_ssl`, `planetoid`.')
+flags.DEFINE_integer(
+    'target_num_train_per_class', 400,
+    'Number of samples per class to use for training.')
+flags.DEFINE_integer(
+    'target_num_val', 1000,
+    'Number of samples to be used for validation.')
+flags.DEFINE_integer(
+    'seed', 123,
+    'Seed used by the random number generators.')
+flags.DEFINE_bool(
+    'load_preprocessed', False,
+    'Specifies whether to load data already preprocessed. If False, it reads'
+    'the original data and splits it.')
+flags.DEFINE_bool(
+    'save_preprocessed', False,
+    'Specifies whether the preprocessed should be saved to pickle.')
+flags.DEFINE_string(
+    'filename_preprocessed_data', 'preprocessed_data.pickle',
+    'Name of the pickle file where the preprocessed data will be loaded from '
+    'or stored.')
+flags.DEFINE_string(
+    'label_map_path', '',
+    'Path to the json files containing the label sample indices for '
+    'Realistic SSL.')
 flags.DEFINE_string('data_output_dir', './outputs',
                     'Path to a folder where to save the preprocessed dataset.')
-flags.DEFINE_integer('target_num_train_per_class', 20,
-                     'Number of samples per class to use for training.')
-flags.DEFINE_integer('target_num_val', 1000,
-                     'Number of samples to be used for validation.')
-flags.DEFINE_float(
-    'target_ratio_correct', None,
-    'Ratio of correct edges that we want the graph to have, after adding'
-    '`wrong` edges between nodes with different labels. This is parameters is'
-    'introduced to test the robustness of GAM to noisy edges.')
-flags.DEFINE_integer('seed', 123, 'Seed used by the random number generators.')
 flags.DEFINE_string(
     'output_dir', './outputs',
     'Path to a folder where checkpoints, summaries and other outputs are '
@@ -85,7 +101,15 @@ flags.DEFINE_float('lr_decay_rate_agr', None,
                    'Learning rate decay rate for the agreement model.')
 flags.DEFINE_integer('lr_decay_steps_agr', None,
                      'Learning rate decay steps for the agreement model.')
-flags.DEFINE_integer('max_num_iter_cotrain', 200, 'Number of epochs to train.')
+flags.DEFINE_integer(
+    'num_epochs_per_decay_cls', 350,
+    'Number of epochs after which the learning rate decays for the '
+    'classification model.')
+flags.DEFINE_integer(
+    'num_epochs_per_decay_agr', 350,
+    'Number of epochs after which the learning rate decays for the '
+    'agreement model.')
+flags.DEFINE_integer('max_num_iter_cotrain', 100, 'Number of epochs to train.')
 flags.DEFINE_integer('min_num_iter_cls', 200,
                      'Minimum number of epochs to train for.')
 flags.DEFINE_integer('max_num_iter_cls', 100000,
@@ -105,7 +129,7 @@ flags.DEFINE_integer(
     'Minimum number of iterations to train the agreement model for after '
     'the best validation accuracy is improved.')
 flags.DEFINE_integer(
-    'num_samples_to_label', 200,
+    'num_samples_to_label', 500,
     'Number of samples to label after each co-train iteration.')
 flags.DEFINE_float(
     'min_confidence_new_label', 0.4,
@@ -124,13 +148,13 @@ flags.DEFINE_integer(
     'max_samples_valid_agr', 10000,
     'Max number of samples to set aside for validating the agreement model.')
 flags.DEFINE_string(
-    'hidden_cls', '128',
+    'hidden_cls', '128_64_32',
     'String representing the number of units of the hidden layers of the '
     'classification model. This is encoded as a sequence of numbers separated '
     'by underscores (e.g., `128_64_32`), where each number is the number of '
     'units in a layer, counting from the inputs towards outputs')
 flags.DEFINE_string(
-    'hidden_agr', '128',
+    'hidden_agr', '128_64_32',
     'String representing the number of units of the hidden layers of the '
     'agreement model.')
 flags.DEFINE_string(
@@ -150,9 +174,8 @@ flags.DEFINE_string(
     'weight_decay_schedule_agr', None,
     'Schedule for decaying the weight decay in the agreement model. Choose '
     'between None or linear.')
-flags.DEFINE_float('dropout', None, 'Dropout rate (1 - keep probability).')
-flags.DEFINE_integer('batch_size_agr', 128, 'Batch size for agreement model.')
-flags.DEFINE_integer('batch_size_cls', 128,
+flags.DEFINE_integer('batch_size_agr', 512, 'Batch size for agreement model.')
+flags.DEFINE_integer('batch_size_cls', 512,
                      'Batch size for classification model.')
 flags.DEFINE_float(
     'gradient_clip', None,
@@ -174,10 +197,10 @@ flags.DEFINE_integer(
     'Print summary of the agreement model training every this number of '
     'iterations.')
 flags.DEFINE_integer(
-    'eval_step_cls', 5,
+    'eval_step_cls', 100,
     'Evaluate classification model every this number of iterations.')
 flags.DEFINE_integer(
-    'eval_step_agr', 10,
+    'eval_step_agr', 100,
     'Evaluate the agreement model every this number of iterations.')
 flags.DEFINE_bool(
     'warm_start_cls', False,
@@ -215,7 +238,7 @@ flags.DEFINE_string(
     'Available options are `add`, `dist`, `concat`, `project_add`,'
     '`project_dist`, `project_concat` and None.')
 flags.DEFINE_bool(
-    'penalize_neg_agr', False,
+    'penalize_neg_agr', True,
     'Whether to encourage differences when agreement is negative.')
 flags.DEFINE_bool(
     'use_l2_cls', False,
@@ -224,7 +247,7 @@ flags.DEFINE_bool(
     'first_iter_original', True,
     'Whether to use the original model in the first iteration, without self '
     'labeling or agreement loss.')
-flags.DEFINE_bool('inductive', False,
+flags.DEFINE_bool('inductive', True,
                   'Whether to use an inductive or transductive SSL setting.')
 flags.DEFINE_string(
     'experiment_suffix', '',
@@ -247,16 +270,22 @@ flags.DEFINE_bool(
     'Whether to load the trained model and the data that has been self-labeled '
     'from a previous run, if available. This is useful if a process can get '
     'preempted or interrupted.')
-flags.DEFINE_bool(
-    'always_agree', False,
-    'Whether the agreement model should always return agreement. '
-    'This is equivalent to Neural Graph Machines.')
-flags.DEFINE_bool(
-    'add_negative_edges_agr', True,
-    'Whether to add fake negative edges when training the agreement model, in'
-    'order to keep the classes balanced.')
-flags.DEFINE_bool('use_graph', True,
-                  'Whether to use the graph edges, or any pair of samples.')
+
+
+def load_data():
+  """Loads data."""
+  if FLAGS.data_source == 'tensorflow_datasets':
+    return load_data_tf_datasets(FLAGS.dataset_name,
+                                 FLAGS.target_num_train_per_class,
+                                 FLAGS.target_num_val, FLAGS.seed)
+  elif FLAGS.data_source == 'realistic_ssl':
+    return load_data_realistic_ssl(FLAGS.dataset_name,
+                                   FLAGS.filename_preprocessed_data,
+                                   FLAGS.label_map_path)
+  elif FLAGS.data_source == 'planetoid':
+    return load_data_planetoid(
+        FLAGS.dataset_name, FLAGS.preprocessed_data_dir, row_normalize=False)
+  raise ValueError('Unsupported dataset source name: %s' % FLAGS.data_source)
 
 
 def main(argv):
@@ -274,16 +303,23 @@ def main(argv):
   ############################################################################
   #                               DATA                                       #
   ############################################################################
-  # Load data.
-  data = load_data_planetoid(
-      name=FLAGS.dataset_name,
-      path=FLAGS.data_path,
-      row_normalize=FLAGS.row_normalize)
+  # Potentially create a folder where to save the preprocessed data.
+  if not os.path.exists(FLAGS.data_output_dir):
+    os.makedirs(FLAGS.data_output_dir)
 
-  # Potentially add noisy edges. This can be used to asses the robustness of
-  # GAM to noisy edges. See `Robustness` section of our paper.
-  if FLAGS.target_ratio_correct:
-    data = add_noisy_edges(data, FLAGS.target_ratio_correct)
+  # Load and potentially preprocess data.
+  if FLAGS.load_preprocessed:
+    logging.info('Loading preprocessed data...')
+    path = os.path.join(FLAGS.data_output_dir, FLAGS.filename_preprocessed_data)
+    data = Dataset.load_from_pickle(path)
+  else:
+    data = load_data()
+    if FLAGS.save_preprocessed:
+      assert FLAGS.output_dir
+      path = os.path.join(FLAGS.data_output_dir,
+                          FLAGS.filename_preprocessed_data)
+      data.save_to_pickle(path)
+      logging.info('Preprocessed data saved to %s.', path)
 
   ############################################################################
   #                            PREPARE OUTPUTS                               #
@@ -309,12 +345,8 @@ def main(argv):
   model_name += '-perfCls' if FLAGS.use_perfect_classifier else ''
   model_name += '-keepProp' if FLAGS.keep_label_proportions else ''
   model_name += '-PenNegAgr' if FLAGS.penalize_neg_agr else ''
-  model_name += '-VAT' if FLAGS.reg_weight_vat > 0 else ''
-  model_name += 'ENT' if FLAGS.reg_weight_vat > 0 and FLAGS.use_ent_min else ''
   model_name += '-transd' if not FLAGS.inductive else ''
   model_name += '-L2' if FLAGS.use_l2_cls else '-CE'
-  model_name += '-graph' if FLAGS.use_graph else '-noGraph'
-  model_name += '-rowNorm' if FLAGS.row_normalize else ''
   model_name += '-seed_' + str(FLAGS.seed)
   model_name += FLAGS.experiment_suffix
   logging.info('Model name: %s', model_name)
@@ -335,7 +367,7 @@ def main(argv):
   ############################################################################
   #                            MODEL SETUP                                   #
   ############################################################################
-  # Create classification model.
+  # Select the model based on the provided FLAGS.
   model_cls = get_model_cls(
       model_name=FLAGS.model_cls,
       data=data,
@@ -399,9 +431,9 @@ def main(argv):
       reg_weight_ll=FLAGS.reg_weight_ll,
       reg_weight_lu=FLAGS.reg_weight_lu,
       reg_weight_uu=FLAGS.reg_weight_uu,
-      num_pairs_reg=FLAGS.num_pairs_reg,
       reg_weight_vat=FLAGS.reg_weight_vat,
       use_ent_min=FLAGS.use_ent_min,
+      num_pairs_reg=FLAGS.num_pairs_reg,
       penalize_neg_agr=FLAGS.penalize_neg_agr,
       use_l2_cls=FLAGS.use_l2_cls,
       first_iter_original=FLAGS.first_iter_original,
@@ -413,15 +445,13 @@ def main(argv):
       lr_decay_steps_cls=FLAGS.lr_decay_steps_cls,
       lr_decay_rate_agr=FLAGS.lr_decay_rate_agr,
       lr_decay_steps_agr=FLAGS.lr_decay_steps_agr,
-      load_from_checkpoint=FLAGS.load_from_checkpoint,
-      use_graph=FLAGS.use_graph,
-      always_agree=FLAGS.always_agree,
-      add_negative_edges_agr=FLAGS.add_negative_edges_agr)
+      load_from_checkpoint=FLAGS.load_from_checkpoint)
 
   ############################################################################
   #                            TRAIN                                         #
   ############################################################################
   trainer.train(data)
+
 
 if __name__ == '__main__':
   app.run(main)

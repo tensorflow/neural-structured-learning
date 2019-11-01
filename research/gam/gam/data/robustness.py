@@ -14,7 +14,7 @@
 """Functions for evaluating robustness."""
 import logging
 
-from gam.data.dataset import GraphDataset
+from .dataset import GraphDataset
 
 import numpy as np
 

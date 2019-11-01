@@ -23,13 +23,12 @@ import os
 import pickle
 import sys
 
-from gam.data.dataset import Dataset
-from gam.data.dataset import PlanetoidDataset
-from gam.data.preprocessing import convert_image
-from gam.data.preprocessing import split_train_val_unlabeled
-
+from .dataset import Dataset
+from .dataset import PlanetoidDataset
 import networkx as nx
 import numpy as np
+from .preprocessing import convert_image
+from .preprocessing import split_train_val_unlabeled
 from scipy import sparse as sp
 import tensorflow_datasets as tfds
 
