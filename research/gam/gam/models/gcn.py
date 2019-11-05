@@ -1,3 +1,5 @@
+"""Graph Convolution Networks implementation adapted from https://github.com/tkipf/gcn."""
+
 from __future__ import absolute_import, division, print_function
 
 import tensorflow as tf
@@ -40,6 +42,24 @@ def dot(x, y, sparse=False):
 
 
 class GCN(Model):
+  """Graph Convolution Networks.
+
+  Attributes:
+    input_dim: Integer representing the number of input features.
+    output_dim: Integer representing the number of classes.
+    hidden: Integer representing the number of hidden units in the first layer of the network.
+    dropout: Float representing the dropout probability during training.
+    aggregation: String representing an aggregation operation, that is applied
+      on the two inputs of the agreement model, after they are encoded through
+      the convolution layers. See superclass attributes for details.
+    activation: An activation function to be applied to the outputs of each
+      fully connected layer of the aggregation network.
+    is_binary_classification: Boolean specifying if this is model for
+      binary classification. If so, it uses a different loss function and
+      returns predictions with a single dimension, batch size.
+    name: String representing the model name.
+  """
+
   def __init__(self,
                input_dim,
                output_dim,
@@ -114,7 +134,7 @@ class GCN(Model):
       layer_1 = GraphConvolution(
           input_dim=self.input_dim,
           output_dim=self.hidden,
-          act=tf.nn.relu,
+          activation=tf.nn.relu,
           dropout=dropout,
           sparse_inputs=True,
           num_features_nonzero=num_features_nonzero,
@@ -161,7 +181,7 @@ class GCN(Model):
       layer_2 = GraphConvolution(
         input_dim=self.hidden,
         output_dim=self.output_dim,
-        act=lambda x: x,
+        activation=lambda x: x,
         dropout=dropout,
         num_features_nonzero=num_features_nonzero,
         support=support,
@@ -248,21 +268,22 @@ class GCN(Model):
 class GraphConvolution(object):
   """Graph convolution layer."""
   def __init__(self, input_dim, output_dim, support, num_features_nonzero,
-               dropout=0., sparse_inputs=False, act=tf.nn.relu, bias=False,
+               dropout=0., sparse_inputs=False, activation=tf.nn.relu, bias=False,
                featureless=False, name=None):
     if not name:
       layer = self.__class__.__name__.lower()
       name = layer + '_' + str(get_layer_uid(layer))
+
     self.name = name
     self.vars = {}
     self.dropout = dropout
-    self.act = act
+    self.act = activation
     self.support = support
     self.sparse_inputs = sparse_inputs
     self.featureless = featureless
     self.bias = bias
 
-    # helper variable for sparse dropout
+    # Helper variable for sparse dropout.
     self.num_features_nonzero = num_features_nonzero
 
     with tf.variable_scope(self.name + '_vars'):
