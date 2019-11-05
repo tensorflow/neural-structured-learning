@@ -21,10 +21,11 @@ The supported datasets are the following datasets: cora, citeseer, pubmed.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import logging
 from logging import config
-
 import os
+
 from absl import app
 from absl import flags
 
@@ -38,6 +39,7 @@ from ..trainer.trainer_cotrain import TrainerCotraining
 
 import numpy as np
 import tensorflow as tf
+from ..trainer.trainer_cotrain import TrainerCotraining
 
 
 FLAGS = flags.FLAGS

@@ -22,23 +22,22 @@ mnist, cifar10, cifar100, svhn_cropped, fashion_mnist.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import logging
 from logging import config
-
 import os
+
 from absl import app
 from absl import flags
-
 from ..data.dataset import Dataset
 from ..data.loaders import load_data_planetoid
 from ..data.loaders import load_data_realistic_ssl
 from ..data.loaders import load_data_tf_datasets
 from .helper import get_model_agr
 from .helper import get_model_cls
-from ..trainer.trainer_cotrain import TrainerCotraining
-
 import numpy as np
 import tensorflow as tf
+from ..trainer.trainer_cotrain import TrainerCotraining
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(

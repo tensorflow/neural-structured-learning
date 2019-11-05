@@ -25,11 +25,10 @@ import sys
 
 from .dataset import Dataset
 from .dataset import PlanetoidDataset
-from .preprocessing import convert_image
-from .preprocessing import split_train_val_unlabeled
-
 import networkx as nx
 import numpy as np
+from .preprocessing import convert_image
+from .preprocessing import split_train_val_unlabeled
 from scipy import sparse as sp
 import tensorflow_datasets as tfds
 

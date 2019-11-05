@@ -17,9 +17,8 @@ import logging
 import os
 import pickle
 
-from .preprocessing import split_train_val
-
 import numpy as np
+from .preprocessing import split_train_val
 import scipy
 import tensorflow as tf
 

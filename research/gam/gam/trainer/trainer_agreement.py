@@ -28,11 +28,10 @@ import logging
 import os
 
 from ..data.preprocessing import split_train_val
-from .trainer_base import batch_iterator
-from .trainer_base import Trainer
-
 import numpy as np
 import tensorflow as tf
+from .trainer_base import batch_iterator
+from .trainer_base import Trainer
 
 
 def accuracy_binary(normalized_preds, labels, threshold=0.5):
