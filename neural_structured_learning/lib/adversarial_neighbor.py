@@ -61,49 +61,33 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     self._raise_invalid_gradient = raise_invalid_gradient
     self._gradient_tape = gradient_tape
 
-  def _normalize_gradient(self, keyed_grads, feature_masks):
-    """Masks the gradients and normalizes to the size specified in adv_config.
+  def _compute_gradient(self, dense_features):
+    """Computes the gradient of `self._labeled_loss` w.r.t. `dense_features`."""
+    feature_values = list(dense_features.values())
+    if self._gradient_tape is None:  # Assuming in graph mode, no tape required.
+      grads = tf.gradients(self._labeled_loss, feature_values)
+    else:
+      grads = self._gradient_tape.gradient(self._labeled_loss, feature_values)
+    # The order of elements returned by .values() and .keys() are guaranteed
+    # corresponding to each other.
+    keyed_grads = dict(zip(dense_features.keys(), grads))
 
-    Arguments:
-      keyed_grads: A dictionary of (feature_name, Tensor) representing gradients
-        on each feature.
-      feature_masks: A dictionary of (feature_name, Tensor-compatible value)
-        representing masks on each feature. A feature is not masked if its name
-        is missing in this dictionary.
+    invalid_grads, valid_grads = self._split_dict(keyed_grads,
+                                                  lambda grad: grad is None)
+    # Two cases that grad can be invalid (None):
+    # (1) The feature is not differentiable, like strings or integers.
+    # (2) The feature is not involved in loss computation.
+    if invalid_grads:
+      if self._raise_invalid_gradient:
+        raise ValueError('Cannot perturb features ' + str(invalid_grads.keys()))
+      logging.warn('Cannot perturb features %s', invalid_grads.keys())
 
-    Returns:
-      perturbation: A dictionary of (feature_name, Tensor) representing the
-        adversarial perturbation on that feature.
-
-    Raises:
-      ValueError: if 'raise_invalid_gradient' is set and gradients cannot be
-        computed on some input features.
-    """
-    masked_grads = {}
-    for (key, grad) in keyed_grads.items():
-      if grad is None:
-        # Two cases that grad can be None:
-        # (1) The feature is not differentiable, like strings or integers.
-        # (2) The feature is not involved in loss computation.
-        # In either case, no gradient will be calculated for this feature.
-        if self._raise_invalid_gradient:
-          raise ValueError('Cannot perturb feature ' + key)
-        logging.warn('Cannot perturb feature %s', key)
-        continue
-
-      # Guards against numerical errors. If the gradient is malformed (inf,
-      # -inf, or NaN) on a dimension, replace it with 0, which has the effect of
-      # not perturbing the original sample along that perticular dimension.
-      grad = tf.where(tf.math.is_finite(grad), grad, tf.zeros_like(grad))
-      masked_grads[key] = utils.apply_feature_mask(grad,
-                                                   feature_masks.get(key, None))
-
-    if not masked_grads:
-      return {}
-    adv_perturbation = utils.maximize_within_unit_norm(
-        masked_grads, self._adv_config.adv_grad_norm)
-    return tf.nest.map_structure(lambda t: t * self._adv_config.adv_step_size,
-                                 adv_perturbation)
+    # Guards against numerical errors. If the gradient is malformed (inf, -inf,
+    # or NaN) on a dimension, replace it with 0, which has the effect of not
+    # perturbing the original sample along that perticular dimension.
+    return tf.nest.map_structure(
+        lambda g: tf.where(tf.math.is_finite(g), g, tf.zeros_like(g)),
+        valid_grads)
 
   # The _compose_as_dict and _decompose_as functions are similar to
   # tf.nest.{flatten, pack_sequence_as} except that the composed representation
@@ -126,6 +110,16 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       return [values[index] for index in range(len(structure))]
     else:
       return values[''] if structure is not None else None
+
+  def _split_dict(self, dictionary, predicate_fn):
+    """Splits `dictionary` into 2 by bool(predicate_fn(key, value))."""
+    positives, negatives = {}, {}
+    for key, value in dictionary.items():
+      if predicate_fn(value):
+        positives[key] = value
+      else:
+        negatives[key] = value
+    return positives, negatives
 
   def gen_neighbor(self, input_features):
     """Generates adversarial neighbors and the corresponding weights.
@@ -165,43 +159,35 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     features = self._compose_as_dict(input_features)
     feature_masks = self._compose_as_dict(self._adv_config.feature_mask)
 
-    sparse_features, dense_features = {}, {}
-    for (key, feature) in features.items():
-      if isinstance(feature, tf.Tensor):
-        dense_features[key] = feature
-      else:
-        sparse_features[key] = feature
-
+    dense_features, sparse_features = self._split_dict(
+        features, lambda feature: isinstance(feature, tf.Tensor))
     if sparse_features:
       sparse_keys = str(sparse_features.keys())
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb non-Tensor input: ' + sparse_keys)
       logging.warn('Cannot perturb non-Tensor input: %s', sparse_keys)
 
-    # Computes the gradient of the loss w.r.t. each dense feature. The returned
-    # value is a list of tensors, each with the same shape as the corresponding
-    # feature tensor. The order of elements returned by .values() and .keys()
-    # are guaranteed corresponding to each other.
-    if self._gradient_tape is None:  # Assuming in graph mode, no tape required.
-      grads = tf.gradients(
-          ys=[self._labeled_loss], xs=list(dense_features.values()))
-    else:
-      grads = self._gradient_tape.gradient(self._labeled_loss,
-                                           list(dense_features.values()))
-    keyed_grads = dict(zip(dense_features.keys(), grads))
-    perturbation = self._normalize_gradient(keyed_grads, feature_masks)
+    keyed_grads = self._compute_gradient(dense_features)
+    masked_grads = {
+        key: utils.apply_feature_mask(grad, feature_masks.get(key, None))
+        for key, grad in keyed_grads.items()
+    }
+
+    unit_perturbations = utils.maximize_within_unit_norm(
+        masked_grads, self._adv_config.adv_grad_norm)
+    perturbations = tf.nest.map_structure(
+        lambda t: t * self._adv_config.adv_step_size, unit_perturbations)
 
     # Sparse features are copied directly without perturbation.
     adv_neighbor = dict(sparse_features)
     for (key, feature) in dense_features.items():
       adv_neighbor[key] = tf.stop_gradient(
-          feature if key not in perturbation else feature + perturbation[key])
-
-    batch_size = tf.shape(list(adv_neighbor.values())[0])[0]
-    adv_weight = tf.ones([batch_size, 1])
-
+          feature + perturbations[key] if key in perturbations else feature)
     # Converts the perturbed examples back to their original structure.
     adv_neighbor = self._decompose_as(input_features, adv_neighbor)
+
+    batch_size = tf.shape(list(features.values())[0])[0]
+    adv_weight = tf.ones([batch_size, 1])
 
     return adv_neighbor, adv_weight
 

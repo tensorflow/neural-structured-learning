@@ -107,6 +107,9 @@ def maximize_within_unit_norm(weights, norm_type):
   tensors = tf.nest.flatten(weights)
   tensor_ranks = [t.shape.rank for t in tensors]
 
+  if not tensors:  # `weights` is an empty collection.
+    return weights
+
   def reduce_across_tensors(reduce_fn, input_tensors):
     reduced_within_tensor = [
         reduce_fn(t, axis=list(range(1, rank)))
