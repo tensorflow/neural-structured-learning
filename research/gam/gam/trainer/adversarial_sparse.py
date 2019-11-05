@@ -1,4 +1,4 @@
-"""Functions used for Virtual Adversarial Training on dense feature matrices."""
+"""Functions used for Virtual Adversarial Training on sparse feature matrices."""
 
 import tensorflow as tf
 
