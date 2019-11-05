@@ -2,8 +2,8 @@ from __future__ import absolute_import, division, print_function
 
 import tensorflow as tf
 
-from gam.models.models_base import Model
-from gam.models.models_base import glorot
+from .models_base import Model
+from .models_base import glorot
 
 # Global unique layer ID dictionary for layer name assignment.
 _LAYER_UIDS = {}

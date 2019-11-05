@@ -21,10 +21,10 @@ of samples.
 import logging
 import os
 
-from gam.trainer.adversarial_dense import entropy_y_x
-from gam.trainer.adversarial_dense import get_loss_vat
-from gam.trainer.trainer_base import batch_iterator
-from gam.trainer.trainer_base import Trainer
+from .adversarial_dense import entropy_y_x
+from .adversarial_dense import get_loss_vat
+from .trainer_base import batch_iterator
+from .trainer_base import Trainer
 
 import numpy as np
 import tensorflow as tf

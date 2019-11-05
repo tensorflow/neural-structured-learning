@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions for GAMs."""
-from gam.models.cnn import ImageCNNAgreement
-from gam.models.gcn import GCN
-from gam.models.mlp import MLP
-from gam.models.wide_resnet import WideResnet
+
+from ..models.cnn import ImageCNNAgreement
+from ..models.gcn import GCN
+from ..models.mlp import MLP
+from ..models.wide_resnet import WideResnet
 
 import tensorflow as tf
 

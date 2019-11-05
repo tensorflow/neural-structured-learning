@@ -11,41 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A convolutional neural network architecture for image classification.
-
-This architecture is used in the TensorFlow tutorial for CIFAR10:
-https://www.tensorflow.org/tutorials/images/deep_cnn
-"""
+"""Implementation of a Multilayer Perceptron for classification."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from gam.models.models_base import Model
+from .models_base import glorot
+from .models_base import Model
+
+import numpy as np
 import tensorflow as tf
 
 
-class ImageCNNAgreement(Model):
-  """Convolutional Neural Network for image classification.
-
-  It assumes the inputs are images of shape width x height x channels.
-  The precise architecture follows the Tensorflow CNN
-  tutorial at https://www.tensorflow.org/tutorials/images/deep_cnn.
-  Note that this CNN works both for the agreement and classification models.
-  In the agreement case, the provided inputs will be a tuple
-  (inputs_src, inputs_target), which are aggregated into one input after the
-  convolution layers, right before the fully connected network that makes the
-  final prediction.
+class MLP(Model):
+  """Multilayer Perceptron for binary and multi-class classification.
 
   Attributes:
     output_dim: Integer representing the number of classes.
-    channels: Integer representing the number of channels in the input images
-      (e.g., 1 for black and white, 3 for RGB).
-    aggregation: String representing an aggregation operation, that is applied
-      on the two inputs of the agreement model, after they are encoded through
-      the convolution layers. See superclass attributes for details.
-    activation: An activation function to be applied to the outputs of each
-      fully connected layer of the aggregation network.
+    hidden_sizes: List containing the sizes of the hidden layers.
+    activation: An activation function to apply to the output of each hidden
+      layer.
+    aggregation: String representing an aggregation operation that could be
+      applied to the inputs. Valid options: None, `add`. If None, then no
+      aggregation is performed. If `add`, the first half of the features
+      dimension is added to the second half (see the `_aggregate` function
+      for details).
+    hidden_aggregation: A tuple or list of integers representing the number of
+      hidden units in each layer of the projection network described above.
     is_binary_classification: Boolean specifying if this is model for
       binary classification. If so, it uses a different loss function and
       returns predictions with a single dimension, batch size.
@@ -54,18 +47,18 @@ class ImageCNNAgreement(Model):
 
   def __init__(self,
                output_dim,
-               channels,
+               hidden_sizes,
+               activation=tf.nn.leaky_relu,
                aggregation=None,
                hidden_aggregation=(),
-               activation=tf.nn.leaky_relu,
                is_binary_classification=False,
-               name='cnn_agr'):
-    super(ImageCNNAgreement, self).__init__(
+               name='MLP'):
+    super(MLP, self).__init__(
         aggregation=aggregation,
         hidden_aggregation=hidden_aggregation,
         activation=activation)
     self.output_dim = output_dim
-    self.channels = channels
+    self.hidden_sizes = hidden_sizes
     self.is_binary_classification = is_binary_classification
     self.name = name
 
@@ -80,96 +73,30 @@ class ImageCNNAgreement(Model):
       A tuple containing the encoded representation of the inputs and a
       dictionary of regularization parameters.
     """
-
-    # A dictionary of parameters on top of which we add weight decay.
     reg_params = {}
-
-    # Convolution 1.
-    with tf.variable_scope('conv1') as scope:
-      kernel = tf.get_variable(
-          'kernel',
-          shape=[5, 5, self.channels, 64],
-          initializer=tf.truncated_normal_initializer(stddev=5e-2,
-                                                      dtype=tf.float32),
-          dtype=tf.float32)
-      conv = tf.nn.conv2d(inputs, kernel, [1, 1, 1, 1], padding='SAME')
-      biases = tf.get_variable(
-          'biases',
-          [64],
-          initializer=tf.constant_initializer(0.0),
-          dtype=tf.float32)
-      pre_activation = tf.nn.bias_add(conv, biases)
-      conv1 = tf.nn.relu(pre_activation, name=scope.name)
-
-    # Max pooling 1.
-    pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
-                           padding='SAME', name='pool1')
-    # Local Response Normalization 1.
-    norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                      name='norm1')
-    # Convolution 2.
-    with tf.variable_scope('conv2') as scope:
-      kernel = tf.get_variable(
-          'kernel',
-          shape=[5, 5, 64, 64],
-          initializer=tf.truncated_normal_initializer(stddev=5e-2,
-                                                      dtype=tf.float32),
-          dtype=tf.float32)
-      conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
-      biases = tf.get_variable(
-          'biases',
-          [64],
-          initializer=tf.constant_initializer(0.1),
-          dtype=tf.float32)
-      pre_activation = tf.nn.bias_add(conv, biases)
-      conv2 = tf.nn.relu(pre_activation, name=scope.name)
-
-    # Local Response Normalization 2.
-    norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                      name='norm2')
-    # Max pooling 2.
-    pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
-                           strides=[1, 2, 2, 1], padding='SAME', name='pool2')
-
-    # Layer 3.
-    with tf.variable_scope('local3') as scope:
-      # Move everything into depth so we can perform a single matrix multiply.
-      reshape = tf.keras.layers.Flatten()(pool2)
-      dim = reshape.get_shape()[1].value
+    # Reshape inputs in case they are not of shape (batch_size, features).
+    num_features = np.prod(inputs.shape[1:])
+    inputs = tf.reshape(inputs, [-1, num_features])
+    hidden = inputs
+    for layer_index, output_size in enumerate(self.hidden_sizes):
+      input_size = hidden.get_shape().dims[-1].value
+      weights_name = 'W_' + str(layer_index)
       weights = tf.get_variable(
-          'weights',
-          shape=[dim, 384],
-          initializer=tf.truncated_normal_initializer(
-              stddev=0.04, dtype=tf.float32),
-          dtype=tf.float32)
-      reg_params[weights.name] = weights
+          name=weights_name,
+          initializer=glorot((input_size, output_size)),
+          use_resource=True)
+      reg_params[weights_name] = weights
       biases = tf.get_variable(
-          'biases', [384],
-          initializer=tf.constant_initializer(0.1),
-          dtype=tf.float32)
-      local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
-
-    # Layer 4.
-    with tf.variable_scope('local4') as scope:
-      weights = tf.get_variable(
-          'weights',
-          shape=[384, 192],
-          initializer=tf.truncated_normal_initializer(
-              stddev=0.04, dtype=tf.float32),
-          dtype=tf.float32)
-      reg_params[weights.name] = weights
-      biases = tf.get_variable(
-          'biases', [192],
-          initializer=tf.constant_initializer(0.1),
-          dtype=tf.float32)
-      local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
-
-    return local4, reg_params
+          'b_' + str(layer_index),
+          initializer=tf.zeros([output_size], dtype=tf.float32),
+          use_resource=True)
+      hidden = self.activation(tf.nn.xw_plus_b(hidden, weights, biases))
+    return hidden, reg_params
 
   def get_encoding_and_params(self, inputs, **unused_kwargs):
     """Creates the model hidden representations and prediction ops.
 
-    For this model, the hidden representation is the last layer
+    For this model, the hidden representation is the last layer of the MLP,
     before the logit computation. The predictions are unnormalized logits.
 
     Args:
@@ -187,16 +114,11 @@ class ImageCNNAgreement(Model):
     """
     # Build layers.
     with tf.variable_scope(self.name):
-      if isinstance(inputs, (list, tuple)):
-        # If we have multiple inputs (e.g., in the case of the agreement model),
-        # split into left and right inputs, compute the hidden representation of
-        # each branch, then aggregate.
-        left = inputs[0]
-        right = inputs[1]
+      if isinstance(inputs, (tuple, list)):
         with tf.variable_scope('encoding'):
-          hidden1, reg_params = self._construct_layers(left)
+          hidden1, reg_params = self._construct_layers(inputs[0])
         with tf.variable_scope('encoding', reuse=True):
-          hidden2, _ = self._construct_layers(right)
+          hidden2, _ = self._construct_layers(inputs[1])
         hidden = self._aggregate((hidden1, hidden2))
       else:
         with tf.variable_scope('encoding'):
@@ -213,7 +135,7 @@ class ImageCNNAgreement(Model):
   def get_predictions_and_params(self, encoding, is_train, **kwargs):
     """Creates the model prediction op.
 
-    For this model, the hidden representation is the last layer
+    For this model, the hidden representation is the last layer of the MLP,
     before the logit computation. The predictions are unnormalized logits.
 
     Args:
@@ -234,24 +156,22 @@ class ImageCNNAgreement(Model):
       reg_params: A dictionary mapping from a variable name to a Tensor of
         parameters which will be used for regularization.
     """
+    reg_params = {}
+
     # Build layers.
     with tf.variable_scope(self.name + '/prediction'):
-      # We store all variables on which we apply weight decay in a dictionary.
-      reg_params = {}
-
-      # Create the output layer of the predictions.
       input_size = encoding.get_shape().dims[-1].value
       weights = tf.get_variable(
           'W_outputs',
-          shape=(input_size, self.output_dim),
-          initializer=tf.truncated_normal_initializer(
-              stddev=1.0 / float(input_size), dtype=tf.float32))
+          initializer=glorot((input_size, self.output_dim)),
+          use_resource=True)
+      reg_params['W_outputs'] = weights
       biases = tf.get_variable(
           'b_outputs',
-          initializer=tf.zeros([self.output_dim], dtype=tf.float32))
-      predictions = tf.add(
-          tf.matmul(encoding, weights), biases, name='predictions')
-
+          initializer=tf.zeros([self.output_dim], dtype=tf.float32),
+          use_resource=True)
+      predictions = tf.nn.xw_plus_b(encoding, weights, biases,
+                                    name='predictions')
       if self.is_binary_classification:
         predictions = predictions[:, 0]
 
@@ -289,13 +209,13 @@ class ImageCNNAgreement(Model):
         weight decay is applied.
       **kwargs: Keyword arguments, potentially containing the weight of the
         regularization term, passed under the name `weight_decay`. If this is
-        not provided, it defaults to 0.004.
+        not provided, it defaults to 0.0.
 
     Returns:
       loss: The cummulated loss value.
     """
     reg_params = reg_params if reg_params is not None else {}
-    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else 0.004
+    weight_decay = kwargs['weight_decay'] if 'weight_decay' in kwargs else None
 
     with tf.name_scope(name_scope):
       # Cross entropy error.
@@ -305,11 +225,10 @@ class ImageCNNAgreement(Model):
                 labels=targets, logits=predictions))
       else:
         loss = tf.losses.softmax_cross_entropy(targets, predictions)
-
       # Weight decay loss.
       if weight_decay is not None:
         for var in reg_params.values():
-          loss += weight_decay * tf.nn.l2_loss(var)
+          loss = loss + weight_decay * tf.nn.l2_loss(var)
     return loss
 
   def normalize_predictions(self, predictions):

@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import neural_structured_learning.configs as configs
-
+import six
 import tensorflow as tf
 
 
@@ -66,6 +66,10 @@ def normalize(tensor, norm_type, epsilon=1e-6):
   return normalized_tensor
 
 
+def _expand_to_rank(vector, rank):
+  return tf.reshape(vector, shape=[-1] + [1] * (rank - 1))
+
+
 def maximize_within_unit_norm(weights, norm_type):
   """Solves the maximization problem weights^T*x with the constraint norm(x)=1.
 
@@ -81,41 +85,67 @@ def maximize_within_unit_norm(weights, norm_type):
   Taylor approximation of the loss function.
 
   Args:
-    weights: tensor representing a batch of weights to define the maximization
-      objective.
-    norm_type: one of `nsl.configs.NormType`, the type of vector norm.
+    weights: A `Tensor` or a collection of `Tensor` objects representing a batch
+      of weights to define the maximization objective. If this is a collection,
+      the first dimension of all `Tensor` objects should be the same (i.e. batch
+      size).
+    norm_type: One of `nsl.configs.NormType`, the type of the norm in the
+      constraint.
 
   Returns:
-    A tensor representing a batch of adversarial perturbations as the solution
-    to the maximization problems. The returned tensor has the same shape and
-    type as the input `weights`.
+    A `Tensor` or a collection of `Tensor` objects (with the same structure and
+    shape as `weights`) representing a batch of adversarial perturbations as the
+    solution to the maximization problems.
   """
-  if isinstance(norm_type, str):  # Allows string to be converted into NormType.
+  if isinstance(norm_type, six.string_types):
+    # Allows string to be converted into NormType.
     norm_type = configs.NormType(norm_type)
 
   if norm_type == configs.NormType.INFINITY:
-    return tf.sign(weights)
-  elif norm_type == configs.NormType.L2:
-    return normalize(weights, norm_type)
+    return tf.nest.map_structure(tf.sign, weights)
+
+  tensors = tf.nest.flatten(weights)
+  tensor_ranks = [t.shape.rank for t in tensors]
+
+  def reduce_across_tensors(reduce_fn, input_tensors):
+    reduced_within_tensor = [
+        reduce_fn(t, axis=list(range(1, rank)))
+        for t, rank in zip(input_tensors, tensor_ranks)
+    ]
+    if len(input_tensors) == 1:
+      return reduced_within_tensor[0]
+    return reduce_fn(tf.stack(reduced_within_tensor, axis=-1), axis=-1)
+
+  if norm_type == configs.NormType.L2:
+    squared_norm = reduce_across_tensors(tf.reduce_sum,
+                                         [tf.square(t) for t in tensors])
+    inv_global_norm = tf.math.rsqrt(squared_norm)
+    normalized_tensors = [
+        tensor * _expand_to_rank(inv_global_norm, rank)
+        for tensor, rank in zip(tensors, tensor_ranks)
+    ]
+    return tf.nest.pack_sequence_as(weights, normalized_tensors)
   elif norm_type == configs.NormType.L1:
     # For L1 norm, the solution is to put 1 or -1 at a dimension with maximum
     # absolute value, and 0 at others. In case of multiple dimensions having the
     # same maximum absolute value, any distribution among them will do. Here we
     # choose to distribute evenly among those dimensions for efficient
     # implementation.
-    target_axes = list(range(1, len(weights.get_shape())))
-    abs_weights = tf.abs(weights)
-    max_elem = tf.reduce_max(
-        input_tensor=abs_weights, axis=target_axes, keepdims=True)
-    mask = tf.compat.v1.where(
-        tf.equal(abs_weights, max_elem), tf.sign(weights),
-        tf.zeros_like(weights))
-    num_nonzero = tf.reduce_sum(
-        input_tensor=tf.abs(mask), axis=target_axes, keepdims=True)
-    return mask / num_nonzero
-  else:
-    raise NotImplementedError('Unrecognized or unimplemented "norm_type": %s' %
-                              norm_type)
+    abs_tensors = [tf.abs(t) for t in tensors]
+    max_elem = reduce_across_tensors(tf.reduce_max, abs_tensors)
+    is_max_elem = [
+        tf.cast(tf.equal(t, _expand_to_rank(max_elem, rank)), t.dtype)
+        for t, rank in zip(abs_tensors, tensor_ranks)
+    ]
+    num_nonzero = reduce_across_tensors(tf.reduce_sum, is_max_elem)
+    mask = [
+        is_max * tf.sign(t) / _expand_to_rank(num_nonzero, rank)
+        for t, rank, is_max in zip(tensors, tensor_ranks, is_max_elem)
+    ]
+    return tf.nest.pack_sequence_as(weights, mask)
+
+  raise NotImplementedError('Unrecognized or unimplemented "norm_type": %s' %
+                            norm_type)
 
 
 def get_target_indices(logits, labels, adv_target_config):

@@ -15,8 +15,8 @@
 import logging
 import scipy
 
-from gam.data.dataset import GCNDataset
-from gam.data.dataset import GraphDataset
+from .dataset import GCNDataset
+from .dataset import GraphDataset
 
 import numpy as np
 

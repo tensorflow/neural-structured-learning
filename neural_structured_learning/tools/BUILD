@@ -61,7 +61,6 @@ py_library(
     srcs = ["build_graph.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":graph_utils",
         # package absl:app
         # package absl/flags
         # package absl/logging

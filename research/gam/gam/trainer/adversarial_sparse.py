@@ -2,8 +2,8 @@
 
 import tensorflow as tf
 
-from gam.trainer.adversarial_dense import get_normalized_vector
-from gam.trainer.adversarial_dense import get_normalizing_constant
+from .adversarial_dense import get_normalized_vector
+from .adversarial_dense import get_normalizing_constant
 
 epsilon = 5
 num_power_iterations = 1
