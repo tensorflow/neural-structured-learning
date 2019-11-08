@@ -266,8 +266,6 @@ def main(argv):
 
   # Graph regularization configuration.
   graph_reg_config = nsl.configs.make_graph_reg_config(
-      prefix=NBR_FEATURE_PREFIX,
-      weight_suffix=NBR_WEIGHT_SUFFIX,
       max_neighbors=hparams.num_neighbors,
       multiplier=hparams.graph_regularization_multiplier,
       distance_type=hparams.distance_type,
