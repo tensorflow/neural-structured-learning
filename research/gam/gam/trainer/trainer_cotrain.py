@@ -31,6 +31,7 @@ import logging
 import os
 
 from ..data.dataset import CotrainDataset
+from ..models.gcn import GCN
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -40,6 +41,7 @@ from .trainer_agreement import TrainerPerfectAgreement
 from .trainer_base import Trainer
 from .trainer_classification import TrainerClassification
 from .trainer_classification import TrainerPerfectClassification
+from .trainer_classification_gcn import TrainerClassificationGCN
 
 
 class TrainerCotraining(Trainer):
@@ -500,7 +502,10 @@ class TrainerCotraining(Trainer):
       trainer_cls = TrainerPerfectClassification(data=data)
     else:
       with tf.variable_scope('ClassificationModel'):
-        trainer_cls = TrainerClassification(
+        trainer_cls_class = (
+            TrainerClassificationGCN
+            if isinstance(self.model_cls, GCN) else TrainerClassification)
+        trainer_cls = trainer_cls_class(
             model=self.model_cls,
             data=data,
             trainer_agr=trainer_agr,

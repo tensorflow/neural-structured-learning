@@ -14,10 +14,10 @@
 """Functions for evaluating robustness."""
 import logging
 
+from .dataset import GCNDataset
 from .dataset import GraphDataset
-
 import numpy as np
-
+import scipy
 from scipy.sparse import coo_matrix
 
 
@@ -101,9 +101,20 @@ def add_noisy_edges(data, target_ratio_correct, symmetrical=True):
   adj = adj.tocoo()
   edges = [
       GraphDataset.Edge(src, tgt, val)
-      for src, tgt, val in zip(adj.row, adj.col, adj.data)
-  ]
-  data_noisy = data.copy(edges=edges)
+      for src, tgt, val in zip(adj.row, adj.col, adj.data)]
+
+  if isinstance(data, GCNDataset):
+    # Preprocessing of adjacency matrix for simple GCN model and conversion to
+    # tuple representation.
+    adj_normalized = GCNDataset.normalize_adj(
+        adj + scipy.eye(adj.shape[0])).astype(np.float32)
+    support = GCNDataset.sparse_to_tuple(adj_normalized)
+
+    data_noisy = data.copy(
+        edges=edges,
+        support=support)
+  else:
+    data_noisy = data.copy(edges=edges)
 
   # Compute the final number of correct edges, to verify it matches the target.
   ratio_correct, _, _ = compute_percent_correct(data_noisy)

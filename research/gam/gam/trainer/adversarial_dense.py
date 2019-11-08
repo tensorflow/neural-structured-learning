@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Utilities for virtual adversarial training."""
+"""Functions used for Virtual Adversarial Training on dense feature matrices."""
 import tensorflow as tf
 
 epsilon = 5
@@ -29,7 +29,7 @@ def kl_divergence_with_logit(q_logit, p_logit):
 
 
 def get_normalized_vector(d):
-  """Normalizes the providede input vector."""
+  """Normalizes the provided input vector."""
   d /= (1e-12 + tf.reduce_max(tf.abs(d), keep_dims=True))
   d /= tf.sqrt(1e-6 + tf.reduce_sum(tf.pow(d, 2.0), keep_dims=True))
   return d

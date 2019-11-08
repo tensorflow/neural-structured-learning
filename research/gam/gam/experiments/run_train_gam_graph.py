@@ -28,6 +28,8 @@ import os
 
 from absl import app
 from absl import flags
+from ..data.dataset import GCNDataset
+from ..data.dataset import PlanetoidDataset
 from ..data.loaders import load_data_planetoid
 from ..data.robustness import add_noisy_edges
 from .helper import get_model_agr
@@ -63,7 +65,7 @@ flags.DEFINE_string(
 flags.DEFINE_string('logging_config', '', 'Path to logging configuration file.')
 flags.DEFINE_string(
     'model_cls', 'mlp', 'Model type for the classification model. '
-    'Options are: `mlp`, `cnn`, `wide_resnet`')
+    'Options are: `mlp`, `cnn`, `wide_resnet`, `gcn`.')
 flags.DEFINE_string(
     'model_agr', 'mlp',
     'Model type for the agreement model. Options are: `mlp`, `cnn`, '
@@ -274,10 +276,12 @@ def main(argv):
   #                               DATA                                       #
   ############################################################################
   # Load data.
+  data_class = GCNDataset if FLAGS.model_cls == 'gcn' else PlanetoidDataset
   data = load_data_planetoid(
       name=FLAGS.dataset_name,
       path=FLAGS.data_path,
-      row_normalize=FLAGS.row_normalize)
+      row_normalize=FLAGS.row_normalize,
+      data_container_class=data_class)
 
   # Potentially add noisy edges. This can be used to asses the robustness of
   # GAM to noisy edges. See `Robustness` section of our paper.

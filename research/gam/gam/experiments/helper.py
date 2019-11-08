@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helper functions for GAMs."""
+
 from ..models.cnn import ImageCNNAgreement
+from ..models.gcn import GCN
 from ..models.mlp import MLP
 from ..models.wide_resnet import WideResnet
 
@@ -28,7 +30,12 @@ def parse_layers_string(layers_string):
   return num_hidden
 
 
-def get_model_cls(model_name, data, dataset_name, hidden=None, **unused_kwargs):
+def get_model_cls(model_name,
+                  data,
+                  dataset_name,
+                  hidden=None,
+                  dropout=None,
+                  **unused_kwargs):
   """Picks the models depending on the provided configuration flags."""
   # Create model classification.
   if model_name == 'mlp':
@@ -60,6 +67,21 @@ def get_model_cls(model_name, data, dataset_name, hidden=None, **unused_kwargs):
         width=2,
         num_residual_units=4,
         name='wide_resnet_cls')
+  elif model_name == 'gcn':
+    hidden = parse_layers_string(hidden) if hidden is not None else ()
+    assert len(
+        hidden
+    ) == 1, 'GCN implementation currently supports only one hidden layer.'
+    return GCN(
+        input_dim=data.num_features,
+        output_dim=data.num_classes,
+        hidden=hidden[0],
+        dropout=dropout,
+        aggregation=None,
+        hidden_aggregation=(),
+        activation=tf.nn.leaky_relu,
+        is_binary_classification=False,
+        name='gcn_cls')
   else:
     raise NotImplementedError()
 

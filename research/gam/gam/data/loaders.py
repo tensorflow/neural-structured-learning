@@ -230,7 +230,8 @@ def load_from_planetoid_files(dataset_name, path):
           test_mask, labels)
 
 
-def load_data_planetoid(name, path, splits_path=None, row_normalize=False):
+def load_data_planetoid(name, path, splits_path=None, row_normalize=False,
+                        data_container_class=PlanetoidDataset):
   """Load Planetoid data."""
   if splits_path is None:
     # Load from file in Planetoid format.
@@ -242,7 +243,7 @@ def load_data_planetoid(name, path, splits_path=None, row_normalize=False):
     (adj, features, _, _, _, train_mask, val_mask, test_mask,
      labels) = pickle.load(open(splits_path, 'rb'))
 
-  return PlanetoidDataset(
+  return data_container_class.build_from_adjacency_matrix(
       name,
       adj,
       features,

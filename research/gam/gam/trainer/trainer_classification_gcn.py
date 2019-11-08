@@ -29,7 +29,7 @@ from .trainer_base import batch_iterator
 from .trainer_base import Trainer
 
 
-class TrainerClassification(Trainer):
+class TrainerClassificationGCN(Trainer):
   """Trainer for the classifier component of a Graph Agreement Model.
 
   Attributes:
@@ -150,7 +150,7 @@ class TrainerClassification(Trainer):
                lr_decay_steps=None,
                lr_decay_rate=None,
                use_graph=False):
-    super(TrainerClassification, self).__init__(
+    super(TrainerClassificationGCN, self).__init__(
         model=model,
         abs_loss_chg_tol=abs_loss_chg_tol,
         rel_loss_chg_tol=rel_loss_chg_tol,
@@ -193,43 +193,54 @@ class TrainerClassification(Trainer):
     logging.info('Building classification TensorFlow graph...')
 
     # Create placeholders.
-    # First obtain the features shape from the dataset, and append a batch_size
-    # dimension to it (i.e., `None` to allow for variable batch size).
-    features_shape = [None] + list(data.features_shape)
-    input_features = tf.placeholder(
-        tf.float32, shape=features_shape, name='input_features')
-    input_features_unlabeled = tf.placeholder(
-        tf.float32, shape=features_shape, name='input_features_unlabeled')
+    input_indices = tf.placeholder(
+        tf.int64, shape=(None,), name='input_indices')
+    input_indices_unlabeled = tf.placeholder(
+        tf.int32, shape=(None,), name='input_indices_unlabeled')
     input_labels = tf.placeholder(tf.int64, shape=(None,), name='input_labels')
-    one_hot_labels = tf.one_hot(
-        input_labels, data.num_classes, name='input_labels_one_hot')
+
     # Create a placeholder specifying if this is train time.
     is_train = tf.placeholder_with_default(False, shape=[], name='is_train')
+
+    # Create some placeholders specific to GCN.
+    self.support_op = tf.sparse_placeholder(tf.float32, name='support')
+    self.features_op = tf.sparse_placeholder(tf.float32, name='features')
+    self.num_features_nonzero_op = tf.placeholder(
+        tf.int32, name='num_features_nonzero')
+
+    # Save the data required to fill in these placeholders. We don't add them
+    # directly in the graph as constants in order to avoid saving large
+    # checkpoints.
+    self.support = data.support
+    self.features = data.dataset.features_sparse
+    self.num_features_nonzero = data.num_features_nonzero
 
     # Create variables and predictions.
     with tf.variable_scope('predictions'):
       encoding, variables_enc, reg_params_enc = (
           self.model.get_encoding_and_params(
-              inputs=input_features, is_train=is_train))
+              inputs=self.features_op,
+              is_train=is_train,
+              support=self.support_op,
+              num_features_nonzero=self.num_features_nonzero_op))
       self.variables = variables_enc
       self.reg_params = reg_params_enc
       predictions, variables_pred, reg_params_pred = (
           self.model.get_predictions_and_params(
-              encoding=encoding, is_train=is_train))
+              encoding=encoding,
+              is_train=is_train,
+              support=self.support_op,
+              num_features_nonzero=self.num_features_nonzero_op))
       self.variables.update(variables_pred)
       self.reg_params.update(reg_params_pred)
       normalized_predictions = self.model.normalize_predictions(predictions)
       predictions_var_scope = tf.get_variable_scope()
 
-    # Create predictions on unlabeled data, which is only used for VAT loss.
-    with tf.variable_scope('predictions', reuse=True):
-      encoding_unlabeled, _, _ = self.model.get_encoding_and_params(
-          inputs=input_features_unlabeled,
-          is_train=is_train,
-          update_batch_stats=False)
-      predictions_unlabeled, _, _ = (
-          self.model.get_predictions_and_params(
-              encoding=encoding_unlabeled, is_train=is_train))
+      predictions_batch = tf.gather(predictions, input_indices, axis=0)
+      normalized_predictions_batch = tf.gather(
+          normalized_predictions, input_indices, axis=0)
+      one_hot_labels = tf.one_hot(
+          input_labels, data.num_classes, name='targets_one_hot')
 
     # Create a variable for weight decay that may be updated.
     weight_decay_var, weight_decay_update = self._create_weight_decay_var(
@@ -241,15 +252,18 @@ class TrainerClassification(Trainer):
     # Create loss.
     with tf.name_scope('loss'):
       if self.use_l2_classif:
-        loss_supervised = tf.square(one_hot_labels - normalized_predictions)
+        loss_supervised = tf.square(one_hot_labels -
+                                    normalized_predictions_batch)
         loss_supervised = tf.reduce_sum(loss_supervised, axis=-1)
         loss_supervised = tf.reduce_mean(loss_supervised)
       else:
         loss_supervised = self.model.get_loss(
-            predictions=predictions, targets=one_hot_labels, weight_decay=None)
+            predictions=predictions_batch,
+            targets=one_hot_labels,
+            weight_decay=None)
 
       # Agreement regularization loss.
-      loss_agr = self._get_agreement_reg_loss(data, is_train, features_shape)
+      loss_agr = self._get_agreement_reg_loss(data, is_train)
       # If the first co-train iteration trains the original model (for
       # comparison purposes), then we do not add an agreement loss.
       if self.first_iter_original:
@@ -263,14 +277,32 @@ class TrainerClassification(Trainer):
           loss_reg += weight_decay_var * tf.nn.l2_loss(var)
 
       # Adversarial loss, in case we want to add VAT on top of GAM.
-      loss_vat = get_loss_vat(input_features_unlabeled, predictions_unlabeled,
-                              is_train, model, predictions_var_scope)
-      num_unlabeled = tf.shape(input_features_unlabeled)[0]
+      ones = tf.fill(tf.shape(input_indices_unlabeled), 1.0)
+      unlabeled_mask = tf.scatter_nd(
+          input_indices_unlabeled[:, None],
+          updates=ones,
+          shape=[
+              data.num_samples,
+          ],
+          name='unlabeled_mask')
+      placeholders = {
+          'support': self.support_op,
+          'num_features_nonzero': self.num_features_nonzero_op
+      }
+      loss_vat = get_loss_vat(
+          inputs=self.features_op,
+          predictions=predictions,
+          mask=unlabeled_mask,
+          is_train=is_train,
+          model=model,
+          placeholders=placeholders,
+          predictions_var_scope=predictions_var_scope)
+      num_unlabeled = tf.shape(input_indices_unlabeled)[0]
       loss_vat = tf.cond(
           tf.greater(num_unlabeled, 0), lambda: loss_vat, lambda: 0.0)
       if self.use_ent_min:
         # Use entropy minimization with VAT (i.e. VATENT).
-        loss_ent = entropy_y_x(predictions_unlabeled)
+        loss_ent = entropy_y_x(predictions, unlabeled_mask)
         loss_vat = loss_vat + tf.cond(
             tf.greater(num_unlabeled, 0), lambda: loss_ent, lambda: 0.0)
       loss_vat = loss_vat * self.reg_weight_vat
@@ -285,7 +317,8 @@ class TrainerClassification(Trainer):
       loss_op = loss_supervised + loss_agr + loss_reg + loss_vat
 
     # Create accuracy.
-    accuracy = tf.equal(tf.argmax(normalized_predictions, 1), input_labels)
+    accuracy = tf.equal(
+        tf.argmax(normalized_predictions_batch, 1), input_labels)
     accuracy = tf.reduce_mean(tf.cast(accuracy, tf.float32))
 
     # Create Tensorboard summaries.
@@ -350,11 +383,12 @@ class TrainerClassification(Trainer):
     self.is_initialized = False
 
     self.rng = np.random.RandomState(seed)
-    self.input_features = input_features
-    self.input_features_unlabeled = input_features_unlabeled
+    self.input_indices = input_indices
+    self.input_indices_unlabeled = input_indices_unlabeled
     self.input_labels = input_labels
     self.predictions = predictions
     self.normalized_predictions = normalized_predictions
+    self.normalized_predictions_batch = normalized_predictions_batch
     self.weight_decay_var = weight_decay_var
     self.weight_decay_update = weight_decay_update
     self.iter_cls_total = iter_cls_total
@@ -399,7 +433,7 @@ class TrainerClassification(Trainer):
     iter_cls_total_update = iter_cls_total.assign_add(1)
     return iter_cls_total, iter_cls_total_update
 
-  def _get_agreement_reg_loss(self, data, is_train, features_shape):
+  def _get_agreement_reg_loss(self, data, is_train):
     """Computes the regularization loss coming from the agreement term.
 
     This is calculated using the following idea: we incur a loss for pairs of
@@ -421,19 +455,21 @@ class TrainerClassification(Trainer):
       data: A CotrainDataset object.
       is_train: A placeholder for a boolean that specifies if this is function
         is called as part of model training or inference.
-      features_shape: A tuple of integers containing the number of features in
-        each dimension of the inputs, not including batch size.
 
     Returns:
       The computed agreement loss op.
     """
     # Select num_pairs_reg pairs of samples from each category LL, LU, UU.
     # for which to do the regularization.
+    indices_ll_right = tf.placeholder(dtype=tf.int64, shape=(None,))
     indices_lu_left = tf.placeholder(dtype=tf.int64, shape=(None,))
     indices_lu_right = tf.placeholder(dtype=tf.int64, shape=(None,))
     indices_uu_left = tf.placeholder(dtype=tf.int64, shape=(None,))
     indices_uu_right = tf.placeholder(dtype=tf.int64, shape=(None,))
 
+    # First obtain the features shape from the dataset, and append a batch_size
+    # dimension to it (i.e., `None` to allow for variable batch size).
+    features_shape = [None] + list(data.features_shape)
     features_ll_right = tf.placeholder(dtype=tf.float32, shape=features_shape)
     features_lu_left = tf.placeholder(dtype=tf.float32, shape=features_shape)
     features_lu_right = tf.placeholder(dtype=tf.float32, shape=features_shape)
@@ -448,33 +484,25 @@ class TrainerClassification(Trainer):
     labels_lu_left = tf.one_hot(labels_lu_left_idx, data.num_classes)
 
     with tf.variable_scope('predictions', reuse=True):
-      encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_ll_right, is_train=is_train, update_batch_stats=False)
-      predictions_ll_right, _, _ = self.model.get_predictions_and_params(
-          encoding=encoding, is_train=is_train)
-      predictions_ll_right = self.model.normalize_predictions(
-          predictions_ll_right)
+      # Obtain predictions for all nodes in the graph.
+      encoding_all, _, _ = self.model.get_encoding_and_params(
+          inputs=self.features_op,
+          is_train=is_train,
+          support=self.support_op,
+          num_features_nonzero=self.num_features_nonzero_op,
+          update_batch_stats=False)
+      predictions_all, _, _ = self.model.get_predictions_and_params(
+          encoding=encoding_all,
+          is_train=is_train,
+          support=self.support_op,
+          num_features_nonzero=self.num_features_nonzero_op)
+      predictions_all = self.model.normalize_predictions(predictions_all)
 
-      encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_lu_right, is_train=is_train, update_batch_stats=False)
-      predictions_lu_right, _, _ = self.model.get_predictions_and_params(
-          encoding=encoding, is_train=is_train)
-      predictions_lu_right = self.model.normalize_predictions(
-          predictions_lu_right)
-
-      encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_uu_left, is_train=is_train, update_batch_stats=False)
-      predictions_uu_left, _, _ = self.model.get_predictions_and_params(
-          encoding=encoding, is_train=is_train)
-      predictions_uu_left = self.model.normalize_predictions(
-          predictions_uu_left)
-
-      encoding, _, _ = self.model.get_encoding_and_params(
-          inputs=features_uu_right, is_train=is_train, update_batch_stats=False)
-      predictions_uu_right, _, _ = self.model.get_predictions_and_params(
-          encoding=encoding, is_train=is_train)
-      predictions_uu_right = self.model.normalize_predictions(
-          predictions_uu_right)
+      # Select the nodes of interest.
+      predictions_ll_right = tf.gather(predictions_all, indices_ll_right)
+      predictions_lu_right = tf.gather(predictions_all, indices_lu_right)
+      predictions_uu_left = tf.gather(predictions_all, indices_uu_left)
+      predictions_uu_right = tf.gather(predictions_all, indices_uu_right)
 
     # Compute Euclidean distance between the label distributions that the
     # classification model predicts for the src and tgt of each pair.
@@ -527,6 +555,7 @@ class TrainerClassification(Trainer):
     # Scale each distance by its agreement weight and regularzation weight.
     loss = tf.reduce_mean(dists * weights * agreement)
 
+    self.indices_ll_right = indices_ll_right
     self.indices_lu_left = indices_lu_left
     self.indices_lu_right = indices_lu_right
     self.indices_uu_left = indices_uu_left
@@ -544,37 +573,36 @@ class TrainerClassification(Trainer):
     return loss
 
   def _construct_feed_dict(self,
-                           data_iterator,
+                           input_indices,
                            split,
                            pair_ll_iterator=None,
                            pair_lu_iterator=None,
                            pair_uu_iterator=None,
-                           data_iterator_unlabeled=None):
+                           unlabeled_indices=None):
     """Construct feed dictionary."""
     try:
-      input_indices = next(data_iterator)
       # Select the labels. Use the true, correct labels, at test time, and the
       # self-labeled ones at train time.
       labels = (
           self.data.get_original_labels(input_indices)
           if split == 'test' else self.data.get_labels(input_indices))
       feed_dict = {
-          self.input_features: self.data.get_features(input_indices),
+          self.input_indices: input_indices,
           self.input_labels: labels,
-          self.is_train: split == 'train'
+          self.is_train: split == 'train',
+          self.features_op: self.features,
+          self.support_op: self.support,
+          self.num_features_nonzero_op: self.num_features_nonzero,
       }
-      if data_iterator_unlabeled is not None:
+      if unlabeled_indices is not None:
         # This is not None only when using VAT regularization.
-        try:
-          input_indices = next(data_iterator_unlabeled)
-          input_features = self.data.get_features(input_indices)
-        except StopIteration:
-          input_features = np.zeros([0] + list(self.data.features_shape))
-        feed_dict.update({self.input_features_unlabeled: input_features})
+        feed_dict.update({self.input_indices_unlabeled: unlabeled_indices})
       if pair_ll_iterator is not None:
-        _, _, _, features_tgt, labels_src, labels_tgt = next(pair_ll_iterator)
+        _, indices_tgt, _, features_tgt, labels_src, labels_tgt = next(
+            pair_ll_iterator)
         feed_dict.update({
             self.features_ll_right: features_tgt,
+            self.indices_ll_right: indices_tgt,
             self.labels_ll_left: labels_src,
             self.labels_ll_right: labels_tgt
         })
@@ -699,34 +727,18 @@ class TrainerClassification(Trainer):
 
   def _evaluate(self, indices, split, session, summary_writer):
     """Evaluates the samples with the provided indices."""
-    data_iterator_val = batch_iterator(
-        indices,
-        batch_size=self.batch_size,
-        shuffle=False,
-        allow_smaller_batch=True,
-        repeat=False)
-    feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
-    cummulative_acc = 0.0
-    num_samples = 0
-    while feed_dict_val is not None:
-      val_acc, batch_size_actual = session.run(
-          (self.accuracy, self.batch_size_actual), feed_dict=feed_dict_val)
-      cummulative_acc += val_acc * batch_size_actual
-      num_samples += batch_size_actual
-      feed_dict_val = self._construct_feed_dict(data_iterator_val, split)
-    if num_samples > 0:
-      cummulative_acc /= num_samples
+    feed_dict_val = self._construct_feed_dict(indices, split)
+    val_acc = session.run(self.accuracy, feed_dict=feed_dict_val)
 
     if self.enable_summaries:
       summary = tf.Summary()
       summary.value.add(
-          tag='ClassificationModel/' + split + '_acc',
-          simple_value=cummulative_acc)
+          tag='ClassificationModel/' + split + '_acc', simple_value=val_acc)
       iter_cls_total = session.run(self.iter_cls_total)
       summary_writer.add_summary(summary, iter_cls_total)
       summary_writer.flush()
 
-    return cummulative_acc
+    return val_acc
 
   def train(self, data, session=None, **kwargs):
     """Train the classification model on the provided dataset.
@@ -766,20 +778,7 @@ class TrainerClassification(Trainer):
     unlabeled_indices = data.get_indices_unlabeled()
     val_indices = data.get_indices_val()
     test_indices = data.get_indices_test()
-    # Create an iterator for labeled samples for the supervised term.
-    data_iterator_train = batch_iterator(
-        train_indices,
-        batch_size=self.batch_size,
-        shuffle=True,
-        allow_smaller_batch=False,
-        repeat=True)
-    # Create an iterator for unlabeled samples for the VAT loss term.
-    data_iterator_unlabeled = batch_iterator(
-        unlabeled_indices,
-        batch_size=self.batch_size,
-        shuffle=True,
-        allow_smaller_batch=False,
-        repeat=True)
+
     # Create iterators for ll, lu, uu pairs of samples for the agreement term.
     if self.use_graph:
       pair_ll_iterator = self.edge_iterator(
@@ -807,12 +806,12 @@ class TrainerClassification(Trainer):
     checkpoint_saved = False
     while not has_converged:
       feed_dict = self._construct_feed_dict(
-          data_iterator=data_iterator_train,
+          input_indices=train_indices,
+          unlabeled_indices=unlabeled_indices,
           split='train',
           pair_ll_iterator=pair_ll_iterator,
           pair_lu_iterator=pair_lu_iterator,
-          pair_uu_iterator=pair_uu_iterator,
-          data_iterator_unlabeled=data_iterator_unlabeled)
+          pair_uu_iterator=pair_uu_iterator)
       if self.enable_summaries and step % self.summary_step == 0:
         loss_val, summary, iter_cls_total, _ = session.run(
             [self.loss_op, self.summary_op, self.iter_cls_total, self.train_op],
@@ -870,40 +869,15 @@ class TrainerClassification(Trainer):
 
   def predict(self, session, indices, is_train):
     """Make predictions for the provided sample indices."""
-    num_inputs = len(indices)
-    idx_start = 0
-    predictions = []
-    while idx_start < num_inputs:
-      idx_end = min(idx_start + self.batch_size, num_inputs)
-      batch_indices = indices[idx_start:idx_end]
-      input_features = self.data.get_features(batch_indices)
-      batch_predictions = session.run(
-          self.normalized_predictions,
-          feed_dict={
-              self.input_features: input_features,
-              self.is_train: is_train
-          })
-      predictions.append(batch_predictions)
-      idx_start = idx_end
-    if not predictions:
+    if not indices:
       return np.zeros((0, self.data.num_classes), dtype=np.float32)
-    return np.concatenate(predictions, axis=0)
-
-
-class TrainerPerfectClassification(Trainer):
-  """Trainer for a classifier that always predicts the correct value."""
-
-  def __init__(self, data):
-    self.data = data
-    self.vars_to_save = []
-
-  def train(self, unused_data, unused_session=None, **unused_kwargs):
-    logging.info('Perfect classifier, no need to train...')
-    return 1.0, 1.0
-
-  def predict(self, unused_session, indices_unlabeled, **unused_kwargs):
-    labels = self.data.get_original_labels(indices_unlabeled)
-    num_samples = len(indices_unlabeled)
-    predictions = np.zeros((num_samples, self.data.num_classes))
-    predictions[np.arange(num_samples), labels] = 1.0
+    feed_dict = {
+        self.input_indices: indices,
+        self.is_train: is_train,
+        self.num_features_nonzero_op: self.num_features_nonzero,
+        self.features_op: self.features,
+        self.support_op: self.support
+    }
+    predictions = session.run(
+        self.normalized_predictions_batch, feed_dict=feed_dict)
     return predictions
