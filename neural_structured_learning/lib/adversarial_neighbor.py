@@ -125,7 +125,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     """Generates adversarial neighbors and the corresponding weights.
 
     This function perturbs only *dense* tensors to generate adversarial
-    neighbors. No pertubation will be applied on sparse tensors  (e.g., string
+    neighbors. No perturbation will be applied on sparse tensors  (e.g., string
     or int). Therefore, in the generated adversarial neighbors, the values of
     these sparse tensors will be kept the same as the input_features. In other
     words, if input_features is a dictionary mapping feature names to tensors,

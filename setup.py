@@ -46,7 +46,7 @@ NSL_OVERVIEW = textwrap.dedent("""\
     tools for developers to train models with structured signals:
 
     * Keras APIs to enable training with graphs (explicit structure) and
-      adversarial pertubations (implicit structure).
+      adversarial perturbations (implicit structure).
 
     * TF ops and functions to enable training with structure when using
       lower-level TensorFlow APIs.

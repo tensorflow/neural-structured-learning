@@ -26,7 +26,7 @@ landing_page:
         <p>NSL generalizes to <a href="https://ai.google/research/pubs/pub46568.pdf">Neural Graph Learning</a> as well as <a href="https://arxiv.org/pdf/1412.6572.pdf">Adversarial Learning</a>. The NSL framework in TensorFlow provides the following easy-to-use
         APIs and tools for developers to train models with structured signals:</p>
         <ul style="padding-left: 20px;">
-          <li><b>Keras APIs</b> to enable training with graphs (explicit structure) and adversarial pertubations (implicit structure).</li>
+          <li><b>Keras APIs</b> to enable training with graphs (explicit structure) and adversarial perturbations (implicit structure).</li>
           <li><b>TF ops and functions</b> to enable training with structure when using lower-level TensorFlow APIs</li>
           <li><b>Tools</b> to build graphs and construct graph inputs for training</li>
         </ul>
