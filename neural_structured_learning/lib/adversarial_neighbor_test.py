@@ -17,14 +17,36 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl.testing import parameterized
 import neural_structured_learning.configs as configs
 from neural_structured_learning.lib import adversarial_neighbor as adv_lib
+import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
 
 
-class GenAdvNeighborTest(tf.test.TestCase):
+def call_gen_adv_neighbor_with_gradient_tape(x, loss_fn, adv_config):
+  with tf.GradientTape() as tape:
+    tape.watch(x)
+    loss = loss_fn(x)
+  adv_neighbor, _ = adv_lib.gen_adv_neighbor(
+      x, loss, adv_config, gradient_tape=tape)
+  return adv_neighbor
+
+
+def call_gen_adv_neighbor_with_tf_function(x, loss_fn, adv_config):
+
+  @tf.function
+  def gen_adv_neighbor(x):
+    loss = loss_fn(x)
+    adv_neighbor, _ = adv_lib.gen_adv_neighbor(x, loss, adv_config)
+    return adv_neighbor
+
+  return gen_adv_neighbor(x)
+
+
+class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
 
   def test_gen_adv_neighbor_for_single_tensor_feature(self):
     # Simple linear regression
@@ -475,6 +497,59 @@ class GenAdvNeighborTest(tf.test.TestCase):
     perturbation = 0.025
     self.assertAllClose(x['f1'] + perturbation, actual_neighbor['f1'])
     self.assertAllClose(x['f2'] + perturbation, actual_neighbor['f2'])
+
+  @parameterized.named_parameters([
+      ('gradient_tape', call_gen_adv_neighbor_with_gradient_tape),
+      ('tf_function', call_gen_adv_neighbor_with_tf_function),
+  ])
+  def test_gen_adv_neighbor_respects_feature_constraints(
+      self, gen_adv_neighbor_fn):
+    x = tf.constant([[0.0, 1.0]])
+    w = tf.constant([[-1.0, 1.0]])
+
+    loss_fn = lambda x: tf.linalg.matmul(x, w, transpose_b=True)
+    adv_config = configs.AdvNeighborConfig(
+        feature_mask=None,
+        adv_step_size=0.1,
+        adv_grad_norm='l2',
+        clip_value_min=0.0,
+        clip_value_max=1.0)
+    adv_neighbor = gen_adv_neighbor_fn(x, loss_fn, adv_config)
+    actual_neighbor = self.evaluate(adv_neighbor)
+    self.assertAllClose(x, actual_neighbor)
+
+  @parameterized.named_parameters([
+      ('gradient_tape', call_gen_adv_neighbor_with_gradient_tape),
+      ('tf_function', call_gen_adv_neighbor_with_tf_function),
+  ])
+  def test_gen_adv_neighbor_respects_per_feature_constraints(
+      self, gen_adv_neighbor_fn):
+    w1 = tf.constant(1.0, shape=(2, 2, 3))
+    w2 = tf.constant(-1.0, shape=(2, 2))
+    f1 = np.array([[[[0.0, 0.1, 0.2], [0.3, 0.4, 0.5]],
+                    [[0.6, 0.7, 0.8], [0.9, 1.0, 1.1]]]],
+                  dtype=np.float32)
+    f2 = np.array([[[0.0, 0.33], [0.66, 1.0]]], dtype=np.float32)
+    x = {'f1': tf.constant(f1), 'f2': tf.constant(f2)}
+
+    def loss_fn(x):
+      return tf.reduce_sum(w1 * x['f1']) + tf.reduce_sum(w2 * x['f2'])
+
+    adv_step_size = 0.5
+    adv_config = configs.AdvNeighborConfig(
+        adv_step_size=adv_step_size,
+        adv_grad_norm='infinity',
+        clip_value_min={'f2': 0.0},
+        clip_value_max={'f1': 1.0})
+    adv_neighbor = gen_adv_neighbor_fn(x, loss_fn, adv_config)
+    actual_neighbor = self.evaluate(adv_neighbor)
+
+    # gradient = w, perturbation = adv_step_size * sign(w)
+    expected_neighbor = {
+        'f1': np.minimum(f1 + adv_step_size, 1.0),
+        'f2': np.maximum(f2 - adv_step_size, 0.0),
+    }
+    self.assertAllClose(expected_neighbor, actual_neighbor)
 
 
 if __name__ == '__main__':

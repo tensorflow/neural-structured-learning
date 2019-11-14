@@ -38,18 +38,31 @@ class AdvNeighborConfig(object):
   """Contains configuration for generating adversarial neighbors.
 
   Attributes:
-    feature_mask: mask (w/ 0-1 values) applied on the gradient. The shape should
-      be the same as (or broadcastable to) input features. If set to `None`, no
-      feature mask will be applied.
+    feature_mask: mask (w/ 0-1 values) applied on the perturbations. The
+      dimensions with zero value won't be perturbed. The shape should be the
+      same as (or broadcastable to) input features. If the input features are in
+      a collection (e.g. list or dictionary), this field should also be a
+      collection of the same structure. If set to `None`, no feature mask will
+      be applied.
     adv_step_size: step size to find the adversarial sample. Default set to
       0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
       converted to `nsl.configs.NormType` when applicable (e.g., `'l2'` ->
       `nls.configs.NormType.L2`). Default set to L2 norm.
+    clip_value_min: minimum value to clip the features after perturbation. The
+      shape should be the same as (or broadcastable to) input features. If the
+      input features are in a collection (e.g. list or dictionary), this field
+      should also be a collection with the same structure. An omitted or
+      `None`-valued entry in the collection indicates no constraint on the
+      corresponding feature.
+    clip_value_max: maximum value to clip the feature after perturbation. (See
+      `clip_value_min` for the structure and shape limitations.)
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
   adv_grad_norm = attr.ib(converter=NormType, default='l2')
+  clip_value_min = attr.ib(default=None)
+  clip_value_max = attr.ib(default=None)
 
 
 @attr.s
@@ -70,7 +83,9 @@ def make_adv_reg_config(
     multiplier=attr.fields(AdvRegConfig).multiplier.default,
     feature_mask=attr.fields(AdvNeighborConfig).feature_mask.default,
     adv_step_size=attr.fields(AdvNeighborConfig).adv_step_size.default,
-    adv_grad_norm=attr.fields(AdvNeighborConfig).adv_grad_norm.default):
+    adv_grad_norm=attr.fields(AdvNeighborConfig).adv_grad_norm.default,
+    clip_value_min=attr.fields(AdvNeighborConfig).clip_value_min.default,
+    clip_value_max=attr.fields(AdvNeighborConfig).clip_value_max.default):
   """Creates an `nsl.configs.AdvRegConfig` object.
 
   Args:
@@ -82,6 +97,14 @@ def make_adv_reg_config(
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
       converted to `NormType` when applicable (e.g., a value of 'l2' will be
       converted to `nsl.configs.NormType.L2`). Defaults to L2 norm.
+    clip_value_min: minimum value to clip the features after perturbation. The
+      shape should be the same as (or broadcastable to) input features. If the
+      input features are in a collection (e.g. list or dictionary), this field
+      should also be a collection with the same structure. An omitted or
+      `None`-valued entry in the collection indicates no constraint on the
+      corresponding feature.
+    clip_value_max: maximum value to clip the feature after perturbation. (See
+      `clip_value_min` for the structure and shape limitations.)
 
   Returns:
     An `nsl.configs.AdvRegConfig` object.
@@ -91,7 +114,9 @@ def make_adv_reg_config(
       adv_neighbor_config=AdvNeighborConfig(
           feature_mask=feature_mask,
           adv_step_size=adv_step_size,
-          adv_grad_norm=adv_grad_norm))
+          adv_grad_norm=adv_grad_norm,
+          clip_value_min=clip_value_min,
+          clip_value_max=clip_value_max))
 
 
 class AdvTargetType(enum.Enum):

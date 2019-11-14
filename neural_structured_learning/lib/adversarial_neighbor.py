@@ -30,6 +30,15 @@ from neural_structured_learning.lib import utils
 import tensorflow as tf
 
 
+def _apply_feature_constraints(feature, min_value, max_value):
+  """Constrains `feature` to be between `min_value` and `max_value`."""
+  if min_value is not None:
+    feature = tf.math.maximum(feature, min_value)
+  if max_value is not None:
+    feature = tf.math.minimum(feature, max_value)
+  return feature
+
+
 class _GenAdvNeighbor(abs_gen.GenNeighbor):
   """Class for generating adversarial neighbors.
 
@@ -158,6 +167,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     # feature_masks can be looked up by key.
     features = self._compose_as_dict(input_features)
     feature_masks = self._compose_as_dict(self._adv_config.feature_mask)
+    feature_min = self._compose_as_dict(self._adv_config.clip_value_min)
+    feature_max = self._compose_as_dict(self._adv_config.clip_value_max)
 
     dense_features, sparse_features = self._split_dict(
         features, lambda feature: isinstance(feature, tf.Tensor))
@@ -165,7 +176,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       sparse_keys = str(sparse_features.keys())
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb non-Tensor input: ' + sparse_keys)
-      logging.warn('Cannot perturb non-Tensor input: %s', sparse_keys)
+      logging.warning('Cannot perturb non-Tensor input: %s', sparse_keys)
 
     keyed_grads = self._compute_gradient(dense_features)
     masked_grads = {
@@ -180,9 +191,12 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
 
     # Sparse features are copied directly without perturbation.
     adv_neighbor = dict(sparse_features)
-    for (key, feature) in dense_features.items():
+    for key, feature in dense_features.items():
       adv_neighbor[key] = tf.stop_gradient(
-          feature + perturbations[key] if key in perturbations else feature)
+          _apply_feature_constraints(
+              feature + perturbations[key] if key in perturbations else feature,
+              feature_min.get(key, None), feature_max.get(key, None)))
+
     # Converts the perturbed examples back to their original structure.
     adv_neighbor = self._decompose_as(input_features, adv_neighbor)
 
