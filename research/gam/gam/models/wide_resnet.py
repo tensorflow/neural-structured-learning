@@ -22,6 +22,7 @@ from .models_base import Model
 
 import numpy as np
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 
 def fast_flip(images, is_training):
@@ -51,7 +52,7 @@ def jitter(input_data, is_training):
     jit = tf.random_uniform([bsz, 8], minval=-2, maxval=3, dtype=tf.int32)
     jit = tf.cast(jit, tf.float32)
     xforms = base + jit * mask
-    processed_data = tf.contrib.image.transform(images=inp, transforms=xforms)
+    processed_data = tfa.image.transform(images=inp, transforms=xforms)
     cropped_data = processed_data[:, 2:-2, 2:-2, :]
     return cropped_data
 
@@ -65,8 +66,8 @@ class WideResnet(Model):
     num_classes: Integer representing the number of classes.
     lrelu_leakiness: A float representing the weight of the Leaky Relu
       parameter.
-    horizontal_flip: A boolean specifying whether we do random horizontal
-      flips of the training data, for data augmentation.
+    horizontal_flip: A boolean specifying whether we do random horizontal flips
+      of the training data, for data augmentation.
     random_translation: A boolean specifying whether we do random translations
       of the training data, for data augmentation.
     gaussian_noise: Boolean specifying whether to add Gaussian noise to the
@@ -76,11 +77,11 @@ class WideResnet(Model):
     name: String representing the model name.
     aggregation: String representing an aggregation operation that could be
       applied to the inputs. See superclass attributes for details.
-    hidden_aggregation: A tuple or list of integers representing the
-      number of units in each layer of aggregation multilayer percepron. After
-      the inputs are passed through the encoding layers, before aggregation they
-      are passed through a fully connected network with these numbers of hidden
-      units in each layer.
+    hidden_aggregation: A tuple or list of integers representing the number of
+      units in each layer of aggregation multilayer percepron. After the inputs
+      are passed through the encoding layers, before aggregation they are passed
+      through a fully connected network with these numbers of hidden units in
+      each layer.
     activation: An activation function to be applied to the outputs of each
       fully connected layer in the aggregation network.
     is_binary_classification: Boolean specifying if this is model for binary
@@ -193,9 +194,8 @@ class WideResnet(Model):
     # Logits layer.
     with tf.variable_scope(self.name + "/prediction"):
       w_init = tf.glorot_normal_initializer()
-      logits = tf.layers.dense(encoding,
-                               self.num_classes,
-                               kernel_initializer=w_init)
+      logits = tf.layers.dense(
+          encoding, self.num_classes, kernel_initializer=w_init)
       if self.is_binary_classification:
         logits = logits[:, 0]
 
@@ -233,11 +233,6 @@ class WideResnet(Model):
       reg_params: A dictionary mapping from a variable name to a Tensor of
         parameters which will be used for regularization.
     """
-    # If `update_batch_stats` is false, have batch norm update a dummy
-    # collection whose ops are never run.
-    batch_norm_updates_collections = (
-        tf.GraphKeys.UPDATE_OPS if update_batch_stats else "_unused")
-
     # Helper functions
     def _conv(name, x, filter_size, in_filters, out_filters, strides):
       """Convolution."""
@@ -263,35 +258,23 @@ class WideResnet(Model):
       """Residual unit with 2 sub layers."""
       if activate_before_residual:
         with tf.variable_scope("shared_activation"):
-          x = tf.contrib.layers.batch_norm(
-              x,
-              scale=True,
-              updates_collections=batch_norm_updates_collections,
-              is_training=is_train,
-          )
+          x = tf.layers.batch_normalization(
+              x, axis=1, scale=True, training=is_train)
           x = _relu(x, self.lrelu_leakiness)
           orig_x = x
       else:
         with tf.variable_scope("residual_only_activation"):
           orig_x = x
-          x = tf.contrib.layers.batch_norm(
-              x,
-              scale=True,
-              updates_collections=batch_norm_updates_collections,
-              is_training=is_train,
-          )
+          x = tf.layers.batch_normalization(
+              x, axis=1, scale=True, training=is_train)
           x = _relu(x, self.lrelu_leakiness)
 
       with tf.variable_scope("sub1"):
         x = _conv("conv1", x, 3, in_filter, out_filter, stride)
 
       with tf.variable_scope("sub2"):
-        x = tf.contrib.layers.batch_norm(
-            x,
-            scale=True,
-            updates_collections=batch_norm_updates_collections,
-            is_training=is_train,
-        )
+        x = tf.layers.batch_normalization(
+            x, axis=1, scale=True, training=is_train)
         x = _relu(x, self.lrelu_leakiness)
         x = _conv("conv2", x, 3, out_filter, out_filter, [1, 1, 1, 1])
 
@@ -308,8 +291,8 @@ class WideResnet(Model):
     if self.random_translation:
       x = jitter(x, is_training=is_train)
     if self.gaussian_noise:
-      x = tf.cond(
-          is_train, lambda: x + tf.random_normal(tf.shape(x)) * 0.15, lambda: x)
+      x = tf.cond(is_train, lambda: x + tf.random_normal(tf.shape(x)) * 0.15,
+                  lambda: x)
     x = _conv("init_conv", x, 3, 3, 16, [1, 1, 1, 1])
 
     activate_before_residual = [True, False, False]
@@ -338,12 +321,8 @@ class WideResnet(Model):
         x = res_func(x, filters[3], filters[3], [1, 1, 1, 1], False)
 
     with tf.variable_scope("unit_last"):
-      x = tf.contrib.layers.batch_norm(
-          x,
-          scale=True,
-          updates_collections=batch_norm_updates_collections,
-          is_training=is_train,
-      )
+      x = tf.layers.batch_normalization(
+          x, axis=1, scale=True, training=is_train)
       x = _relu(x, self.lrelu_leakiness)
       # Global average pooling.
       x = tf.reduce_mean(x, [1, 2])
