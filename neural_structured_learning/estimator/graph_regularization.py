@@ -58,7 +58,7 @@ def add_graph_regularization(estimator,
     Args:
       features: This is the first item returned from the `input_fn` passed to
         `train`, `evaluate`, and `predict`. This should be a dictionary
-        containing sample features as well as corresponding neighbor features,
+        containing sample features as well as corresponding neighbor features
         and neighbor weights.
       labels: This is the second item returned from the `input_fn` passed to
         `train`, `evaluate`, and `predict`. This should be a single `Tensor` or
@@ -73,8 +73,8 @@ def add_graph_regularization(estimator,
         Estimators from hyper parameter tuning.
       config: Optional `tf.estimator.RunConfig` object. Will receive what is
         passed to Estimator as its `config` parameter, or a default value.
-        Allows updating things in the model_fn based on configuration such as
-        `num_ps_replicas`, or `model_dir`. Unused currently.
+        Allows setting up things in the `model_fn` based on configuration such
+        as `num_ps_replicas`, or `model_dir`. Unused currently.
 
     Returns:
       A `tf.EstimatorSpec` whose loss incorporates graph-based regularization.

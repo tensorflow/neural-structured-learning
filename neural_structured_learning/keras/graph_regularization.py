@@ -26,7 +26,7 @@ class GraphRegularization(tf.keras.Model):
   """Class that wraps a given `Keras` model to include graph regularization.
 
   Graph regularization is configured by an instance of
-  `nsl.configs.GraphRegConfig`, and the resulting loss is added as a
+  `nsl.configs.GraphRegConfig` and the resulting loss is added as a
   regularization term to the model's training objective. The graph-regularized
   model reuses the layers and variables from the base model. So, training this
   model will also update the variables in the base model.
@@ -97,7 +97,7 @@ class GraphRegularization(tf.keras.Model):
       **kwargs: Additional keyword arguments to be passed to `self.base_model`.
 
     Returns:
-      The output tensors for the wrapped model.
+      The output tensors for the wrapped graph-regularized model.
     """
     sample_features, nbr_features, nbr_weights = self.nbr_features_layer(inputs)
     base_output = self.base_model(sample_features, training=training, **kwargs)
