@@ -89,7 +89,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     if invalid_grads:
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb features ' + str(invalid_grads.keys()))
-      logging.warn('Cannot perturb features %s', invalid_grads.keys())
+      logging.log_first_n(logging.WARNING, 'Cannot perturb features %s', 1,
+                          invalid_grads.keys())
 
     # Guards against numerical errors. If the gradient is malformed (inf, -inf,
     # or NaN) on a dimension, replace it with 0, which has the effect of not
@@ -176,7 +177,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       sparse_keys = str(sparse_features.keys())
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb non-Tensor input: ' + sparse_keys)
-      logging.warning('Cannot perturb non-Tensor input: %s', sparse_keys)
+      logging.log_first_n(logging.WARNING,
+                          'Cannot perturb non-Tensor input: %s', 1, sparse_keys)
 
     keyed_grads = self._compute_gradient(dense_features)
     masked_grads = {
