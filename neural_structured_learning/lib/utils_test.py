@@ -729,5 +729,130 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
     self.assertAllEqual(nbr_weights, expected_neighbor_weights)
 
 
+class StripNeighborFeaturesTest(tf.test.TestCase):
+  """Tests removal of neighbor features from a feature dictionary."""
+
+  def testEmptyFeatures(self):
+    """Tests strip_neighbor_features with empty input."""
+    features = dict()
+    neighbor_config = configs.GraphNeighborConfig()
+    sample_features = utils.strip_neighbor_features(features, neighbor_config)
+
+    # We create a dummy tensor so that the computation graph is not empty.
+    dummy_tensor = tf.constant(1.0)
+    sample_features, dummy_tensor = self.evaluate(
+        [sample_features, dummy_tensor])
+    self.assertEmpty(sample_features)
+
+  def testNoNeighborFeatures(self):
+    """Tests strip_neighbor_features when there are no neighbor features."""
+    features = {'F0': tf.constant(11.0, shape=[2, 2])}
+    neighbor_config = configs.GraphNeighborConfig()
+    sample_features = utils.strip_neighbor_features(features, neighbor_config)
+
+    expected_sample_features = {'F0': tf.constant(11.0, shape=[2, 2])}
+
+    sample_features = self.evaluate(sample_features)
+
+    # Check that only the sample features are retained.
+    feature_keys = sorted(sample_features.keys())
+    self.assertListEqual(feature_keys, ['F0'])
+
+    # Check that the values of the sample feature remains unchanged.
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+
+  def testBatchedFeatures(self):
+    """Tests strip_neighbor_features with batched input features."""
+    features = {
+        'F0':
+            tf.constant(11.0, shape=[2, 2]),
+        'F1':
+            tf.SparseTensor(
+                indices=[[0, 0], [0, 1]], values=[1.0, 2.0], dense_shape=[2,
+                                                                          4]),
+        'NL_nbr_0_F0':
+            tf.constant(22.0, shape=[2, 2]),
+        'NL_nbr_0_F1':
+            tf.SparseTensor(
+                indices=[[1, 0], [1, 1]], values=[3.0, 4.0], dense_shape=[2,
+                                                                          4]),
+        'NL_nbr_0_weight':
+            tf.constant(0.25, shape=[2, 1]),
+    }
+    neighbor_config = configs.GraphNeighborConfig()
+    sample_features = utils.strip_neighbor_features(features, neighbor_config)
+
+    expected_sample_features = {
+        'F0':
+            tf.constant(11.0, shape=[2, 2]),
+        'F1':
+            tf.SparseTensor(
+                indices=[[0, 0], [0, 1]], values=[1.0, 2.0], dense_shape=[2,
+                                                                          4]),
+    }
+
+    sample_features = self.evaluate(sample_features)
+
+    # Check that only the sample features are retained.
+    feature_keys = sorted(sample_features.keys())
+    self.assertListEqual(feature_keys, ['F0', 'F1'])
+
+    # Check that the values of the sample features remain unchanged.
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+    self.assertAllEqual(sample_features['F1'].values,
+                        expected_sample_features['F1'].values)
+    self.assertAllEqual(sample_features['F1'].indices,
+                        expected_sample_features['F1'].indices)
+    self.assertAllEqual(sample_features['F1'].dense_shape,
+                        expected_sample_features['F1'].dense_shape)
+
+  def testFeaturesWithDynamicBatchSizeAndFeatureShape(self):
+    """Tests the case when the batch size and feature shape are both dynamic."""
+    # Use a dynamic batch size and a dynamic feature shape. The former
+    # corresponds to the first dimension of the tensors defined below, and the
+    # latter corresonponds to the second dimension of 'sample_features' and
+    # 'neighbor_i_features'.
+
+    feature_specs = {
+        'F0': tf.TensorSpec((None, None, 3), tf.float32),
+        'NL_nbr_0_F0': tf.TensorSpec((None, None, 3), tf.float32),
+        'NL_nbr_0_weight': tf.TensorSpec((None, 1), tf.float32),
+    }
+
+    # Specify a batch size of 3 and a pre-batching feature shape of 2x3 at run
+    # time.
+    sample1 = [[1, 2, 3], [3, 2, 1]]
+    sample2 = [[4, 5, 6], [6, 5, 4]]
+    sample3 = [[7, 8, 9], [9, 8, 7]]
+    sample_features = [sample1, sample2, sample3]  # 3x2x3
+
+    neighbor_0_features = [[[1, 3, 5], [5, 3, 1]], [[7, 9, 11], [11, 9, 7]],
+                           [[13, 15, 17], [17, 15, 13]]]  # 3x2x3
+    neighbor_0_weights = [[0.25], [0.5], [0.75]]  # 3x1
+
+    expected_sample_features = {'F0': sample_features}
+
+    features = {
+        'F0': sample_features,
+        'NL_nbr_0_F0': neighbor_0_features,
+        'NL_nbr_0_weight': neighbor_0_weights,
+    }
+
+    neighbor_config = configs.GraphNeighborConfig()
+
+    @tf.function(input_signature=[feature_specs])
+    def _strip_neighbor_features(features):
+      return utils.strip_neighbor_features(features, neighbor_config)
+
+    sample_features = self.evaluate(_strip_neighbor_features(features))
+
+    # Check that only the sample features are retained.
+    feature_keys = sorted(sample_features.keys())
+    self.assertListEqual(feature_keys, ['F0'])
+
+    # Check that the value of the sample feature remains unchanged.
+    self.assertAllEqual(sample_features['F0'], expected_sample_features['F0'])
+
+
 if __name__ == '__main__':
   tf.test.main()

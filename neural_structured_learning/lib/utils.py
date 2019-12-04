@@ -560,3 +560,24 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
                                            keep_rank)
 
   return sample_features, neighbor_features, neighbor_weights
+
+
+def strip_neighbor_features(features, neighbor_config):
+  """Strips graph neighbor features from a feature dictionary.
+
+  Args:
+    features: Dictionary of tensors mapping feature names to tensors. This
+      dictionary includes sample features but may or may not include
+      corresponding neighbor features for each sample feature.
+    neighbor_config: An instance of `nsl.configs.GraphNeighborConfig`.
+
+  Returns:
+    A dictionary mapping only sample feature names to tensors. Neighbor
+    features in the input are not included.
+  """
+
+  return {
+      key: value
+      for key, value in features.items()
+      if not key.startswith(neighbor_config.prefix)
+  }
