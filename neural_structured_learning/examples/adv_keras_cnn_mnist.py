@@ -37,6 +37,9 @@ import tensorflow as tf
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('epochs', None, 'Number of epochs to train.')
+flags.DEFINE_integer('steps_per_epoch', None,
+                     'Number of steps in each training epoch.')
+flags.DEFINE_integer('eval_steps', None, 'Number of steps to evaluate.')
 flags.DEFINE_float('adv_step_size', None,
                    'Step size for generating adversarial examples.')
 
@@ -62,14 +65,21 @@ class HParams(object):
   batch_size = attr.ib(default=32)
   buffer_size = attr.ib(default=10000)
   epochs = attr.ib(default=5)
+  steps_per_epoch = attr.ib(default=None)
+  eval_steps = attr.ib(default=None)
 
 
 def get_hparams():
+  """Returns the hyperparameters with defaults overwritten by flags."""
   hparams = HParams()
   if FLAGS.epochs:
     hparams.epochs = FLAGS.epochs
   if FLAGS.adv_step_size:
     hparams.adv_step_size = FLAGS.adv_step_size
+  if FLAGS.steps_per_epoch:
+    hparams.steps_per_epoch = FLAGS.steps_per_epoch
+  if FLAGS.eval_steps:
+    hparams.eval_steps = FLAGS.eval_steps
   return hparams
 
 
@@ -136,8 +146,11 @@ def train_and_evaluate(model, hparams, train_dataset, test_dataset):
       optimizer='adam',
       loss='sparse_categorical_crossentropy',
       metrics=['accuracy'])
-  model.fit(train_dataset, epochs=hparams.epochs)
-  eval_result = model.evaluate(test_dataset)
+  model.fit(
+      train_dataset,
+      epochs=hparams.epochs,
+      steps_per_epoch=hparams.steps_per_epoch)
+  eval_result = model.evaluate(test_dataset, steps=hparams.eval_steps)
   return list(zip(model.metrics_names, eval_result))
 
 
@@ -169,6 +182,8 @@ def evaluate_robustness(model_to_attack, dataset, models, hparams):
       for name in models.keys()
   }
 
+  if hparams.eval_steps:
+    dataset = dataset.take(hparams.eval_steps)
   # When running on accelerators, looping over the dataset inside a tf.function
   # may be much faster.
   for batch in dataset:

@@ -43,6 +43,9 @@ import tensorflow as tf
 FLAGS = flags.FLAGS
 FLAGS.showprefixforinfo = False
 
+flags.DEFINE_integer('train_epochs', None, 'Number of epochs to train.')
+flags.DEFINE_integer('eval_steps', None, 'Number of steps to evaluate.')
+
 NBR_FEATURE_PREFIX = 'NL_nbr_'
 NBR_WEIGHT_SUFFIX = '_weight'
 
@@ -69,7 +72,12 @@ class HParams(object):
 
 def get_hyper_parameters():
   """Returns the hyper-parameters used for training."""
-  return HParams()
+  hparams = HParams()
+  if FLAGS.train_epochs:
+    hparams.train_epochs = FLAGS.train_epochs
+  if FLAGS.eval_steps:
+    hparams.eval_steps = FLAGS.eval_steps
+  return hparams
 
 
 def load_dataset(filename):
