@@ -84,6 +84,20 @@ class GraphRegularization(tf.keras.Model):
 
   compile.__doc__ = tf.keras.Model.compile.__doc__
 
+  # Override the evaluate and the predict methods so that we can use the base
+  # model for evaluation/prediction rather than the graph-regularized model.
+  # This is because once the graph-regularized Keras model is built, it expects
+  # neighbor features as input for all modes and not just for training.
+  def evaluate(self, *args, **kwargs):
+    return self.base_model.evaluate(*args, **kwargs)
+
+  evaluate.__doc__ = tf.keras.Model.evaluate.__doc__
+
+  def predict(self, *args, **kwargs):
+    return self.base_model.predict(*args, **kwargs)
+
+  predict.__doc__ = tf.keras.Model.predict.__doc__
+
   def call(self, inputs, training=False, **kwargs):
     """Incorporates graph regularization into the loss of `base_model`.
 
@@ -99,30 +113,24 @@ class GraphRegularization(tf.keras.Model):
     Returns:
       The output tensors for the wrapped graph-regularized model.
     """
-    sample_features, nbr_features, nbr_weights = self.nbr_features_layer(inputs)
+    # Invoke the call() function of the neighbor features layer directly instead
+    # of invoking it as a callable to avoid Keras from wrapping placeholder
+    # tensors with the tf.identity() op.
+    sample_features, nbr_features, nbr_weights = self.nbr_features_layer.call(
+        inputs)
     base_output = self.base_model(sample_features, training=training, **kwargs)
 
+    # For evaluation and prediction, we use the base model. So, this overridden
+    # call function will get invoked only for training.
     has_nbr_inputs = nbr_weights is not None and nbr_features
-
-    # 'training' is a boolean or boolean tensor. So, we have to use the tf.cond
-    # op to be able to write conditional code based on its value.
-
-    def graph_loss_with_regularization():
-      if (has_nbr_inputs and self.graph_reg_config.multiplier > 0):
-        # Use logits for regularization.
-        sample_logits = base_output
-        nbr_logits = self.base_model(nbr_features, training=training, **kwargs)
-        return self.regularizer(
-            sources=sample_logits, targets=nbr_logits, weights=nbr_weights)
-      else:
-        return tf.constant(0, dtype=tf.float32)
-
-    def graph_loss_without_regularization():
-      return tf.constant(0, dtype=tf.float32)
-
-    graph_loss = tf.cond(
-        tf.equal(training, tf.constant(True)), graph_loss_with_regularization,
-        graph_loss_without_regularization)
+    if (has_nbr_inputs and self.graph_reg_config.multiplier > 0):
+      # Use logits for regularization.
+      sample_logits = base_output
+      nbr_logits = self.base_model(nbr_features, training=training, **kwargs)
+      graph_loss = self.regularizer(
+          sources=sample_logits, targets=nbr_logits, weights=nbr_weights)
+    else:
+      graph_loss = tf.constant(0, dtype=tf.float32)
 
     # Note that add_metric() cannot be invoked in a control flow branch.
     self.add_metric(graph_loss, name='graph_loss', aggregation='mean')

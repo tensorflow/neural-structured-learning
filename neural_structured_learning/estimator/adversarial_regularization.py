@@ -80,7 +80,7 @@ def add_adversarial_regularization(estimator,
         `num_ps_replicas`, or `model_dir`. Unused currently.
 
     Returns:
-      A `tf.EstimatorSpec` whose loss incorporates graph-based regularization.
+      A `tf.estimator.EstimatorSpec` with adversarial regularization.
     """
 
     # Uses the same variable scope for calculating the original objective and

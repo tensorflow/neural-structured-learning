@@ -64,6 +64,8 @@ def make_feature_spec(input_shape, max_neighbors):
 def build_linear_sequential_model(input_shape, weights, num_output=1):
   model = tf.keras.Sequential()
   model.add(
+      tf.keras.layers.InputLayer(input_shape=input_shape, name=FEATURE_NAME))
+  model.add(
       tf.keras.layers.Dense(
           num_output,
           input_shape=input_shape,
@@ -102,7 +104,7 @@ def build_linear_subclass_model(input_shape, weights, num_output=1):
   return LinearModel()
 
 
-def make_dataset(example_proto, input_shape, max_neighbors):
+def make_dataset(example_proto, input_shape, training, max_neighbors):
   """Construct a tf.data.Dataset from the given Example."""
 
   def make_parse_example_fn(feature_spec):
@@ -119,7 +121,8 @@ def make_dataset(example_proto, input_shape, max_neighbors):
   serialized_example = example.SerializeToString()
   dataset = tf.data.Dataset.from_tensors(
       tf.convert_to_tensor(serialized_example))
-  dataset = dataset.shuffle(10)
+  if training:
+    dataset = dataset.shuffle(10)
   dataset = dataset.map(
       make_parse_example_fn(make_feature_spec(input_shape, max_neighbors)))
   dataset = dataset.batch(1)
@@ -128,7 +131,6 @@ def make_dataset(example_proto, input_shape, max_neighbors):
 
 class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
-  @test_util.run_in_graph_and_eager_modes
   def test_predict_regularized_model(self):
     model = build_linear_functional_model(
         input_shape=(2,), weights=np.array([1.0, -1.0]))
@@ -141,7 +143,6 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertAllEqual([[1 * 5.0 + (-1.0) * 3.0]], prediction)
 
-  @test_util.run_in_graph_and_eager_modes
   def test_predict_base_model(self):
     model = build_linear_functional_model(
         input_shape=(2,), weights=np.array([1.0, -1.0]))
@@ -179,7 +180,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     """
 
     dataset = make_dataset(
-        example, input_shape=[2], max_neighbors=max_neighbors)
+        example, input_shape=[2], training=True, max_neighbors=max_neighbors)
 
     def _create_and_compile_graph_reg_model(model_fn, weight, max_neighbors):
       """Creates and compiles a graph regularized model.
@@ -349,6 +350,136 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
         dense_layer_index,
         model_fn,
         distributed_strategy=tf.distribute.MirroredStrategy())
+
+  def _train_and_check_eval_results(self,
+                                    train_example,
+                                    test_example,
+                                    model_fn,
+                                    max_neighbors,
+                                    weight,
+                                    distributed_strategy=None):
+    """Verifies eval results for the graph-regularized model.
+
+    This uses a linear regressor as the base model.
+
+    Args:
+      train_example: An instance of `tf.train.Example` used for training.
+      test_example: An instance of `tf.train.Example` used for evaluation.
+      model_fn: A function that builds a linear regression model.
+      max_neighbors: The maximum number of neighbors for graph regularization.
+      weight: Initial value for the weights variable in the linear regressor.
+      distributed_strategy: An instance of `tf.distribute.Strategy` specifying
+        the distributed strategy to use for training.
+    """
+
+    train_dataset = make_dataset(
+        train_example,
+        input_shape=[2],
+        training=True,
+        max_neighbors=max_neighbors)
+
+    test_dataset = make_dataset(
+        test_example, input_shape=[2], training=False, max_neighbors=0)
+
+    def _create_and_compile_graph_reg_model(model_fn, weight, max_neighbors):
+      """Creates and compiles a graph regularized model.
+
+      Args:
+        model_fn: A function that builds a linear regression model.
+        weight: Initial value for the weights variable in the linear regressor.
+        max_neighbors: The maximum number of neighbors for graph regularization.
+
+      Returns:
+        A pair containing the unregularized model and the graph regularized
+        model as `tf.keras.Model` instances.
+      """
+      model = model_fn((2,), weight)
+      graph_reg_config = configs.make_graph_reg_config(
+          max_neighbors=max_neighbors, multiplier=1)
+      graph_reg_model = graph_regularization.GraphRegularization(
+          model, graph_reg_config)
+      graph_reg_model.compile(
+          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE),
+          loss='MSE',
+          metrics=['accuracy'])
+      return model, graph_reg_model
+
+    if distributed_strategy:
+      with distributed_strategy.scope():
+        model, graph_reg_model = _create_and_compile_graph_reg_model(
+            model_fn, weight, max_neighbors)
+    else:
+      model, graph_reg_model = _create_and_compile_graph_reg_model(
+          model_fn, weight, max_neighbors)
+
+    graph_reg_model.fit(x=train_dataset, epochs=1, steps_per_epoch=1)
+
+    # Evaluating the graph-regularized model should yield the same results
+    # as evaluating the base model as the former involves just using the
+    # base model for evaluation.
+    graph_reg_model_eval_results = dict(
+        zip(graph_reg_model.metrics_names,
+            graph_reg_model.evaluate(x=test_dataset)))
+    base_model_eval_results = dict(
+        zip(model.metrics_names, model.evaluate(x=test_dataset)))
+    self.assertAllClose(base_model_eval_results, graph_reg_model_eval_results)
+
+  @parameterized.named_parameters([
+      ('_sequential', build_linear_sequential_model),
+      ('_functional', build_linear_functional_model),
+      ('_subclass', build_linear_subclass_model),
+  ])
+  def test_graph_reg_model_evaluate(self, model_fn):
+    w = np.array([[4.0], [-3.0]])
+
+    train_example = """
+                features {
+                  feature {
+                    key: "x"
+                    value: { float_list { value: [ 2.0, 3.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_0_x"
+                    value: { float_list { value: [ 2.5, 3.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_0_weight"
+                    value: { float_list { value: 1.0 } }
+                  }
+                  feature {
+                    key: "NL_nbr_1_x"
+                    value: { float_list { value: [ 2.0, 2.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_1_weight"
+                    value: { float_list { value: 1.0 } }
+                  }
+                  feature {
+                    key: "y"
+                    value: { float_list { value: 0.0 } }
+                  }
+                }
+              """
+
+    test_example = """
+                features {
+                  feature {
+                    key: "x"
+                    value: { float_list { value: [ 4.0, 2.0 ] } }
+                  }
+                  feature {
+                    key: "y"
+                    value: { float_list { value: 4.0 } }
+                  }
+                }
+              """
+    self._train_and_check_eval_results(
+        train_example,
+        test_example,
+        model_fn,
+        max_neighbors=2,
+        weight=w,
+        distributed_strategy=None)
 
 
 if __name__ == '__main__':

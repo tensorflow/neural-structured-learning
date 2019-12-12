@@ -81,12 +81,14 @@ py_library(
     deps = [
         "//neural_structured_learning/configs",
         "//neural_structured_learning/keras/layers",
+        "//neural_structured_learning/lib",
         # package tensorflow
     ],
 )
 
 py_test(
     name = "graph_regularization_test",
+    timeout = "long",
     srcs = ["graph_regularization_test.py"],
     srcs_version = "PY2AND3",
     deps = [

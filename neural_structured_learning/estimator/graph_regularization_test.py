@@ -174,14 +174,14 @@ class GraphRegularizationTest(tf.test.TestCase):
               """
 
     input_fn = single_example_input_fn(
-        example, input_shape=[1], max_neighbors=1)
+        example, input_shape=[1], max_neighbors=0)
     predictions = graph_reg_est.predict(input_fn=input_fn)
     predicted_scores = [x['predictions'] for x in predictions]
     self.assertAllClose([[3.0]], predicted_scores)
 
-  def train_and_check_params(self, example, max_neighbors, weight, bias,
-                             expected_grad_from_weight,
-                             expected_grad_from_bias):
+  def _train_and_check_params(self, example, max_neighbors, weight, bias,
+                              expected_grad_from_weight,
+                              expected_grad_from_bias):
     """Runs training for one step and verifies gradient-based updates."""
 
     def embedding_fn(features, unused_mode):
@@ -261,7 +261,8 @@ class GraphRegularizationTest(tf.test.TestCase):
     # which includes the supervised loss as well as the graph loss.
     orig_pred = np.dot(x0, weight) + bias  # [9.0]
 
-    # Based on the implementation of embedding_fn inside train_and_check_params.
+    # Based on the implementation of embedding_fn inside
+    # _train_and_check_params.
     x0_embedding = np.dot(x0, weight)
     neighbor0_embedding = np.dot(neighbor0, weight)
 
@@ -271,8 +272,8 @@ class GraphRegularizationTest(tf.test.TestCase):
                                                neighbor0).T  # [[2.5], [1.5]]
     orig_grad_b = 2 * (orig_pred - y0).reshape((1,))  # [2.0]
 
-    self.train_and_check_params(example, 1, weight, bias, orig_grad_w,
-                                orig_grad_b)
+    self._train_and_check_params(example, 1, weight, bias, orig_grad_w,
+                                 orig_grad_b)
 
   @test_util.run_v1_only('Requires tf.get_variable')
   def test_graph_reg_wrapper_two_neighbors_with_training(self):
@@ -318,7 +319,8 @@ class GraphRegularizationTest(tf.test.TestCase):
     # which includes the supervised loss as well as the graph loss.
     orig_pred = np.dot(x0, weight) + bias  # [9.0]
 
-    # Based on the implementation of embedding_fn inside train_and_check_params.
+    # Based on the implementation of embedding_fn inside
+    # _train_and_check_params.
     x0_embedding = np.dot(x0, weight)
     neighbor0_embedding = np.dot(neighbor0, weight)
     neighbor1_embedding = np.dot(neighbor1, weight)
@@ -338,8 +340,101 @@ class GraphRegularizationTest(tf.test.TestCase):
     orig_grad_w = grad_w_supervised_loss + grad_w_graph_loss
     orig_grad_b = 2 * (orig_pred - y0).reshape((1,))  # [2.0]
 
-    self.train_and_check_params(example, 2, weight, bias, orig_grad_w,
-                                orig_grad_b)
+    self._train_and_check_params(example, 2, weight, bias, orig_grad_w,
+                                 orig_grad_b)
+
+  def _train_and_check_eval_results(self, train_example, test_example,
+                                    max_neighbors, weight, bias):
+    """Verifies evaluation results for the graph-regularized model."""
+
+    def embedding_fn(features, unused_mode):
+      # Computes y = w*x
+      with tf.variable_scope(
+          tf.get_variable_scope(),
+          reuse=tf.AUTO_REUSE,
+          auxiliary_name_scope=False):
+        weight_tensor = tf.reshape(
+            tf.get_variable(
+                WEIGHT_VARIABLE,
+                shape=[2, 1],
+                partitioner=tf.fixed_size_partitioner(1)),
+            shape=[-1, 2])
+
+      x_tensor = tf.reshape(features[FEATURE_NAME], shape=[-1, 2])
+      return tf.reduce_sum(
+          tf.multiply(weight_tensor, x_tensor), 1, keep_dims=True)
+
+    def optimizer_fn():
+      return tf.train.GradientDescentOptimizer(LEARNING_RATE)
+
+    base_est = self.build_linear_regressor(
+        weight=weight, weight_shape=[2, 1], bias=bias, bias_shape=[1])
+
+    graph_reg_config = nsl_configs.make_graph_reg_config(
+        max_neighbors=max_neighbors, multiplier=1)
+    graph_reg_est = nsl_estimator.add_graph_regularization(
+        base_est, embedding_fn, optimizer_fn, graph_reg_config=graph_reg_config)
+
+    train_input_fn = single_example_input_fn(
+        train_example, input_shape=[2], max_neighbors=max_neighbors)
+    graph_reg_est.train(input_fn=train_input_fn, steps=1)
+
+    # Evaluating the graph-regularized model should yield the same results
+    # as evaluating the base model because model paramters are shared.
+    eval_input_fn = single_example_input_fn(
+        test_example, input_shape=[2], max_neighbors=0)
+    graph_eval_results = graph_reg_est.evaluate(input_fn=eval_input_fn)
+    base_eval_results = base_est.evaluate(input_fn=eval_input_fn)
+    self.assertAllClose(base_eval_results, graph_eval_results)
+
+  @test_util.run_v1_only('Requires tf.get_variable')
+  def test_graph_reg_model_evaluate(self):
+    weight = np.array([[4.0], [-3.0]])
+    bias = np.array([0.0], dtype=np.float32)
+
+    train_example = """
+                features {
+                  feature {
+                    key: "x"
+                    value: { float_list { value: [ 2.0, 3.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_0_x"
+                    value: { float_list { value: [ 2.5, 3.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_0_weight"
+                    value: { float_list { value: 1.0 } }
+                  }
+                  feature {
+                    key: "NL_nbr_1_x"
+                    value: { float_list { value: [ 2.0, 2.0 ] } }
+                  }
+                  feature {
+                    key: "NL_nbr_1_weight"
+                    value: { float_list { value: 1.0 } }
+                  }
+                  feature {
+                    key: "y"
+                    value: { float_list { value: 0.0 } }
+                  }
+                }
+              """
+
+    test_example = """
+                features {
+                  feature {
+                    key: "x"
+                    value: { float_list { value: [ 4.0, 2.0 ] } }
+                  }
+                  feature {
+                    key: "y"
+                    value: { float_list { value: 4.0 } }
+                  }
+                }
+              """
+    self._train_and_check_eval_results(
+        train_example, test_example, max_neighbors=2, weight=weight, bias=bias)
 
 
 if __name__ == '__main__':

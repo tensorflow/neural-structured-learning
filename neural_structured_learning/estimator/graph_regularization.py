@@ -77,7 +77,7 @@ def add_graph_regularization(estimator,
         as `num_ps_replicas`, or `model_dir`. Unused currently.
 
     Returns:
-      A `tf.EstimatorSpec` whose loss incorporates graph-based regularization.
+      A `tf.estimator.EstimatorSpec` with graph regularization.
     """
 
     # Uses the same variable scope for calculating the original objective and
@@ -86,10 +86,19 @@ def add_graph_regularization(estimator,
         tf.compat.v1.get_variable_scope(),
         reuse=tf.compat.v1.AUTO_REUSE,
         auxiliary_name_scope=False):
-      # Extract sample features, neighbor features, and neighbor weights.
-      sample_features, nbr_features, nbr_weights = (
-          utils.unpack_neighbor_features(features,
-                                         graph_reg_config.neighbor_config))
+      nbr_features = dict()
+      nbr_weights = None
+      if mode == tf.estimator.ModeKeys.TRAIN:
+        # Extract sample features, neighbor features, and neighbor weights if we
+        # are in training mode.
+        sample_features, nbr_features, nbr_weights = (
+            utils.unpack_neighbor_features(features,
+                                           graph_reg_config.neighbor_config))
+      else:
+        # Otherwise, we strip out all neighbor features and use just the
+        # sample's features.
+        sample_features = utils.strip_neighbor_features(
+            features, graph_reg_config.neighbor_config)
 
       # If no 'params' is passed, then it is possible for base_model_fn not to
       # accept a 'params' argument. See documentation for tf.estimator.Estimator

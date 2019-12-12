@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Input layer for to unpack neighbor features for graph regularization."""
+"""Input layer to unpack neighbor features for graph regularization."""
 
 from __future__ import absolute_import
 from __future__ import division
