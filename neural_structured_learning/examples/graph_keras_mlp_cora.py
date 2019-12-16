@@ -63,7 +63,7 @@ class HParams(object):
   ### model architecture
   num_fc_units = attr.ib(default=[50, 50])
   ### training parameters
-  train_epochs = attr.ib(default=100)
+  train_epochs = attr.ib(default=10)
   batch_size = attr.ib(default=128)
   dropout_rate = attr.ib(default=0.5)
   ### eval parameters
@@ -93,8 +93,8 @@ def load_dataset(filename):
   return tf.data.TFRecordDataset([filename])
 
 
-def make_datasets(train_data_path, test_data_path, hparams):
-  """Returns training and test data as a pair of `tf.data.Dataset` instances."""
+def make_dataset(file_path, training, include_nbr_features, hparams):
+  """Returns a `tf.data.Dataset` instance based on data in `file_path`."""
 
   def parse_example(example_proto):
     """Extracts relevant fields from the `example_proto`.
@@ -120,35 +120,33 @@ def make_datasets(train_data_path, test_data_path, hparams):
         'label':
             tf.io.FixedLenFeature((), tf.int64, default_value=-1),
     }
-    for i in range(hparams.num_neighbors):
-      nbr_feature_key = '{}{}_{}'.format(NBR_FEATURE_PREFIX, i, 'words')
-      nbr_weight_key = '{}{}{}'.format(NBR_FEATURE_PREFIX, i, NBR_WEIGHT_SUFFIX)
-      feature_spec[nbr_feature_key] = tf.io.FixedLenFeature(
-          [hparams.max_seq_length],
-          tf.int64,
-          default_value=tf.constant(
-              0, dtype=tf.int64, shape=[hparams.max_seq_length]))
-      feature_spec[nbr_weight_key] = tf.io.FixedLenFeature(
-          [1], tf.float32, default_value=tf.constant([0.0]))
+    if include_nbr_features:
+      for i in range(hparams.num_neighbors):
+        nbr_feature_key = '{}{}_{}'.format(NBR_FEATURE_PREFIX, i, 'words')
+        nbr_weight_key = '{}{}{}'.format(NBR_FEATURE_PREFIX, i,
+                                         NBR_WEIGHT_SUFFIX)
+        feature_spec[nbr_feature_key] = tf.io.FixedLenFeature(
+            [hparams.max_seq_length],
+            tf.int64,
+            default_value=tf.constant(
+                0, dtype=tf.int64, shape=[hparams.max_seq_length]))
+        feature_spec[nbr_weight_key] = tf.io.FixedLenFeature(
+            [1], tf.float32, default_value=tf.constant([0.0]))
 
     features = tf.io.parse_single_example(example_proto, feature_spec)
 
     labels = features.pop('label')
     return features, labels
 
-  def make_dataset(file_path, training=False):
-    """Creates a `tf.data.Dataset`."""
-    # If the dataset is sharded, the following code may be required:
-    # filenames = tf.data.Dataset.list_files(file_path, shuffle=True)
-    # dataset = filenames.interleave(load_dataset, cycle_length=1)
-    dataset = load_dataset(file_path)
-    if training:
-      dataset = dataset.shuffle(10000)
-    dataset = dataset.map(parse_example)
-    dataset = dataset.batch(hparams.batch_size)
-    return dataset
-
-  return make_dataset(train_data_path, True), make_dataset(test_data_path)
+  # If the dataset is sharded, the following code may be required:
+  # filenames = tf.data.Dataset.list_files(file_path, shuffle=True)
+  # dataset = filenames.interleave(load_dataset, cycle_length=1)
+  dataset = load_dataset(file_path)
+  if training:
+    dataset = dataset.shuffle(10000)
+  dataset = dataset.map(parse_example)
+  dataset = dataset.batch(hparams.batch_size)
+  return dataset
 
 
 def make_mlp_sequential_model(hparams):
@@ -270,7 +268,8 @@ def main(argv):
                          (len(argv) - 1))
 
   hparams = get_hyper_parameters()
-  train_dataset, test_dataset = make_datasets(argv[1], argv[2], hparams)
+  train_data_path = argv[1]
+  test_data_path = argv[2]
 
   # Graph regularization configuration.
   graph_reg_config = nsl.configs.make_graph_reg_config(
@@ -287,6 +286,8 @@ def main(argv):
   }
   for base_model_tag, base_model in base_models.items():
     logging.info('\n====== %s BASE MODEL TEST BEGIN ======', base_model_tag)
+    train_dataset = make_dataset(train_data_path, True, False, hparams)
+    test_dataset = make_dataset(test_data_path, False, False, hparams)
     train_and_evaluate(base_model, 'Base MLP model', train_dataset,
                        test_dataset, hparams)
 
@@ -295,6 +296,8 @@ def main(argv):
     # Wrap the base MLP model with graph regularization.
     graph_reg_model = nsl.keras.GraphRegularization(base_model,
                                                     graph_reg_config)
+    train_dataset = make_dataset(train_data_path, True, True, hparams)
+    test_dataset = make_dataset(test_data_path, False, False, hparams)
     train_and_evaluate(graph_reg_model, 'MLP + graph regularization',
                        train_dataset, test_dataset, hparams)
 
