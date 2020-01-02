@@ -68,10 +68,10 @@ landing_page:
     items:
     - heading: "Introducing Neural Structured Learning in TensorFlow"
       image_path: /resources/images/tf-logo-card-16x9.png
-      path: https://medium.com/tensorflow/introducing-neural-structured-learning-in-tensorflow-5a802efd7afd
+      path: https://blog.tensorflow.org/2019/09/introducing-neural-structured-learning.html
       buttons:
       - label: Read on TensorFlow blog
-        path: https://medium.com/tensorflow/introducing-neural-structured-learning-in-tensorflow-5a802efd7afd
+        path: https://blog.tensorflow.org/2019/09/introducing-neural-structured-learning.html
     - heading: TF-NSL on GitHub
       image_path: /resources/images/github-card-16x9.png
       path: https://github.com/tensorflow/neural-structured-learning
