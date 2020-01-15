@@ -39,6 +39,16 @@ def build_linear_keras_sequential_model(input_shape, weights):
   return model
 
 
+def build_linear_keras_sequential_model_no_input_layer(input_shape, weights):
+  return tf.keras.Sequential([
+      tf.keras.layers.Dense(
+          weights.shape[-1],
+          use_bias=False,
+          input_shape=input_shape,
+          kernel_initializer=tf.keras.initializers.Constant(weights)),
+  ])
+
+
 def build_linear_keras_functional_model(input_shape,
                                         weights,
                                         input_name='feature'):
@@ -276,6 +286,8 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters([
       ('sequential', build_linear_keras_sequential_model),
+      ('sequential_no_input_layer',
+       build_linear_keras_sequential_model_no_input_layer),
       ('functional', build_linear_keras_functional_model),
       ('subclassed', build_linear_keras_subclassed_model),
   ])
@@ -459,6 +471,45 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
                         history.history['mean_absolute_error_label1'][0])
     self.assertAllClose(expected_metric,
                         history.history['mean_absolute_error_label2'][0])
+
+  @parameterized.named_parameters([
+      ('order_1_2', 'first', 'second'),
+      ('order_2_1', 'second', 'first'),
+  ])
+  def test_train_with_2_inputs(self, name1, name2):
+    x1, x2 = np.array([[1.]]), np.array([[4., 5.]])
+    w1, w2 = np.array([[2.]]), np.array([[3.], [6.]])
+    y = np.array([0.])
+    inputs = {name1: x1, name2: x2, 'label': y}
+    lr, adv_step_size = 0.001, 0.1
+
+    input1 = tf.keras.Input(shape=(1,), name=name1)
+    input2 = tf.keras.Input(shape=(2,), name=name2)
+    dense1 = tf.keras.layers.Dense(
+        w1.shape[-1],
+        use_bias=False,
+        kernel_initializer=tf.keras.initializers.Constant(w1))
+    dense2 = tf.keras.layers.Dense(
+        w2.shape[-1],
+        use_bias=False,
+        kernel_initializer=tf.keras.initializers.Constant(w2))
+    output = tf.keras.layers.Add()([dense1(input1), dense2(input2)])
+    model = tf.keras.Model(inputs=[input1, input2], outputs=output)
+
+    adv_config = configs.make_adv_reg_config(
+        multiplier=1.0, adv_step_size=adv_step_size, adv_grad_norm='l2')
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MAE')
+    adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    # loss = |x1 * w1 + x2 * w2|, gradient(loss, [x1, x2]) = [w1, w2]
+    w_norm = np.sqrt((np.sum(w1 * w1) + np.sum(w2 * w2)))
+    x1_adv, x2_adv = x1 + adv_step_size * w1.T / w_norm, x2 + adv_step_size * w2.T / w_norm
+    # gradient(loss, [w1, w2]) = [x1, x2]
+    w1_new, w2_new = w1 - lr * (x1 + x1_adv).T, w2 - lr * (x2 + x2_adv).T
+    self.assertAllClose(w1_new, tf.keras.backend.get_value(dense1.weights[0]))
+    self.assertAllClose(w2_new, tf.keras.backend.get_value(dense2.weights[0]))
 
   def test_evaluate_binary_classification_metrics(self):
     # multi-label binary classification model

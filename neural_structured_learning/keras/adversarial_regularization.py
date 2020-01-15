@@ -585,6 +585,8 @@ class AdversarialRegularization(tf.keras.Model):
 
   def _split_inputs(self, inputs):
     sample_weights = inputs.get(self.sample_weight_key, None)
+    if sample_weights is not None:
+      sample_weights = tf.stop_gradient(sample_weights)
     # Labels shouldn't be perturbed when generating adversarial examples.
     labels = [
         tf.stop_gradient(inputs[label_key]) for label_key in self.label_keys
@@ -599,11 +601,21 @@ class AdversarialRegularization(tf.keras.Model):
     }
     return inputs, labels, sample_weights
 
+  def _call_base_model(self, inputs, **kwargs):
+    if (self.base_model._is_graph_network and  # pylint: disable=protected-access
+        not isinstance(self.base_model, tf.keras.Sequential)):
+      base_input_names = getattr(self.base_model, 'input_names', None)
+      if base_input_names:
+        # Converts input dictionary to a list so it conforms with the model's
+        # expected input.
+        inputs = [inputs[name] for name in base_input_names]
+    return self.base_model(inputs, **kwargs)
+
   def _forward_pass(self, inputs, labels, sample_weights, base_model_kwargs):
     """Runs the usual forward pass to compute outputs, loss, and metrics."""
     with tf.GradientTape() as tape:
       tape.watch(list(inputs.values()))
-      outputs = self.base_model(inputs, **base_model_kwargs)
+      outputs = self._call_base_model(inputs, **base_model_kwargs)
       # If the base_model is a subclassed model, its output_names are not
       # available before its first call. If it is a dynamic subclassed model,
       # its output_names are not available even after its first call, so we
@@ -634,7 +646,7 @@ class AdversarialRegularization(tf.keras.Model):
     adv_loss = adversarial_loss(
         inputs,
         labels,
-        self.base_model,
+        self._call_base_model,
         self._compute_total_loss,
         sample_weights=sample_weights,
         adv_config=self.adv_config,
