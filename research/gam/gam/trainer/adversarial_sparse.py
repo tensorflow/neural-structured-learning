@@ -112,7 +112,7 @@ def generate_virtual_adversarial_perturbation(inputs,
     d = xi * get_normalized_vector(d)
     logit_p = logits
     new_inputs = tf.add(tf.sparse_tensor_to_dense(inputs), d)
-    new_inputs = tf.contrib.layers.dense_to_sparse(new_inputs)
+    new_inputs = tf.sparse.from_dense(new_inputs)
     with tf.variable_scope(
         predictions_var_scope, auxiliary_name_scope=False, reuse=True):
       encoding_m, _, _ = model.get_encoding_and_params(
@@ -131,7 +131,7 @@ def generate_virtual_adversarial_perturbation(inputs,
     r_vadv *= get_normalizing_constant(inputs.values)
   r_vadv *= epsilon
 
-  return tf.contrib.layers.dense_to_sparse(r_vadv)
+  return tf.sparse.from_dense(r_vadv)
 
 
 def logsoftmax(x):
