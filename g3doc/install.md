@@ -12,7 +12,9 @@ Learning (NSL) in TensorFlow:
 *   If you have a unique machine configuration,
     [build NSL](#build-the-neural-structured-learning-pip-package) from source.
 
-Note: NSL requires a TensorFlow version of 1.15 or higher.
+Note: NSL requires a TensorFlow version of 1.15 or higher. NSL also supports
+TensorFlow 2.x with the exception of v2.1, which contains a bug that is
+incompatible with NSL.
 
 ## Install Neural Structured Learning using pip
 

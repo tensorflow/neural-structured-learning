@@ -49,7 +49,8 @@ from source in various environments, please see the
 [installation guide](g3doc/install.md)
 
 Note that NSL requires a TensorFlow version of 1.15 or higher. NSL also supports
-TensorFlow 2.0.
+TensorFlow 2.x with the exception of v2.1, which contains a bug that is
+incompatible with NSL.
 
 ## Contributing to NSL
 
