@@ -91,10 +91,14 @@ def add_adversarial_regularization(estimator,
       # If no 'params' is passed, then it is possible for base_model_fn not to
       # accept a 'params' argument. See documentation for tf.estimator.Estimator
       # for additional context.
-      if params:
-        original_spec = base_model_fn(features, labels, mode, params, config)
-      else:
-        original_spec = base_model_fn(features, labels, mode, config)
+      # pylint: disable=g-long-lambda
+      spec_fn = ((lambda features: base_model_fn(
+          features, labels, mode, params, config)) if params else (
+              lambda features: base_model_fn(features, labels, mode, config)))
+
+      original_spec = spec_fn(features)
+
+      print("ORIGINAL_SPEC", original_spec)
 
       # Adversarial regularization only happens in training.
       if mode != tf.estimator.ModeKeys.TRAIN:
@@ -104,7 +108,7 @@ def add_adversarial_regularization(estimator,
                                                  adv_config.adv_neighbor_config)
 
       # Runs the base model again to compute loss on adv_neighbor.
-      adv_spec = base_model_fn(adv_neighbor, labels, mode, config)
+      adv_spec = spec_fn(adv_neighbor)
 
       final_loss = original_spec.loss + adv_config.multiplier * adv_spec.loss
 
