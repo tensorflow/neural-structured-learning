@@ -503,7 +503,7 @@ class AdversarialRegularization(tf.keras.Model):
         loss_weights=self._compile_arg_loss_weights,
         **kwargs)
 
-    if hasattr(self.base_model, 'output_names'):
+    if getattr(self.base_model, 'output_names', None):
       # Organizes losses after the base model is fully compiled. The output
       # names from the base model is needed in case the loss (and/or
       # loss_weights) is specified in a dict().
