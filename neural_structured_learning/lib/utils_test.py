@@ -19,13 +19,14 @@ from __future__ import print_function
 
 import math
 
+from absl.testing import parameterized
 import neural_structured_learning.configs as configs
 from neural_structured_learning.lib import utils
 import numpy as np
 import tensorflow as tf
 
 
-class UtilsTest(tf.test.TestCase):
+class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   def testNormalizeInf(self):
     target_tensor = tf.constant([[1.0, 2.0, -4.0], [-1.0, 5.0, -3.0]])
@@ -108,6 +109,12 @@ class UtilsTest(tf.test.TestCase):
         'w2': np.array([[-2. / 3.], [-7. / 9.]]),
     }
     self.assertAllClose(actual, expected)
+
+  @parameterized.parameters('l2', 'l1', 'infinity')
+  def testMaximizeWithinUnitNormL2WithZeroInputShouldReturnZero(self, norm):
+    weights = tf.constant([[0.0, 0.0]])
+    actual = self.evaluate(utils.maximize_within_unit_norm(weights, norm))
+    self.assertAllEqual(actual, weights)
 
   def testReplicateEmbeddingsWithConstant(self):
     """Test the replicate_embeddings function with constant replicate_times."""

@@ -59,7 +59,8 @@ def normalize(tensor, norm_type, epsilon=1e-6):
     norm = tf.maximum(norm, epsilon)
     normalized_tensor = tensor / norm
   elif norm_type == configs.NormType.L2:
-    normalized_tensor = tf.nn.l2_normalize(tensor, axis=target_axes)
+    normalized_tensor = tf.nn.l2_normalize(
+        tensor, axis=target_axes, epsilon=epsilon**2)
   else:
     raise NotImplementedError('Unrecognized or unimplemented "norm_type": %s' %
                               norm_type)
@@ -67,10 +68,11 @@ def normalize(tensor, norm_type, epsilon=1e-6):
 
 
 def _expand_to_rank(vector, rank):
+  """Expands a batched scalar to a tensor of certain rank."""
   return tf.reshape(vector, shape=[-1] + [1] * (rank - 1))
 
 
-def maximize_within_unit_norm(weights, norm_type):
+def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
   """Solves the maximization problem weights^T*x with the constraint norm(x)=1.
 
   This op solves a batch of maximization problems at one time. The first axis of
@@ -91,6 +93,7 @@ def maximize_within_unit_norm(weights, norm_type):
       size).
     norm_type: One of `nsl.configs.NormType`, the type of the norm in the
       constraint.
+    epsilon: A lower bound value for the norm to avoid division by 0.
 
   Returns:
     A `Tensor` or a collection of `Tensor` objects (with the same structure and
@@ -122,7 +125,7 @@ def maximize_within_unit_norm(weights, norm_type):
   if norm_type == configs.NormType.L2:
     squared_norm = reduce_across_tensors(tf.reduce_sum,
                                          [tf.square(t) for t in tensors])
-    inv_global_norm = tf.math.rsqrt(squared_norm)
+    inv_global_norm = tf.math.rsqrt(tf.maximum(squared_norm, epsilon**2))
     normalized_tensors = [
         tensor * _expand_to_rank(inv_global_norm, rank)
         for tensor, rank in zip(tensors, tensor_ranks)
@@ -141,8 +144,9 @@ def maximize_within_unit_norm(weights, norm_type):
         for t, rank in zip(abs_tensors, tensor_ranks)
     ]
     num_nonzero = reduce_across_tensors(tf.reduce_sum, is_max_elem)
+    denominator = tf.maximum(num_nonzero, epsilon)
     mask = [
-        is_max * tf.sign(t) / _expand_to_rank(num_nonzero, rank)
+        is_max * tf.sign(t) / _expand_to_rank(denominator, rank)
         for t, rank, is_max in zip(tensors, tensor_ranks, is_max_elem)
     ]
     return tf.nest.pack_sequence_as(weights, mask)
