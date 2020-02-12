@@ -88,6 +88,21 @@ def add_undirected_edges(graph):
   Returns:
     `None`. Instead, this function has a side-effect on the `graph` argument.
   """
+  try: ## code below should works if there's no side-effect on the graph argument
+
+      for source in list(graph.keys()): 
+        for target in list(graph[source].keys()):
+          if source != target:
+            if target not in graph.keys(): graph[target]= dict()
+            if source in graph[target].keys():
+              largest_weight=max(graph[target][source],graph[target][source])
+              graph[target][source]=largest_weight
+              graph[source][target]=largest_weight
+            else:
+              graph[target][source]=graph[source][target]
+  except:
+    return None
+
   def all_graph_edges():
     edges = []
     for s, t_dict in six.iteritems(graph):
