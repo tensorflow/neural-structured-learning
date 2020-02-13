@@ -22,7 +22,7 @@ import copy
 from absl.testing import absltest
 from neural_structured_learning.tools import graph_utils
 
-GRAPH = {'A': {'B': 0.5, 'C': 0.9}, 'B': {'A': 0.4, 'C': 1.0}}
+GRAPH = {'A': {'B': 0.5, 'C': 0.9}, 'B': {'A': 0.4, 'C': 1.0}, 'D': {'A': 0.75}}
 
 
 class GraphUtilsTest(absltest.TestCase):
@@ -35,6 +35,7 @@ class GraphUtilsTest(absltest.TestCase):
     graph_utils.add_edge(graph, ['A', 'C', 0.8])  # ...is used.
     graph_utils.add_edge(graph, ('B', 'A', '0.4'))
     graph_utils.add_edge(graph, ('B', 'C'))  # Tests default weight
+    graph_utils.add_edge(graph, ('D', 'A', 0.75))
     self.assertDictEqual(graph, GRAPH)
 
   def testAddUndirectedEdges(self):
@@ -44,15 +45,19 @@ class GraphUtilsTest(absltest.TestCase):
         g_actual, {
             'A': {
                 'B': 0.5,
-                'C': 0.9
+                'C': 0.9,
+                'D': 0.75
             },
             'B': {
                 'A': 0.5,  # Note, changed from 0.4 to 0.5
                 'C': 1.0
             },
-            'C': {
+            'C': {         # Added
                 'A': 0.9,  # Added
                 'B': 1.0   # Added
+            },
+            'D': {
+                'A': 0.75
             }
         })
 

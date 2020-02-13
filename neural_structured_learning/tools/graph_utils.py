@@ -89,11 +89,13 @@ def add_undirected_edges(graph):
     `None`. Instead, this function has a side-effect on the `graph` argument.
   """
   def all_graph_edges():
-    edges = []
-    for s, t_dict in six.iteritems(graph):
-      for t, w in six.iteritems(t_dict):
-        edges.append((s, t, w))
-    return edges
+    # Make a copy of all source IDs to avoid concurrent iteration failure.
+    sources = list(graph.keys())
+    for source in sources:
+      # Make a copy of source's out-edges to avoid concurrent iteration failure.
+      out_edges = dict(graph[source])
+      for target, weight in six.iteritems(out_edges):
+        yield (source, target, weight)
 
   start_time = time.time()
   logging.info('Making all edges bi-directional...')
