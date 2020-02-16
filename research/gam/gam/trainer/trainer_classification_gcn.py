@@ -21,8 +21,8 @@ of samples.
 import logging
 import os
 
-from .adversarial_dense import entropy_y_x
-from .adversarial_dense import get_loss_vat
+from .adversarial_sparse import entropy_y_x
+from .adversarial_sparse import get_loss_vat
 import numpy as np
 import tensorflow as tf
 from .trainer_base import batch_iterator

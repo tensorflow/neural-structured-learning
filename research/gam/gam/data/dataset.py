@@ -545,7 +545,7 @@ class GCNDataset(GraphDataset):
     rowsum = np.array(features.sum(1))
     r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = scipy.diags(r_inv)
+    r_mat_inv = scipy.sparse.diags(r_inv)
     features = r_mat_inv.dot(features)
     return features
 
