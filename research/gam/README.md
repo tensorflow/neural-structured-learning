@@ -34,9 +34,9 @@ folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
 
-More details can be found in our [paper!](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning.pdf),
-[supplementary material!](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning-supplemental.zip),
-[slides!](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or [poster!](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
+More details can be found in our [paper](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning.pdf),
+[supplementary material](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning-supplemental.zip),
+[slides](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or [poster](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
  
 ## How to run
 
