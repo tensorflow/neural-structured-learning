@@ -34,6 +34,10 @@ folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
 
+More details can be found in our [paper!](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning.pdf),
+[supplementary material!](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning-supplemental.zip),
+[slides!](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or [poster!](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
+ 
 ## How to run
 
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer, Pubmed), from this
@@ -48,10 +52,11 @@ $ python3.7 -m gam.experiments.run_train_gam
 ```
 
 We recommend running on a GPU. With CUDA, this can be done by prepending
-`CUDA_VISIBLE_DEVICES=<your-gpu-number>` in front of the run script.
+`CUDA_VISIBLE_DEVICES=<your-gpu-number>` in front of the run command.
 
 For running on different datasets and configuration, please check the command
-line flags in each of the run scripts.
+line flags in each of the run scripts. The configurations used in our
+paper can be found in the file `run_configs.txt`.
 
 
 ## Visualizing the results.
