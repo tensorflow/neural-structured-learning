@@ -62,8 +62,14 @@ the dataset name accordingly:
 $ tensorboard --logdir=outputs/summaries/cora
 ```
 
-An example of such visualization for Cora with GCN + GAM model is the following, 
-showing the accuracy per co-train iteration for 3 runs with 3 different random seeds:
+An example of such visualization for Cora with GCN + GAM model on the Pubmed
+dataset is the following:
+![Tensorboard plot](gam_gcn_pubmed.png?raw=true "GCN + GAM on Pubmed")
+
+Similarly, we can run with multiple different parameter configurations and 
+plot the results together for comparison. An example showing the accuracy 
+per co-train iteration of a GCN + GAM model on the Cora dataset for 3 runs
+with 3 different random seeds is the following:
 ![Tensorboard plot](gam_gcn_cora_multiple_seeds.png?raw=true "GCN + GAM on Cora")
 
 
