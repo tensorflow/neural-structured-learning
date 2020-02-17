@@ -21,8 +21,8 @@ of samples.
 import logging
 import os
 
-from .adversarial_dense import entropy_y_x
-from .adversarial_dense import get_loss_vat
+from .adversarial_sparse import entropy_y_x
+from .adversarial_sparse import get_loss_vat
 import numpy as np
 import tensorflow as tf
 from .trainer_base import batch_iterator
@@ -869,7 +869,7 @@ class TrainerClassificationGCN(Trainer):
 
   def predict(self, session, indices, is_train):
     """Make predictions for the provided sample indices."""
-    if not indices:
+    if len(indices) == 0:
       return np.zeros((0, self.data.num_classes), dtype=np.float32)
     feed_dict = {
         self.input_indices: indices,
