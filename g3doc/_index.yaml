@@ -72,9 +72,33 @@ landing_page:
       buttons:
       - label: Read on TensorFlow blog
         path: https://blog.tensorflow.org/2019/09/introducing-neural-structured-learning.html
-    - heading: TF-NSL on GitHub
+    - heading: "TF-NSL on GitHub"
       image_path: /resources/images/github-card-16x9.png
       path: https://github.com/tensorflow/neural-structured-learning
       buttons:
       - label: View on GitHub
         path: https://github.com/tensorflow/neural-structured-learning
+    - heading: "NSL Part 1: Framework overview"
+      youtube_id: N_IS3x5wFNI
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=N_IS3x5wFNI
+
+  - classname: devsite-landing-row-cards
+    items:
+    - heading: "NSL Part 2: Training with natural graphs"
+      youtube_id: pJRRdtJ-rPU
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=pJRRdtJ-rPU
+    - heading: "NSL Part 3: Training with synthesized graphs"
+      youtube_id: 3RQqTTOY0U0
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=3RQqTTOY0U0
+    - heading: "NSL Part 4: Adversarial learning"
+      youtube_id: Js2WJkhdU7k
+      buttons:
+      - label: Watch the video
+        path: https://www.youtube.com/watch?v=Js2WJkhdU7k
+
