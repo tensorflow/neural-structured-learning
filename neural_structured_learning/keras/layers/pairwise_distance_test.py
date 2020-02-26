@@ -89,12 +89,13 @@ class PairwiseDistanceTest(tf.test.TestCase):
       return np.mean(np.square(x - y))
 
     # Common input.
-    sources = np.array([1., 1., 1., 1.])
-    targets = np.array([[4., 3., 2., 1.]])
+    sources = np.array([[1., 1., 1., 1.]])
+    targets = np.array([[[4., 3., 2., 1.]]])
     unweighted_distance = _distance_fn(sources, targets)
 
     def _make_symbolic_weights_model():
       """Makes a model where the weights are provided as input."""
+      # Shape doesn't include batch dimension.
       inputs = {
           'sources': tf.keras.Input(4),
           'targets': tf.keras.Input((1, 4)),
@@ -104,7 +105,7 @@ class PairwiseDistanceTest(tf.test.TestCase):
       outputs = pairwise_distance_fn(**inputs)
       return tf.keras.Model(inputs=inputs, outputs=outputs)
 
-    weights = np.array([[2.]])
+    weights = np.array([[[2.]]])
     expected_distance = unweighted_distance * weights
     model = _make_symbolic_weights_model()
     self.assertNear(
@@ -117,6 +118,7 @@ class PairwiseDistanceTest(tf.test.TestCase):
 
     def _make_fixed_weights_model(weights):
       """Makes a model where the weights are a static constant."""
+      # Shape doesn't include batch dimension.
       inputs = {
           'sources': tf.keras.Input(4),
           'targets': tf.keras.Input((1, 4)),
