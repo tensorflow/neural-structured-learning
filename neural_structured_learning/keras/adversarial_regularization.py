@@ -572,9 +572,11 @@ class AdversarialRegularization(tf.keras.Model):
       self._labeled_metrics.append(per_output_metrics)
 
   def _get_or_create_base_output_names(self, outputs):
-    num_output = len(tf.nest.flatten(outputs))
-    return getattr(self.base_model, 'output_names',
-                   ['output_%d' % i for i in range(1, num_output + 1)])
+    output_names = getattr(self.base_model, 'output_names', None)
+    if not output_names:
+      num_output = len(tf.nest.flatten(outputs))
+      output_names = ['output_%d' % i for i in range(1, num_output + 1)]
+    return output_names
 
   def _compute_total_loss(self, labels, outputs, sample_weights=None):
     # `None` is passed instead of the actual metrics in order to skip computing
