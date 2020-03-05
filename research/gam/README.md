@@ -53,7 +53,7 @@ Tomkins, S. Ravi. "Graph Agreement Models for Semi-Supervised Learning." NeurIPS
 2019](https://nips.cc/Conferences/2019/Schedule?showEvent=13925)
 
 [[2] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
-Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
+Networks Using Graphs." WSDM 2018](https://research.google/pubs/pub46568.pdf)
 
 [[3] T. Kipf and M. Welling. "Semi-supervised classification with graph
 convolutional networks." ICLR 2017](https://arxiv.org/pdf/1609.02907.pdf)

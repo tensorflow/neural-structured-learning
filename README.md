@@ -106,7 +106,7 @@ Please see the [release notes](RELEASE.md) for detailed version updates.
 ## References
 
 [[1] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
-Networks Using Graphs." WSDM 2018](https://ai.google/research/pubs/pub46568.pdf)
+Networks Using Graphs." WSDM 2018](https://research.google/pubs/pub46568.pdf)
 
 [[2] T. Kipf and M. Welling. "Semi-supervised classification with graph
 convolutional networks." ICLR 2017](https://arxiv.org/pdf/1609.02907.pdf)

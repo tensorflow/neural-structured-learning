@@ -2,14 +2,13 @@
 
 Neural Structured Learning (NSL) focuses on training deep neural networks by
 leveraging structured signals (when available) along with feature inputs. As
-introduced by
-[Bui et al. (WSDM'18)](https://ai.google/research/pubs/pub46568.pdf), these
-structured signals are used to regularize the training of a neural network,
-forcing the model to learn accurate predictions (by minimizing supervised loss),
-while at the same time maintaining the input structural similarity (by
-minimizing the neighbor loss, see the figure below). This technique is generic
-and can be applied on arbitrary neural architectures (such as Feed-forward NNs,
-Convolutional NNs and Recurrent NNs).
+introduced by [Bui et al. (WSDM'18)](https://research.google/pubs/pub46568.pdf),
+these structured signals are used to regularize the training of a neural
+network, forcing the model to learn accurate predictions (by minimizing
+supervised loss), while at the same time maintaining the input structural
+similarity (by minimizing the neighbor loss, see the figure below). This
+technique is generic and can be applied on arbitrary neural architectures (such
+as Feed-forward NNs, Convolutional NNs and Recurrent NNs).
 
 ![NSL Concept](images/nlink_figure.png)
 
@@ -53,7 +52,7 @@ NSL brings the following advantages:
     shown to outperform many existing methods (that rely on training with
     features only) on a wide range of tasks, such as document classification and
     semantic intent classification
-    ([Bui et al., WSDM'18](https://ai.google/research/pubs/pub46568.pdf) &
+    ([Bui et al., WSDM'18](https://research.google/pubs/pub46568.pdf) &
     [Kipf et al., ICLR'17](https://arxiv.org/pdf/1609.02907.pdf)).
 *   **Robustness**: models trained with adversarial examples have been shown to
     be robust against adversarial perturbations designed for misleading a
@@ -71,7 +70,7 @@ NSL brings the following advantages:
     hidden representations for the "neighboring samples" that may or may not
     have labels. This technique has shown great promise for improving model
     accuracy when the amount of labeled data is relatively small
-    ([Bui et al., WSDM'18](https://ai.google/research/pubs/pub46568.pdf) &
+    ([Bui et al., WSDM'18](https://research.google/pubs/pub46568.pdf) &
     [Miyato et al., ICLR'16](https://arxiv.org/pdf/1704.03976.pdf)).
 
 ## Step-by-step Tutorials
