@@ -52,6 +52,32 @@ Note that NSL requires a TensorFlow version of 1.15 or higher. NSL also supports
 TensorFlow 2.x with the exception of v2.1, which contains a bug that is
 incompatible with NSL.
 
+## Videos and Colab Tutorials
+
+Get a jump-start on NSL by watching our video series on YouTube! It gives a
+complete overview of the framework as well as discusses several aspects of
+learning with structured signals.
+
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=N_IS3x5wFNI"
+   target="_blank"><img src="http://img.youtube.com/vi/N_IS3x5wFNI/0.jpg"
+                        alt="Overall Framework" width="180"  border="2" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=pJRRdtJ-rPU"
+   target="_blank"><img src="http://img.youtube.com/vi/pJRRdtJ-rPU/0.jpg"
+                        alt="Natural Graphs" width="180" border="2" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=3RQqTTOY0U0"
+   target="_blank"><img src="http://img.youtube.com/vi/3RQqTTOY0U0/0.jpg"
+                        alt="Synthetic Graphs" width="180" border="2" /></a>
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=Js2WJkhdU7k"
+   target="_blank"><img src="http://img.youtube.com/vi/Js2WJkhdU7k/0.jpg"
+                        alt="Adversarial Learning" width="180" border="2" /></a>
+
+We've also created the following hands-on colab-based tutorials that will allow
+you to interactively explore NSL:
+
+*   [training with natural graphs](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_mlp_cora.ipynb)
+*   [training with synthesized graphs](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_lstm_imdb.ipynb)
+*   [adversarial learning](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/adversarial_keras_cnn_mnist.ipynb)
+
 ## Contributing to NSL
 
 Contributions are welcome and highly appreciated - there are several ways to
