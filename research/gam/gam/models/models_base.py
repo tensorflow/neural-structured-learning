@@ -142,7 +142,7 @@ class Model(object):
     else:
       raise NotImplementedError()
 
-  def _project(self, inputs, reuse=tf.AUTO_REUSE):
+  def _project(self, inputs, reuse=tf.compat.v1.AUTO_REUSE):
     """Projects the provided inputs using a multilayer perceptron.
 
     Arguments:

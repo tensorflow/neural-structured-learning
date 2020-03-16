@@ -22,7 +22,6 @@ from .models_base import Model
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_addons as tfa
 
 
 def fast_flip(images, is_training):
@@ -36,27 +35,6 @@ def fast_flip(images, is_training):
     return flips * flipped_inp + (1 - flips) * images
 
   return tf.cond(is_training, lambda: func(images), lambda: images)
-
-
-def jitter(input_data, is_training):
-  """Applies random noise to input data when training."""
-
-  def func(inp):
-    """Wrap functionality in a subfunction."""
-    bsz = tf.shape(inp)[0]
-    inp = tf.pad(inp, [[0, 0], [2, 2], [2, 2], [0, 0]], mode="REFLECT")
-    base = tf.constant([1, 0, 0, 0, 1, 0, 0, 0], shape=[1, 8], dtype=tf.float32)
-    base = tf.tile(base, [bsz, 1])
-    mask = tf.constant([0, 0, 1, 0, 0, 1, 0, 0], shape=[1, 8], dtype=tf.float32)
-    mask = tf.tile(mask, [bsz, 1])
-    jit = tf.random_uniform([bsz, 8], minval=-2, maxval=3, dtype=tf.int32)
-    jit = tf.cast(jit, tf.float32)
-    xforms = base + jit * mask
-    processed_data = tfa.image.transform(images=inp, transforms=xforms)
-    cropped_data = processed_data[:, 2:-2, 2:-2, :]
-    return cropped_data
-
-  return tf.cond(is_training, lambda: func(input_data), lambda: input_data)
 
 
 class WideResnet(Model):
@@ -289,7 +267,7 @@ class WideResnet(Model):
     if self.horizontal_flip:
       x = fast_flip(x, is_training=is_train)
     if self.random_translation:
-      x = jitter(x, is_training=is_train)
+      raise NotImplementedError("Random translations are not implemented yet.")
     if self.gaussian_noise:
       x = tf.cond(is_train, lambda: x + tf.random_normal(tf.shape(x)) * 0.15,
                   lambda: x)

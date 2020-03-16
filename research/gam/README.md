@@ -34,23 +34,48 @@ folder on a strict "as is" basis, without warranties or conditions of any kind.
 Also, these implementations may not be compatible with certain TensorFlow
 versions (such as 2.0 or above) or Python versions.
 
+More details can be found in our
+[paper](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning.pdf),
+[supplementary material](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning-supplemental.zip),
+[slides](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or
+[poster](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
+
 ## How to run
 
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer, Pubmed), from this
-folder run: `bash python3.7 -m gam.experiments.run_train_gam_graph
+folder run: `$ python3.7 -m gam.experiments.run_train_gam_graph
 --data_path=<path_to_data>`
 
-To run GAM on datasets without a graph (e.g., CIFAR10), from this folder run:
-`bash python3.7 -m gam.experiments.run_train_gam`
+To run GAM on datasets without a graph (e.g., CIFAR10), from this folder run: `$
+python3.7 -m gam.experiments.run_train_gam`
+
+We recommend running on a GPU. With CUDA, this can be done by prepending
+`CUDA_VISIBLE_DEVICES=<your-gpu-number>` in front of the run command.
 
 For running on different datasets and configuration, please check the command
-line flags in each of the run scripts.
+line flags in each of the run scripts. The configurations used in our paper can
+be found in the file `run_configs.txt`.
+
+## Visualizing the results.
+
+To visualize the results in Tensorboard, use the following command, adjusting
+the dataset name accordingly: `$ tensorboard --logdir=outputs/summaries/cora`
+
+An example of such visualization for Cora with GCN + GAM model on the Pubmed
+dataset is the following:
+![Tensorboard plot](gam_gcn_pubmed.png?raw=true "GCN + GAM on Pubmed")
+
+Similarly, we can run with multiple different parameter configurations and plot
+the results together for comparison. An example showing the accuracy per
+co-train iteration of a GCN + GAM model on the Cora dataset for 3 runs with 3
+different random seeds is the following:
+![Tensorboard plot](gam_gcn_cora_multiple_seeds.png?raw=true "GCN + GAM on Cora")
 
 ## References
 
-[[1] O. Stretcu, K. Viswanathan, D. Movshovitz-Attias, E.A. Platanios, A.
-Tomkins, S. Ravi. "Graph Agreement Models for Semi-Supervised Learning." NeurIPS
-2019](https://nips.cc/Conferences/2019/Schedule?showEvent=13925)
+[[1] O. Stretcu, K. Viswanathan, D. Movshovitz-Attias, E.A. Platanios, S. Ravi,
+A. Tomkins. "Graph Agreement Models for Semi-Supervised Learning." NeurIPS
+2019](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning)
 
 [[2] T. Bui, S. Ravi and V. Ramavajjala. "Neural Graph Learning: Training Neural
 Networks Using Graphs." WSDM 2018](https://research.google/pubs/pub46568.pdf)
