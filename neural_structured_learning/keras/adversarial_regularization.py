@@ -601,11 +601,21 @@ class AdversarialRegularization(tf.keras.Model):
         for key, value in six.iteritems(inputs)
         if key not in non_feature_keys
     }
+    # In some cases, Sequential models are automatically compiled to graph
+    # networks with automatically generated input names. In this case, the user
+    # isn't expected to know those names, so we just flatten the inputs. But the
+    # input names are sometimes meaningful (e.g. DenseFeatures layer). We check
+    # if there is any intersection between the user-provided names and model's
+    # input names. If there is, we assume the names are meaningful and preserve
+    # the dictionary.
+    if (isinstance(self.base_model, tf.keras.Sequential) and
+        not (set(getattr(self.base_model, 'input_names', []))
+             & set(inputs.keys()))):
+      inputs = tf.nest.flatten(inputs)
     return inputs, labels, sample_weights
 
   def _call_base_model(self, inputs, **kwargs):
-    if (self.base_model._is_graph_network and  # pylint: disable=protected-access
-        not isinstance(self.base_model, tf.keras.Sequential)):
+    if isinstance(inputs, dict) and self.base_model._is_graph_network:  # pylint: disable=protected-access
       base_input_names = getattr(self.base_model, 'input_names', None)
       if base_input_names:
         # Converts input dictionary to a list so it conforms with the model's
@@ -616,7 +626,7 @@ class AdversarialRegularization(tf.keras.Model):
   def _forward_pass(self, inputs, labels, sample_weights, base_model_kwargs):
     """Runs the usual forward pass to compute outputs, loss, and metrics."""
     with tf.GradientTape() as tape:
-      tape.watch(list(inputs.values()))
+      tape.watch(tf.nest.flatten(inputs))
       outputs = self._call_base_model(inputs, **base_model_kwargs)
       # If the base_model is a subclassed model, its output_names are not
       # available before its first call. If it is a dynamic subclassed model,
