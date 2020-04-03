@@ -78,7 +78,6 @@ class RegularizerTest(tf.test.TestCase):
 
     actual_loss = self.evaluate(vadv_loss)
 
-    # For detail derivation of the Hessian matrix, see go/vadv-tests-hessian
     hessian = 2 * np.dot(np_weights, np_weights.T)
     approx = np.matmul(np_seed, hessian)
     approx *= step_size / np.linalg.norm(approx, axis=-1, keepdims=True)
@@ -108,7 +107,6 @@ class RegularizerTest(tf.test.TestCase):
 
     actual_loss = self.evaluate(vadv_loss)
 
-    # For detail derivation of the Hessian matrix, see go/vadv-tests-hessian
     x = np_input
     hessian = np.dot(x, x.T) * np.identity(2) - np.dot(x.T, x)
     hessian /= np.linalg.norm(x)**4
