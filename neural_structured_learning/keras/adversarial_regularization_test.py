@@ -117,14 +117,14 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
       # is not created until the first call to the model, so the initialization
       # is not captured in the global_variables_initializer above.
       with tf.keras.backend.get_session().as_default():
-        return super(AdversarialLossTest, self).evaluate(
-            *args, **kwargs)
+        return super(AdversarialLossTest, self).evaluate(*args, **kwargs)
     else:
-      return super(AdversarialLossTest, self).evaluate(
-          *args, **kwargs)
+      return super(AdversarialLossTest, self).evaluate(*args, **kwargs)
 
   @parameterized.named_parameters([
       ('sequential', build_linear_keras_sequential_model),
+      ('sequential_no_input_layer',
+       build_linear_keras_sequential_model_no_input_layer),
       ('functional', build_linear_keras_functional_model),
       ('subclassed', build_linear_keras_subclassed_model),
   ])
@@ -511,6 +511,37 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(w1_new, tf.keras.backend.get_value(dense1.weights[0]))
     self.assertAllClose(w2_new, tf.keras.backend.get_value(dense2.weights[0]))
 
+  def test_train_subclassed_base_model_with_label_input(self):
+    w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
+
+    inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
+
+    class BaseModel(tf.keras.Model):
+
+      def __init__(self):
+        super(BaseModel, self).__init__()
+        self.dense = tf.keras.layers.Dense(
+            w.shape[-1],
+            use_bias=False,
+            kernel_initializer=tf.keras.initializers.Constant(w))
+        self.seen_input_keys = set()
+
+      def call(self, inputs):
+        self.seen_input_keys |= set(inputs.keys())
+        return self.dense(inputs['feature'])
+
+    model = BaseModel()
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model,
+        label_keys=['label'],
+        adv_config=adv_config,
+        base_with_labels_in_features=True)
+    adv_model.compile(
+        optimizer=tf.keras.optimizers.SGD(lr), loss='MSE', metrics=['mae'])
+    adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    self.assertIn('label', model.seen_input_keys)
+
   def test_evaluate_binary_classification_metrics(self):
     # multi-label binary classification model
     w = np.array([[4.0, 1.0, -5.0], [-3.0, 1.0, 2.0]])
@@ -564,10 +595,17 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(cross_entropy,
                         results['sparse_categorical_crossentropy'])
 
-  def test_perturb_on_batch(self):
+  @parameterized.named_parameters([
+      ('sequential', build_linear_keras_sequential_model),
+      ('sequential_no_input_layer',
+       build_linear_keras_sequential_model_no_input_layer),
+      ('functional', build_linear_keras_functional_model),
+      ('subclassed', build_linear_keras_subclassed_model),
+  ])
+  def test_perturb_on_batch(self, model_fn):
     w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
     inputs = {'feature': x0, 'label': y0}
-    model = build_linear_keras_functional_model(input_shape=(2,), weights=w)
+    model = model_fn(input_shape=(2,), weights=w)
     adv_model = adversarial_regularization.AdversarialRegularization(
         model, label_keys=['label'], adv_config=adv_config)
     adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss=['MSE'])

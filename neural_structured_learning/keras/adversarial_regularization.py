@@ -460,7 +460,8 @@ class AdversarialRegularization(tf.keras.Model):
                base_model,
                label_keys=('label',),
                sample_weight_key=None,
-               adv_config=None):
+               adv_config=None,
+               base_with_labels_in_features=False):
     """Constructor of `AdversarialRegularization` class.
 
     Args:
@@ -474,6 +475,14 @@ class AdversarialRegularization(tf.keras.Model):
         the weight is 1.0 for each input example.
       adv_config: Instance of `nsl.configs.AdvRegConfig` for configuring
         adversarial regularization.
+      base_with_labels_in_features: A Boolean value indicating whether the base
+        model expects label features as input. This option is effective only
+        when the base model is a subclassed Keras model. (For functional and
+        Sequential models, the expected inputs can be inferred from the model
+        itself.) If set to true, the base model will be called with an input
+        dictionary including label and sample-weight features. If set to false,
+        label and sample-weight features will not present in base model's input
+        dictionary.
     """
     super(AdversarialRegularization,
           self).__init__(name='AdversarialRegularization')
@@ -481,6 +490,7 @@ class AdversarialRegularization(tf.keras.Model):
     self.label_keys = label_keys
     self.sample_weight_key = sample_weight_key
     self.adv_config = adv_config or nsl_configs.AdvRegConfig()
+    self._base_with_labels_in_features = base_with_labels_in_features
 
   def compile(self,
               optimizer,
@@ -585,7 +595,7 @@ class AdversarialRegularization(tf.keras.Model):
                                         outputs, sample_weights)
     return loss
 
-  def _split_inputs(self, inputs):
+  def _extract_labels_and_weights(self, inputs):
     sample_weights = inputs.get(self.sample_weight_key, None)
     if sample_weights is not None:
       sample_weights = tf.stop_gradient(sample_weights)
@@ -593,34 +603,37 @@ class AdversarialRegularization(tf.keras.Model):
     labels = [
         tf.stop_gradient(inputs[label_key]) for label_key in self.label_keys
     ]
-    # Removes labels and sample weights from the input dictionary, since they
-    # are only used in this class and base model does not need them as inputs.
+    return labels, sample_weights
+
+  def _remove_labels_and_weights(self, inputs):
     non_feature_keys = set(self.label_keys).union([self.sample_weight_key])
-    inputs = {
+    return {
         key: value
         for key, value in six.iteritems(inputs)
         if key not in non_feature_keys
     }
-    # In some cases, Sequential models are automatically compiled to graph
-    # networks with automatically generated input names. In this case, the user
-    # isn't expected to know those names, so we just flatten the inputs. But the
-    # input names are sometimes meaningful (e.g. DenseFeatures layer). We check
-    # if there is any intersection between the user-provided names and model's
-    # input names. If there is, we assume the names are meaningful and preserve
-    # the dictionary.
-    if (isinstance(self.base_model, tf.keras.Sequential) and
-        not (set(getattr(self.base_model, 'input_names', []))
-             & set(inputs.keys()))):
-      inputs = tf.nest.flatten(inputs)
-    return inputs, labels, sample_weights
 
   def _call_base_model(self, inputs, **kwargs):
-    if isinstance(inputs, dict) and self.base_model._is_graph_network:  # pylint: disable=protected-access
-      base_input_names = getattr(self.base_model, 'input_names', None)
+    base_input_names = getattr(self.base_model, 'input_names', [])
+    if (isinstance(self.base_model, tf.keras.Sequential) and
+        not set(base_input_names) & set(inputs.keys())):
+      # In some cases, Sequential models are automatically compiled to graph
+      # networks with automatically generated input names. In this case, the
+      # user isn't expected to know those names, so we just flatten the inputs.
+      # But the input names are sometimes meaningful (e.g. DenseFeatures layer).
+      # We check if there is any intersection between the user-provided names
+      # and model's input names. If there is, we assume the names are meaningful
+      # and do name-based lookup in the next branch.
+      inputs = tf.nest.flatten(self._remove_labels_and_weights(inputs))
+    elif self.base_model._is_graph_network:  # pylint: disable=protected-access
       if base_input_names:
         # Converts input dictionary to a list so it conforms with the model's
         # expected input.
         inputs = [inputs[name] for name in base_input_names]
+    elif not self._base_with_labels_in_features:
+      # Removes labels and sample weights from the input dictionary, since they
+      # are only used in this class and base model does not need them as inputs.
+      inputs = self._remove_labels_and_weights(inputs)
     return self.base_model(inputs, **kwargs)
 
   def _forward_pass(self, inputs, labels, sample_weights, base_model_kwargs):
@@ -647,7 +660,7 @@ class AdversarialRegularization(tf.keras.Model):
       raise ValueError('Labels are not in the input. For predicting examples '
                        'without labels, please use the base model instead.')
 
-    inputs, labels, sample_weights = self._split_inputs(inputs)
+    labels, sample_weights = self._extract_labels_and_weights(inputs)
     outputs, labeled_loss, metrics, tape = self._forward_pass(
         inputs, labels, sample_weights, kwargs)
     self.add_loss(labeled_loss)
@@ -690,8 +703,9 @@ class AdversarialRegularization(tf.keras.Model):
       A dictionary of NumPy arrays, `SparseTensor`, or `RaggedTensor` objects of
       the generated adversarial examples.
     """
-    x = tf.nest.map_structure(tf.convert_to_tensor, x, expand_composites=True)
-    inputs, labels, sample_weights = self._split_inputs(x)
+    inputs = tf.nest.map_structure(
+        tf.convert_to_tensor, x, expand_composites=True)
+    labels, sample_weights = self._extract_labels_and_weights(inputs)
     _, labeled_loss, _, tape = self._forward_pass(inputs, labels,
                                                   sample_weights,
                                                   {'training': False})
