@@ -90,9 +90,12 @@ def make_adv_reg_config(
 
   Args:
     multiplier: multiplier to adversarial regularization loss. Defaults to 0.2.
-    feature_mask: mask (w/ 0-1 values) applied on the gradient. The shape should
-      be the same as (or broadcastable to) input features. If set to `None`, no
-      feature mask will be applied.
+    feature_mask: mask (w/ values of 0.0 or 1.0) applied on the gradient. Its
+      shape should be the same as (or broadcastable to) the input features:
+      input features corresponding to mask values of 0.0 are *not* be perturbed,
+      while those corresponding to mask values of 1.0 are considered
+      perturbable. If set to `None`, all input features are considered
+      perturbable.
     adv_step_size: step size to find the adversarial sample. Defaults to 0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
       converted to `NormType` when applicable (e.g., a value of 'l2' will be
