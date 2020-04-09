@@ -38,12 +38,13 @@ class AdvNeighborConfig(object):
   """Contains configuration for generating adversarial neighbors.
 
   Attributes:
-    feature_mask: mask (w/ 0-1 values) applied on the perturbations. The
-      dimensions with zero value won't be perturbed. The shape should be the
-      same as (or broadcastable to) input features. If the input features are in
-      a collection (e.g. list or dictionary), this field should also be a
-      collection of the same structure. If set to `None`, no feature mask will
-      be applied.
+    feature_mask: mask w/ values in `[0, 1]` applied on the gradient. Its shape
+      should be the same as (or broadcastable to) that of the input features.
+      If the input features are in a collection (e.g. list or dictionary), this
+      field should also be a collection of the same structure. Input features
+      corresponding to mask values of 0.0 are *not* perturbed. Setting this
+      field to `None` is equivalent to setting a mask value of 1.0 for all input
+      features.
     adv_step_size: step size to find the adversarial sample. Default set to
       0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
@@ -90,12 +91,13 @@ def make_adv_reg_config(
 
   Args:
     multiplier: multiplier to adversarial regularization loss. Defaults to 0.2.
-    feature_mask: mask (w/ values of 0.0 or 1.0) applied on the gradient. Its
-      shape should be the same as (or broadcastable to) the input features:
-      input features corresponding to mask values of 0.0 are *not* be perturbed,
-      while those corresponding to mask values of 1.0 are considered
-      perturbable. If set to `None`, all input features are considered
-      perturbable.
+    feature_mask: mask w/ values in `[0, 1]` applied on the gradient. Its shape
+      should be the same as (or broadcastable to) that of the input features.
+      If the input features are in a collection (e.g. list or dictionary), this
+      field should also be a collection of the same structure. Input features
+      corresponding to mask values of 0.0 are *not* perturbed. Setting this
+      field to `None` is equivalent to setting a mask value of 1.0 for all input
+      features.
     adv_step_size: step size to find the adversarial sample. Defaults to 0.001.
     adv_grad_norm: type of tensor norm to normalize the gradient. Input will be
       converted to `NormType` when applicable (e.g., a value of 'l2' will be
