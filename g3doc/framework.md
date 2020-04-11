@@ -1,4 +1,4 @@
-## The Neural Structured Learning Framework
+# The Neural Structured Learning Framework
 
 Neural Structured Learning (NSL) focuses on training deep neural networks by
 leveraging structured signals (when available) along with feature inputs. As

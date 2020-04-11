@@ -1,6 +1,7 @@
 book_path: /neural_structured_learning/_book.yaml
 project_path: /neural_structured_learning/_project.yaml
-description: <!--no description-->
+description: An easy-to-use framework to train neural networks by leveraging structured signals
+ along with input features.
 landing_page:
   custom_css_path: /site-assets/css/style.css
   rows:
