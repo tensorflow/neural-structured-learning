@@ -1,0 +1,2 @@
+numpy>=1.17
+tensorflow_gpu>=2.0.0
