@@ -13,15 +13,15 @@
 # limitations under the License.
 """Knowledge graph embedding models."""
 
-from kgemb.models.complex import Complex
-from kgemb.models.complex import RotatE
-from kgemb.models.euclidean import AttE
-from kgemb.models.euclidean import CTDecomp
-from kgemb.models.euclidean import MurE
-from kgemb.models.euclidean import RefE
-from kgemb.models.euclidean import RotE
-from kgemb.models.euclidean import TransE
-from kgemb.models.hyperbolic import AttH
-from kgemb.models.hyperbolic import RefH
-from kgemb.models.hyperbolic import RotH
-from kgemb.models.hyperbolic import TransH
+from kg_hyp_emb.models.complex import Complex
+from kg_hyp_emb.models.complex import RotatE
+from kg_hyp_emb.models.euclidean import AttE
+from kg_hyp_emb.models.euclidean import CTDecomp
+from kg_hyp_emb.models.euclidean import MurE
+from kg_hyp_emb.models.euclidean import RefE
+from kg_hyp_emb.models.euclidean import RotE
+from kg_hyp_emb.models.euclidean import TransE
+from kg_hyp_emb.models.hyperbolic import AttH
+from kg_hyp_emb.models.hyperbolic import RefH
+from kg_hyp_emb.models.hyperbolic import RotH
+from kg_hyp_emb.models.hyperbolic import TransH

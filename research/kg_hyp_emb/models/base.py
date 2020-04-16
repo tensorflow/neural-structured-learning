@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import abc
 
-from kgemb.learning import regularizers
+from kg_hyp_emb.learning import regularizers
 import numpy as np
 import tensorflow as tf
 
