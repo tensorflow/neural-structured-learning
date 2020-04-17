@@ -17,7 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from kg_hyp_emb.models.base import KGModel
+from kgemb.models.base import KGModel
 import tensorflow as tf
 
 

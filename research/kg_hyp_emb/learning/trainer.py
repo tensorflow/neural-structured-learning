@@ -13,7 +13,7 @@
 # limitations under the License.
 """Module to train knowledge graph embedding models."""
 
-from kg_hyp_emb.learning import losses
+from kgemb.learning import losses
 import tensorflow as tf
 
 

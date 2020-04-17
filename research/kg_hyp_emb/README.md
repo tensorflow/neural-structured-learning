@@ -19,16 +19,16 @@ Euclidean embeddings:
 *   CTDecomp [2]
 *   TransE [4]
 *   MurE [5]
-*   RotE [6]
-*   RefE [6]
-*   AttE [6]
+*   RotE (new)
+*   RefE (new)
+*   AttE (new)
 
 Hyperbolic embeddings:
 
-*   TransH [6]
-*   RotH [6]
-*   RefH [6]
-*   AttH [6]
+*   TransH (new)
+*   RotH (new)
+*   RefH (new)
+*   AttH (new)
 
 ## Usage
 
@@ -73,7 +73,7 @@ RefE on FB15k-237:
 python train.py --max_epochs 100 --dataset FB237 --model RefE --loss_fn SigmoidCrossEntropy --neg_sample_size -1 --data_dir data --optimizer Adagrad --lr 5e-2 --save_dir logs --rank 500 --entity_reg 1e-5 --rel_reg 1e-5 --patience 10 --valid 5 --save_model=false --save_logs=true --regularizer L3 --initializer GlorotNormal
 ```
 
-This model achieves 54% Hits@10 on the FB237 test set.
+This model should achieve around 54% Hits@10 on the FB237 test set.
 
 ## References
 
@@ -93,4 +93,5 @@ multi-relational data." Advances in neural information processing systems. 2013.
 [5] Balažević, Ivana, et al. "Multi-relational Poincaré Graph Embeddings."
 Advances in neural information processing systems. 2019.
 
-[6] Chami, Ines, et al. "Low-Dimensional Hyperbolic Knowledge Graph Embeddings." Annual  Meeting  of  the  Association  for Computational Linguistics. 2020.
+[6] Chami, Ines, et al. Low-Dimensional Hyperbolic Knowledge Graph Embeddings.
+Under submission. 2019.
