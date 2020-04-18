@@ -17,9 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from kgemb.models.base import KGModel
-from kgemb.utils import euclidean as euc_utils
-from kgemb.utils import hyperbolic as hyp_utils
+from kg_hyp_emb.models.base import KGModel
+from kg_hyp_emb.utils import euclidean as euc_utils
+from kg_hyp_emb.utils import hyperbolic as hyp_utils
 import numpy as np
 import tensorflow as tf
 
