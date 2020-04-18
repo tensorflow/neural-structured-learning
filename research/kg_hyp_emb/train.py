@@ -29,11 +29,11 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from kgemb.config import CONFIG
-from kgemb.datasets.datasets import DatasetFn
-from kgemb.learning.trainer import KGTrainer
-import kgemb.models as models
-import kgemb.utils.train as train_utils
+from kg_hyp_emb.config import CONFIG
+from kg_hyp_emb.datasets.datasets import DatasetFn
+from kg_hyp_emb.learning.trainer import KGTrainer
+import kg_hyp_emb.models as models
+import kg_hyp_emb.utils.train as train_utils
 import tensorflow as tf
 
 flag_fns = {
