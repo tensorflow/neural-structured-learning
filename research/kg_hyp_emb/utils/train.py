@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl import flags
-from kgemb.config import CONFIG
+from kg_hyp_emb.config import CONFIG
 import numpy as np
 
 FLAGS = flags.FLAGS
