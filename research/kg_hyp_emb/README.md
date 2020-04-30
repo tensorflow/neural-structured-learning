@@ -2,19 +2,20 @@
 
 This project is a Tensorflow 2.0 implementation of Hyperbolic KG embeddings [6]
 as well as multiple state-of-the-art KG embedding models which can be trained
-for the link prediction task.
+for the link prediction task. A PyTorch implementation is also available at:
+[https://github.com/HazyResearch/KGEmb](https://github.com/HazyResearch/KGEmb)
 
 ## Library Overview
 
 This implementation includes the following models:
 
-Complex embeddings:
+#### Complex embeddings:
 
 *   Complex [1]
 *   Complex-N3 [2]
 *   RotatE [3]
 
-Euclidean embeddings:
+#### Euclidean embeddings:
 
 *   CTDecomp [2]
 *   TransE [4]
@@ -23,14 +24,14 @@ Euclidean embeddings:
 *   RefE [6]
 *   AttE [6]
 
-Hyperbolic embeddings:
+#### Hyperbolic embeddings:
 
 *   TransH [6]
 *   RotH [6]
 *   RefH [6]
 *   AttH [6]
 
-## Usage
+## Installation
 
 First, create a python 3.7 environment and install dependencies: From kgemb/
 
@@ -66,6 +67,8 @@ KG_DIR=$(pwd)/..
 export PYTHONPATH="$KG_DIR:$PYTHONPATH"
 ```
 
+## Example usage
+
 Then, train a model using the `train.py` script. We provide an example to train
 RefE on FB15k-237:
 
@@ -74,6 +77,27 @@ python train.py --max_epochs 100 --dataset FB237 --model RefE --loss_fn SigmoidC
 ```
 
 This model achieves 54% Hits@10 on the FB237 test set.
+
+## New models
+
+To add a new (complex/hyperbolic/Euclidean) Knowledge Graph embedding model,
+implement the corresponding query embedding under models/, e.g.:
+
+```
+def get_queries(self, input_tensor):
+    entity = self.entity(input_tensor[:, 0])
+    rel = self.rel(input_tensor[:, 1])
+    result = ### Do something here ###
+    return return result
+```
+
+## Citation
+
+If you use the codes, please cite the following paper [6]:
+
+```
+TODO: add bibtex
+```
 
 ## References
 

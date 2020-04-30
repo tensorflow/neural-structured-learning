@@ -108,16 +108,14 @@ def process_dataset(path):
               corresponding KG triples.
     filters: Dictionary containing filters for lhs and rhs predictions.
   """
-  lhs_skip = collections.defaultdict(set)
-  rhs_skip = collections.defaultdict(set)
   ent2idx, rel2idx = get_idx(dataset_path)
   examples = {}
-  for split in ['train', 'valid', 'test']:
+  splits = ['train', 'valid', 'test']
+  for split in splits:
     dataset_file = os.path.join(path, split)
     examples[split] = to_np_array(dataset_file, ent2idx, rel2idx)
-    lhs_filters, rhs_filters = get_filters(examples[split], len(rel2idx))
-    lhs_skip.update(lhs_filters)
-    rhs_skip.update(rhs_filters)
+  all_examples = np.concatenate([examples[split] for split in splits], axis=0)
+  lhs_skip, rhs_skip = get_filters(all_examples, len(rel2idx))
   filters = {'lhs': lhs_skip, 'rhs': rhs_skip}
   return examples, filters
 
