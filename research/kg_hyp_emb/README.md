@@ -116,4 +116,7 @@ multi-relational data." Advances in neural information processing systems. 2013.
 Advances in neural information processing systems. 2019.
 
 [6] Chami, Ines, et al. "Low-Dimensional Hyperbolic Knowledge Graph Embeddings." Annual  Meeting  of  the  Association  for Computational Linguistics. 2020.
+<<<<<<< HEAD
 
+=======
+>>>>>>> fe58dca38a810a700f19428d1a4068a7ae1b23cd
