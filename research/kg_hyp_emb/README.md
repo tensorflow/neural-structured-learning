@@ -115,5 +115,5 @@ multi-relational data." Advances in neural information processing systems. 2013.
 [5] Balažević, Ivana, et al. "Multi-relational Poincaré Graph Embeddings."
 Advances in neural information processing systems. 2019.
 
-[6] Chami, Ines, et al. "Low-Dimensional Hyperbolic Knowledge Graph Embeddings." Annual  Meeting  of  the  Association  for Computational Linguistics. 2020.
-
+[6] Chami, Ines, et al. "Low-Dimensional Hyperbolic Knowledge Graph Embeddings."
+Annual Meeting of the Association for Computational Linguistics. 2020.
