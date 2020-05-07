@@ -95,6 +95,12 @@ def _int64_feature(*value):
   return tf.train.Feature(int64_list=tf.train.Int64List(value=list(value)))
 
 
+def _bytes_feature(value):
+  """Returns bytes tf.train.Feature from a string."""
+  return tf.train.Feature(
+      bytes_list=tf.train.BytesList(value=[value.encode('utf-8')]))
+
+
 def parse_cora_content(in_file, train_percentage):
   """Converts the Cora content (in TSV) to `tf.train.Example` instances.
 
@@ -132,13 +138,14 @@ def parse_cora_content(in_file, train_percentage):
       entries = line.rstrip('\n').split('\t')
       # entries contains [ID, Word1, Word2, ..., Label]; 'Words' are 0/1 values.
       words = map(int, entries[1:-1])
+      example_id = entries[0]
       features = {
+          'id': _bytes_feature(example_id),
           'words': _int64_feature(*words),
           'label': _int64_feature(label_index[entries[-1]]),
       }
       example_features = tf.train.Example(
           features=tf.train.Features(feature=features))
-      example_id = entries[0]
       if random.uniform(0, 1) <= train_percentage:  # for train/test split.
         train_examples[example_id] = example_features
       else:
