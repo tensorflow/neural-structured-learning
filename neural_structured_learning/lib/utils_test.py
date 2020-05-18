@@ -35,6 +35,85 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     expected_tensor = tf.constant([[0.25, 0.5, -1.0], [-0.2, 1.0, -0.6]])
     self.assertAllEqual(normalized_tensor, expected_tensor)
 
+  def testProjectToBallL1(self):
+    target_tensor = tf.constant([[1.0, 2.0, -4.0]])
+    with self.assertRaises(NotImplementedError):
+      self.evaluate(
+          utils.project_to_ball(target_tensor, 0.2, configs.NormType.L1))
+
+  # The 3 test cases for this are as follows: (1) normalize both components. (2)
+  # Project the one sample that exceeds the radius back to the ball. (3)
+  # Both are within the ball, do nothing..
+  @parameterized.parameters((1, 1.0 / 3, 1.0 / 15), (4, 1.0, 4.0 / 15),
+                            (16, 1.0, 1.0))
+  def testProjectToBallL2(self, eps, first_factor, second_factor):
+    target_tensor_dict = {
+        'f1': tf.constant([[1.0, -2.0, 2.0], [2.0, 10.0, 11.0]])
+    }
+    projected_tensor_dict = self.evaluate(
+        utils.project_to_ball(target_tensor_dict, eps, configs.NormType.L2))
+    expected_tensor = target_tensor_dict['f1'] * tf.constant([[first_factor],
+                                                              [second_factor]])
+    self.assertAllEqual(projected_tensor_dict['f1'], expected_tensor)
+
+  # First test case, the radius is large enough that neither sample point is
+  # clipped. The second test case, the first sample point is clipped to radius
+  # 2. Since the second point has norm 1, it remains unchanged.
+  @parameterized.parameters((100.0, 1.0, 1.0),
+                            (2.0, 2.0 / np.sqrt(252.0 + 169.0), 1.0))
+  def testProjectToBallL2MultipleFeatures(self, radius, factor1, factor2):
+    # Sum of squares is 25 + 9 + 49 + 169 = 252 for element 1, and 1 for element
+    # 2.
+    f1 = tf.constant([[[[0.0, 3.0, -4.0], [1.0, 2.0, -2.0]],
+                       [[2.0, 3.0, 6.0], [3.0, 4.0, 12.0]]],
+                      [[[1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                       [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]]])
+    # Sum of squares is 25 + 144 = 169 for element 1, 0 for element 2.
+    f2 = tf.constant([[[3.0, 4.0], [12.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
+    input_dict = {'f1': f1, 'f2': f2}
+    projected_tensor_dict = self.evaluate(
+        utils.project_to_ball(input_dict, radius, configs.NormType.L2))
+    expected_f1_sample1 = f1[0] * factor1
+    expected_f1_sample2 = f1[1] * factor2
+    expected_f2_sample1 = f2[0] * factor1
+    expected_f2_sample2 = f2[1] * factor2
+
+    self.assertAllEqual(projected_tensor_dict['f1'][0], expected_f1_sample1)
+    self.assertAllEqual(projected_tensor_dict['f1'][1], expected_f1_sample2)
+    self.assertAllEqual(projected_tensor_dict['f2'][0], expected_f2_sample1)
+    self.assertAllEqual(projected_tensor_dict['f2'][1], expected_f2_sample2)
+
+  def testProjectToBallL2WithZero(self):
+    input_dict = {'f1': tf.constant(0.0, shape=[2, 3])}
+    projected_tensor_dict = self.evaluate(
+        utils.project_to_ball(input_dict, 0.5, configs.NormType.L2))
+    expected_tensor = tf.constant(0.0, shape=[2, 3])
+    self.assertAllEqual(projected_tensor_dict['f1'], expected_tensor)
+
+  # The 3 test cases for this are as follows: (1) normalize both components. (2)
+  # Clip components that exceed the radius, but preserve others. (3) Both
+  # samples are within the ball, do nothing.
+  @parameterized.parameters(([1.0, 2.0, -4.0], 0.5, [0.5, 0.5, -0.5]),
+                            ([1.0, 2.0, -4.0], 1.5, [1.0, 1.5, -1.5]),
+                            ([1.0, 2.0, -4.0], 5.0, [1.0, 2.0, -4.0]))
+  def testProjectToBallLInf(self, input_tensor, eps, expected_tensor):
+    input_dict = {'f1': tf.constant(input_tensor)}
+    projected_tensor_dict = self.evaluate(
+        utils.project_to_ball(input_dict, eps, configs.NormType.INFINITY))
+    self.assertAllEqual(projected_tensor_dict['f1'],
+                        tf.constant(expected_tensor))
+
+  def testProjectToBallLInfMultipleFeatures(self):
+    f1 = tf.constant([[1.0, 2.0, -4.0], [-1.0, 3.0, 5.0]])
+    f2 = tf.constant([[1.0, 6.0], [2.0, 4.0]])
+    input_dict = {'f1': f1, 'f2': f2}
+    projected_tensor_dict = self.evaluate(
+        utils.project_to_ball(input_dict, 1.5, configs.NormType.INFINITY))
+    expected_f1 = tf.constant([[1.0, 1.5, -1.5], [-1.0, 1.5, 1.5]])
+    expected_f2 = tf.constant([[1.0, 1.5], [1.5, 1.5]])
+    self.assertAllEqual(projected_tensor_dict['f1'], expected_f1)
+    self.assertAllEqual(projected_tensor_dict['f2'], expected_f2)
+
   def testNormalizeInfWithOnes(self):
     target_tensor = tf.constant(1.0, shape=[2, 4])
     normalized_tensor = self.evaluate(
@@ -690,13 +769,11 @@ class UnpackNeighborFeaturesTest(tf.test.TestCase):
     sample3 = [[7, 8, 9], [9, 8, 7]]
     sample_features = [sample1, sample2, sample3]  # 3x2x3
 
-    neighbor_0_features = [[[1, 3, 5], [5, 3, 1]],
-                           [[7, 9, 11], [11, 9, 7]],
+    neighbor_0_features = [[[1, 3, 5], [5, 3, 1]], [[7, 9, 11], [11, 9, 7]],
                            [[13, 15, 17], [17, 15, 13]]]  # 3x2x3
     neighbor_0_weights = [[0.25], [0.5], [0.75]]  # 3x1
 
-    neighbor_1_features = [[[2, 4, 6], [6, 4, 2]],
-                           [[8, 10, 12], [12, 10, 8]],
+    neighbor_1_features = [[[2, 4, 6], [6, 4, 2]], [[8, 10, 12], [12, 10, 8]],
                            [[14, 16, 18], [18, 16, 14]]]  # 3x2x3
     neighbor_1_weights = [[0.75], [0.5], [0.25]]  # 3x1
 

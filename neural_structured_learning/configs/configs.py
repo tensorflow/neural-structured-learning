@@ -58,12 +58,17 @@ class AdvNeighborConfig(object):
       corresponding feature.
     clip_value_max: maximum value to clip the feature after perturbation. (See
       `clip_value_min` for the structure and shape limitations.)
+    iterations: number of iterations to run the attack for. Defaults to a single
+      step, used for the Fast Gradient Sign Method (FGSM) attack.
+    epsilon: Defines radius of the epsilon ball to project back to.
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
   adv_grad_norm = attr.ib(converter=NormType, default='l2')
   clip_value_min = attr.ib(default=None)
   clip_value_max = attr.ib(default=None)
+  iterations = attr.ib(default=1)  # 1 is the FGSM attack.
+  epsilon = attr.ib(default=None)
 
 
 @attr.s

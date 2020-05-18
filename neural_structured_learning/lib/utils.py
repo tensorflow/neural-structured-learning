@@ -72,6 +72,54 @@ def _expand_to_rank(vector, rank):
   return tf.reshape(vector, shape=[-1] + [1] * (rank - 1))
 
 
+def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
+  """Projects a tensor to the epsilon ball in the given norm.
+
+  Only L-infinity and L2 norms are currently supported.
+
+  Args:
+    t_dict: A dictionary of tensors to project to the epsilon ball. The first
+      dimension of each tensor (the batch_size) must all be equal.
+    radius: the radius of the ball.
+    norm_type: One of `nsl.configs.NormType`. Currently L1 norm is not
+      supported.
+    epsilon: Used to avoid division by 0.
+
+  Returns:
+    A dictionary of tensors projected to the epsilon ball.
+  """
+  if norm_type not in {configs.NormType.INFINITY, configs.NormType.L2}:
+    raise NotImplementedError('Only L2 and L-infinity norms are implemented.')
+  if norm_type == configs.NormType.INFINITY:
+    for key, tensor in t_dict.items():
+      t_dict[key] = tf.clip_by_value(
+          tensor, clip_value_min=-radius, clip_value_max=radius)
+    return t_dict
+  if norm_type == configs.NormType.L2:
+    # First dimension is the batch size. Take a tensor value to get this size.
+    global_norm = tf.zeros((next(iter(t_dict.values())).get_shape()[0],))
+
+    def squared_global_norm(tensor):
+      """Calculate squared sum of elements for a tensor."""
+      target_axes = list(range(1, len(tensor.get_shape())))
+      return tf.reduce_sum(input_tensor=tf.square(tensor), axis=target_axes)
+
+    tensors = tf.nest.flatten(t_dict)
+    norms = tf.nest.map_structure(squared_global_norm, tensors)
+    global_norm = tf.sqrt(tf.maximum(epsilon**2, tf.add_n(norms)))
+    scale = tf.where(global_norm <= radius,
+                     tf.broadcast_to(1.0, global_norm.get_shape()),
+                     radius / global_norm)
+
+    def clip_to_norm(tensor):
+      """For each sample, clip the tensor to the ball if necessary."""
+      shaped_scale = _expand_to_rank(scale, len(tensor.get_shape()))
+      return shaped_scale * tensor
+
+    return tf.nest.pack_sequence_as(
+        t_dict, tf.nest.map_structure(clip_to_norm, tensors))
+
+
 def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
   """Solves the maximization problem weights^T*x with the constraint norm(x)=1.
 
@@ -162,8 +210,8 @@ def get_target_indices(logits, labels, adv_target_config):
     logits: tensor of shape `[batch_size, num_classes]` and dtype=`tf.float32`.
     labels: `int` tensor with a shape of `[batch_size]` containing the ground
       truth labels.
-    adv_target_config: instance of `nsl.configs.AdvTargetConfig` specifying
-      the adversarial target configuration.
+    adv_target_config: instance of `nsl.configs.AdvTargetConfig` specifying the
+      adversarial target configuration.
 
   Returns:
     Tensor of shape `[batch_size]` and dtype=`tf.int32` of indices of targets.

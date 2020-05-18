@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Generates adversarial neighbors.
 
 This file provides the class(es) and the corresponding functional interface(s)
@@ -40,12 +39,22 @@ def _apply_feature_constraints(feature, min_value, max_value):
 
 
 class _GenAdvNeighbor(abs_gen.GenNeighbor):
-  """Class for generating adversarial neighbors.
+  """Class for generating adversarial neighbors based on gradient-based methods.
 
-  The core of this class implements the operation:
-  `adv_neighbor = input_features + adv_step_size * final_grad`
+  The core of this class implements the projected gradient descent (PGD)
+  operation:
+  ```
+  adv_neighbor = input_features
+  iterations = 10  # Number of iterations to run PGD.
+  for _ in range(iterations):
+    grad = gradient(adv_neighbor)
+    adv_neighbor = adv_neighbor + adv_step_size * grad
+    adv_neighbor = project(adv_neighbor)
+  ```
   where `adv_step_size` is the step size (analogous to learning rate) for
-  searching/calculating adversarial neighbor.
+  searching/calculating adversarial neighbor, `gradient(x)` calculates the
+  gradient of the model at `x`, and `project(v)` projects the vector `v` onto
+  the epsilon ball.
 
   Attributes:
     labeled_loss: a scalar (`tf.float32`) tensor calculated from true labels (or
@@ -58,25 +67,34 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         `tf.DType`, like string or integer. (3) The feature is not involved in
         loss computation.  If set to False, those input without gradient will be
         ignored silently and not perturbed. (default=False)
+    pgd_model_fn: the model function. Takes in the input_features and produces a
+      prediction. This is required for PGD with more than one step.
+    pgd_loss_fn: the loss function. Calculates loss between prediction and
+      ground truth.
   """
 
   def __init__(self,
                labeled_loss,
                adv_config,
                raise_invalid_gradient=False,
-               gradient_tape=None):
+               gradient_tape=None,
+               pgd_model_fn=None,
+               pgd_loss_fn=None):
     self._labeled_loss = labeled_loss
     self._adv_config = adv_config
     self._raise_invalid_gradient = raise_invalid_gradient
     self._gradient_tape = gradient_tape
+    self._pgd_model_fn = pgd_model_fn
+    self._pgd_loss_fn = pgd_loss_fn
 
-  def _compute_gradient(self, dense_features):
-    """Computes the gradient of `self._labeled_loss` w.r.t. `dense_features`."""
+  def _compute_gradient(self, loss, dense_features, gradient_tape=None):
+    """Computes the gradient given a loss and dense features."""
     feature_values = list(dense_features.values())
-    if self._gradient_tape is None:  # Assuming in graph mode, no tape required.
-      grads = tf.gradients(self._labeled_loss, feature_values)
+    if gradient_tape is None:
+      grads = tf.gradients(loss, feature_values)
     else:
-      grads = self._gradient_tape.gradient(self._labeled_loss, feature_values)
+      grads = gradient_tape.gradient(loss, feature_values)
+
     # The order of elements returned by .values() and .keys() are guaranteed
     # corresponding to each other.
     keyed_grads = dict(zip(dense_features.keys(), grads))
@@ -131,7 +149,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         negatives[key] = value
     return positives, negatives
 
-  def gen_neighbor(self, input_features):
+  def gen_neighbor(self, input_features, pgd_labels=None):
     """Generates adversarial neighbors and the corresponding weights.
 
     This function perturbs only *dense* tensors to generate adversarial
@@ -148,6 +166,9 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         tensor(s) should be either:
         (a) pointwise samples: [batch_size, feat_len], or
         (b) sequence samples: [batch_size, seq_len, feat_len]
+      pgd_labels: the labels corresponding to each input. This should have shape
+        `[batch_size, 1]`. This is required for PGD-generated adversaries, and
+        unused otherwise.
 
     Returns:
       adv_neighbor: the perturbed example, with the same shape and structure as
@@ -163,41 +184,74 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         This error is suppressed if `raise_invalid_gradient` is set to False
         (which is the default).
     """
+    loss = self._labeled_loss
+    gradient_tape = self._gradient_tape
 
     # Composes both features and feature_masks to dictionaries, so that the
     # feature_masks can be looked up by key.
     features = self._compose_as_dict(input_features)
+    dense_original_features, sparse_original_features = self._split_dict(
+        features, lambda feature: isinstance(feature, tf.Tensor))
     feature_masks = self._compose_as_dict(self._adv_config.feature_mask)
     feature_min = self._compose_as_dict(self._adv_config.clip_value_min)
     feature_max = self._compose_as_dict(self._adv_config.clip_value_max)
-
-    dense_features, sparse_features = self._split_dict(
-        features, lambda feature: isinstance(feature, tf.Tensor))
-    if sparse_features:
-      sparse_keys = str(sparse_features.keys())
+    if sparse_original_features:
+      sparse_keys = str(sparse_original_features.keys())
       if self._raise_invalid_gradient:
         raise ValueError('Cannot perturb non-Tensor input: ' + sparse_keys)
       logging.log_first_n(logging.WARNING,
                           'Cannot perturb non-Tensor input: %s', 1, sparse_keys)
+    dense_features = dense_original_features
+    for t in range(self._adv_config.iterations):
+      keyed_grads = self._compute_gradient(loss, dense_features, gradient_tape)
+      masked_grads = {
+          key: utils.apply_feature_mask(grad, feature_masks.get(key, None))
+          for key, grad in keyed_grads.items()
+      }
 
-    keyed_grads = self._compute_gradient(dense_features)
-    masked_grads = {
-        key: utils.apply_feature_mask(grad, feature_masks.get(key, None))
-        for key, grad in keyed_grads.items()
-    }
+      unit_perturbations = utils.maximize_within_unit_norm(
+          masked_grads, self._adv_config.adv_grad_norm)
+      perturbations = tf.nest.map_structure(
+          lambda t: t * self._adv_config.adv_step_size, unit_perturbations)
+      # Clip perturbations into epsilon ball here. Note that this ball is
+      # centered around the original input point.
+      diff = {}
+      bounded_diff = {}
+      for key, perturb in perturbations.items():
+        # Only include features for which perturbation occurred. There is
+        # nothing to project for features without perturbations.
+        diff[key] = dense_features[key] + perturb - dense_original_features[key]
+      if self._adv_config.epsilon is not None:
+        bounded_diff = utils.project_to_ball(diff, self._adv_config.epsilon,
+                                             self._adv_config.adv_grad_norm)
+      else:
+        bounded_diff = diff
+      # Backfill the rest of the dense features.
+      for key, feature in dense_features.items():
+        if key not in bounded_diff:
+          bounded_diff[key] = feature - dense_original_features[key]
+      adv_neighbor = dict(sparse_original_features)
+      for key, feature in dense_original_features.items():
+        adv_neighbor[key] = tf.stop_gradient(
+            _apply_feature_constraints(
+                feature +
+                bounded_diff[key] if key in perturbations else feature,
+                feature_min.get(key, None), feature_max.get(key, None)))
 
-    unit_perturbations = utils.maximize_within_unit_norm(
-        masked_grads, self._adv_config.adv_grad_norm)
-    perturbations = tf.nest.map_structure(
-        lambda t: t * self._adv_config.adv_step_size, unit_perturbations)
-
-    # Sparse features are copied directly without perturbation.
-    adv_neighbor = dict(sparse_features)
-    for key, feature in dense_features.items():
-      adv_neighbor[key] = tf.stop_gradient(
-          _apply_feature_constraints(
-              feature + perturbations[key] if key in perturbations else feature,
-              feature_min.get(key, None), feature_max.get(key, None)))
+      # Update for the next iteration.
+      if t < self._adv_config.iterations - 1:
+        inputs_t = self._decompose_as(input_features, adv_neighbor)
+        # Compute the new loss to calculate gradients with.
+        features = self._compose_as_dict(inputs_t)
+        dense_features, _ = self._split_dict(
+            features, lambda feature: isinstance(feature, tf.Tensor))
+        if gradient_tape is not None:
+          with gradient_tape:
+            # Gradient calculated against dense features only.
+            gradient_tape.watch(dense_features)
+            loss = self._pgd_loss_fn(pgd_labels, self._pgd_model_fn(inputs_t))
+        else:
+          loss = self._pgd_loss_fn(pgd_labels, self._pgd_model_fn(inputs_t))
 
     # Converts the perturbed examples back to their original structure.
     adv_neighbor = self._decompose_as(input_features, adv_neighbor)
@@ -212,7 +266,10 @@ def gen_adv_neighbor(input_features,
                      labeled_loss,
                      config,
                      raise_invalid_gradient=False,
-                     gradient_tape=None):
+                     gradient_tape=None,
+                     pgd_model_fn=None,
+                     pgd_loss_fn=None,
+                     pgd_labels=None):
   """Generates adversarial neighbors for the given input and loss.
 
   This function implements the following operation:
@@ -225,10 +282,10 @@ def gen_adv_neighbor(input_features,
       dictionary of feature names and dense tensors. The shape of the tensor(s)
       should be either:
       (a) pointwise samples: `[batch_size, feat_len]`, or
-      (b) sequence samples: `[batch_size, seq_len, feat_len]`.
-      Note that only dense (`float`) tensors in `input_features` will be
-      perturbed and all other features (`int`, `string`, or `SparseTensor`) will
-      be kept as-is in the returning `adv_neighbor`.
+      (b) sequence samples: `[batch_size, seq_len, feat_len]`. Note that only
+        dense (`float`) tensors in `input_features` will be perturbed and all
+        other features (`int`, `string`, or `SparseTensor`) will be kept as-is
+        in the returning `adv_neighbor`.
     labeled_loss: A scalar tensor of floating point type calculated from true
       labels (or supervisions).
     config: A `nsl.configs.AdvNeighborConfig` object containing the following
@@ -238,15 +295,21 @@ def gen_adv_neighbor(input_features,
       - 'adv_grad_norm': type of tensor norm to normalize the gradient.
     raise_invalid_gradient: (optional) A Boolean flag indicating whether to
       raise an error when gradients cannot be computed on any input feature.
-      There are three cases where this error may happen:
-      (1) The feature is a `SparseTensor`.
-      (2) The feature has a non-differentiable `dtype`, like string or integer.
-      (3) The feature is not involved in loss computation.
-      If set to `False` (default), those inputs without gradient will be ignored
-      silently and not perturbed.
+      There are three cases where this error may happen: (1) The feature is a
+        `SparseTensor`. (2) The feature has a non-differentiable `dtype`, like
+        string or integer. (3) The feature is not involved in loss computation.
+        If set to `False` (default), those inputs without gradient will be
+        ignored silently and not perturbed.
     gradient_tape: A `tf.GradientTape` object watching the calculation from
       `input_features` to `labeled_loss`. Can be omitted if running in graph
       mode.
+    pgd_model_fn: The model to generate adversaries for. Generates predictions
+      for a given set of inputs, in the shape of `input_features`.
+    pgd_loss_fn: The loss function. Takes samples of labels and a model
+      predictions.
+    pgd_labels: labels for the input features. This should have shape
+      `[batch_size, 1]`. Required to generate adversaries with PGD, unused
+      otherwise.
 
   Returns:
     adv_neighbor: The perturbed example, with the same shape and structure as
@@ -259,6 +322,11 @@ def gen_adv_neighbor(input_features,
       features cannot be perturbed. See `raise_invalid_gradient` for situations
       where this can happen.
   """
-  adv_helper = _GenAdvNeighbor(labeled_loss, config, raise_invalid_gradient,
-                               gradient_tape)
-  return adv_helper.gen_neighbor(input_features)
+  adv_helper = _GenAdvNeighbor(
+      labeled_loss,
+      config,
+      raise_invalid_gradient,
+      gradient_tape,
+      pgd_model_fn=pgd_model_fn,
+      pgd_loss_fn=pgd_loss_fn)
+  return adv_helper.gen_neighbor(input_features, pgd_labels)
