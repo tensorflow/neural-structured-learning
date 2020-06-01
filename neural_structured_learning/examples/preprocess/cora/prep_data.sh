@@ -26,7 +26,7 @@ function download () {
   filename=${fileurl##*/}
   if [ ! -f ${filename} ]; then
     echo ">>> Downloading '${filename}' from '${fileurl}' to '${filedir}'"
-    wget --quiet -P ${filedir} ${fileurl}
+    wget --quiet --no-check-certificate -P ${filedir} ${fileurl}
   else
     echo "*** File '${filename}' exists; no need to download it."
   fi
