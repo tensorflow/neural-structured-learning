@@ -117,7 +117,7 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=tf.constant(1.0),
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2)
+        pgd_iterations=2)
     adv_neighbor, _ = adv_lib.gen_adv_neighbor(
         x,
         loss,
@@ -147,8 +147,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=tf.constant(1.0),
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.15)
+        pgd_iterations=2,
+        pgd_epsilon=0.15)
     adv_neighbor, _ = adv_lib.gen_adv_neighbor(
         x,
         loss,
@@ -198,7 +198,7 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=tf.constant(1.0),
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2)
+        pgd_iterations=2)
     adv_neighbor, _ = adv_lib.gen_adv_neighbor(
         x,
         loss,
@@ -263,8 +263,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask={},
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.13)
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
     return x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config
 
   @test_util.deprecated_graph_mode_only
@@ -403,8 +403,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask={},
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.13)
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
     return x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config
 
   @test_util.deprecated_graph_mode_only
@@ -566,8 +566,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=None,
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.13)
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
     adv_neighbor, _ = adv_lib.gen_adv_neighbor(
         x,
         loss,
@@ -610,8 +610,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=None,
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.13)
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
     adv_neighbor, _ = adv_lib.gen_adv_neighbor(
         x,
         loss,
@@ -709,8 +709,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=None,
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.13)
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
     return x, w_sparse, w_dense, adv_config, model_fn, loss_fn
 
   @test_util.deprecated_graph_mode_only
@@ -918,8 +918,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
           feature_mask=None,
           adv_step_size=0.1,
           adv_grad_norm='l2',
-          epsilon=0.15,
-          iterations=2)
+          pgd_epsilon=0.15,
+          pgd_iterations=2)
       adv_neighbor, _ = adv_lib.gen_adv_neighbor(
           x,
           loss,
@@ -1033,8 +1033,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         feature_mask=None,
         adv_step_size=0.1,
         adv_grad_norm='l2',
-        iterations=2,
-        epsilon=0.15)
+        pgd_iterations=2,
+        pgd_epsilon=0.15)
     return x, w1, w2, adv_config, model_fn, loss_fn
 
   @test_util.deprecated_graph_mode_only
@@ -1176,8 +1176,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     adv_config = configs.AdvNeighborConfig(
         adv_step_size=adv_step_size,
         adv_grad_norm='infinity',
-        epsilon=0.4,
-        iterations=2,
+        pgd_epsilon=0.4,
+        pgd_iterations=2,
         clip_value_min={'f2': 0.0},
         clip_value_max={'f1': 1.0})
     adv_neighbor = gen_adv_neighbor_fn(x, y, model_fn, loss_fn, adv_config)

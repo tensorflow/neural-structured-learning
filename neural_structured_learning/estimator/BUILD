@@ -52,6 +52,7 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [
         ":estimator",
+        # package absl/testing:parameterized
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow

@@ -542,6 +542,45 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertIn('label', model.seen_input_keys)
 
+  @parameterized.named_parameters([
+      ('sequential', build_linear_keras_sequential_model),
+      ('sequential_no_input_layer',
+       build_linear_keras_sequential_model_no_input_layer),
+      ('functional', build_linear_keras_functional_model),
+      ('subclassed', build_linear_keras_subclassed_model),
+  ])
+  def test_train_pgd(self, model_fn):
+    w = np.array([[4.0], [-3.0]])
+    x0 = np.array([[2.0, 3.0]])
+    y0 = np.array([[0.0]])
+    adv_multiplier = 0.2
+    adv_step_size = 0.01
+    learning_rate = 0.01
+    pgd_iterations = 3
+    pgd_epsilon = 2.5 * adv_step_size
+    adv_config = configs.make_adv_reg_config(
+        multiplier=adv_multiplier,
+        adv_step_size=adv_step_size,
+        adv_grad_norm='infinity',
+        pgd_iterations=pgd_iterations,
+        pgd_epsilon=pgd_epsilon)
+    y_hat = np.dot(x0, w)
+    # The adversarial perturbation is constant across PGD iterations.
+    x_adv = x0 + pgd_epsilon * np.sign((y_hat - y0) * w.T)
+    y_hat_adv = np.dot(x_adv, w)
+    grad_w_labeled_loss = 2. * (y_hat - y0) * x0.T
+    grad_w_adv_loss = adv_multiplier * 2. * (y_hat_adv - y0) * x_adv.T
+    w_new = w - learning_rate * (grad_w_labeled_loss + grad_w_adv_loss)
+
+    inputs = {'feature': tf.constant(x0), 'label': tf.constant(y0)}
+    model = model_fn(input_shape=(2,), weights=w)
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(tf.keras.optimizers.SGD(learning_rate), loss='MSE')
+    adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    self.assertAllClose(w_new, tf.keras.backend.get_value(model.weights[0]))
+
   def test_evaluate_binary_classification_metrics(self):
     # multi-label binary classification model
     w = np.array([[4.0, 1.0, -5.0], [-3.0, 1.0, 2.0]])
@@ -630,6 +669,30 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
     y_hat = np.dot(x0, w)
     x_adv = x0 + adv_step_size * np.sign((y_hat - y0) * w.T)
+    self.assertAllClose(x_adv, adv_inputs['feature'])
+    self.assertAllClose(y0, adv_inputs['label'])
+
+  @parameterized.named_parameters([
+      ('sequential', build_linear_keras_sequential_model),
+      ('sequential_no_input_layer',
+       build_linear_keras_sequential_model_no_input_layer),
+      ('functional', build_linear_keras_functional_model),
+      ('subclassed', build_linear_keras_subclassed_model),
+  ])
+  def test_perturb_on_batch_pgd(self, model_fn):
+    w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
+    pgd_epsilon = 4.5 * adv_config.adv_neighbor_config.adv_step_size
+    adv_config.adv_neighbor_config.pgd_iterations = 5
+    adv_config.adv_neighbor_config.pgd_epsilon = pgd_epsilon
+    inputs = {'feature': x0, 'label': y0}
+    model = model_fn(input_shape=(2,), weights=w)
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss=['MSE'])
+    adv_inputs = adv_model.perturb_on_batch(inputs)
+
+    y_hat = np.dot(x0, w)
+    x_adv = x0 + pgd_epsilon * np.sign((y_hat - y0) * w.T)
     self.assertAllClose(x_adv, adv_inputs['feature'])
     self.assertAllClose(y0, adv_inputs['label'])
 

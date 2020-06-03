@@ -58,17 +58,19 @@ class AdvNeighborConfig(object):
       corresponding feature.
     clip_value_max: maximum value to clip the feature after perturbation. (See
       `clip_value_min` for the structure and shape limitations.)
-    iterations: number of iterations to run the attack for. Defaults to a single
-      step, used for the Fast Gradient Sign Method (FGSM) attack.
-    epsilon: Defines radius of the epsilon ball to project back to.
+    pgd_iterations: number of attack iterations for Projected Gradient Descent
+      (PGD) attack. Defaults to 1, which resembles the Fast Gradient Sign Method
+      (FGSM) attack.
+    pgd_epsilon: radius of the epsilon ball to project back to. Only used in
+      Projected Gradient Descent (PGD) attack.
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
   adv_grad_norm = attr.ib(converter=NormType, default='l2')
   clip_value_min = attr.ib(default=None)
   clip_value_max = attr.ib(default=None)
-  iterations = attr.ib(default=1)  # 1 is the FGSM attack.
-  epsilon = attr.ib(default=None)
+  pgd_iterations = attr.ib(default=1)  # 1 is the FGSM attack.
+  pgd_epsilon = attr.ib(default=None)
 
 
 @attr.s
@@ -91,7 +93,9 @@ def make_adv_reg_config(
     adv_step_size=attr.fields(AdvNeighborConfig).adv_step_size.default,
     adv_grad_norm=attr.fields(AdvNeighborConfig).adv_grad_norm.default,
     clip_value_min=attr.fields(AdvNeighborConfig).clip_value_min.default,
-    clip_value_max=attr.fields(AdvNeighborConfig).clip_value_max.default):
+    clip_value_max=attr.fields(AdvNeighborConfig).clip_value_max.default,
+    pgd_iterations=attr.fields(AdvNeighborConfig).pgd_iterations.default,
+    pgd_epsilon=attr.fields(AdvNeighborConfig).pgd_epsilon.default):
   """Creates an `nsl.configs.AdvRegConfig` object.
 
   Args:
@@ -115,6 +119,11 @@ def make_adv_reg_config(
       corresponding feature.
     clip_value_max: maximum value to clip the feature after perturbation. (See
       `clip_value_min` for the structure and shape limitations.)
+    pgd_iterations: number of attack iterations for Projected Gradient Descent
+      (PGD) attack. Defaults to 1, which resembles the Fast Gradient Sign Method
+      (FGSM) attack.
+    pgd_epsilon: radius of the epsilon ball to project back to. Only used in
+      Projected Gradient Descent (PGD) attack.
 
   Returns:
     An `nsl.configs.AdvRegConfig` object.
@@ -126,7 +135,9 @@ def make_adv_reg_config(
           adv_step_size=adv_step_size,
           adv_grad_norm=adv_grad_norm,
           clip_value_min=clip_value_min,
-          clip_value_max=clip_value_max))
+          clip_value_max=clip_value_max,
+          pgd_iterations=pgd_iterations,
+          pgd_epsilon=pgd_epsilon))
 
 
 class AdvTargetType(enum.Enum):

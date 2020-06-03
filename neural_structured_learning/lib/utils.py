@@ -96,8 +96,6 @@ def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
           tensor, clip_value_min=-radius, clip_value_max=radius)
     return t_dict
   if norm_type == configs.NormType.L2:
-    # First dimension is the batch size. Take a tensor value to get this size.
-    global_norm = tf.zeros((next(iter(t_dict.values())).get_shape()[0],))
 
     def squared_global_norm(tensor):
       """Calculate squared sum of elements for a tensor."""
@@ -106,9 +104,9 @@ def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
 
     tensors = tf.nest.flatten(t_dict)
     norms = tf.nest.map_structure(squared_global_norm, tensors)
-    global_norm = tf.sqrt(tf.maximum(epsilon**2, tf.add_n(norms)))
+    global_norm = tf.sqrt(tf.maximum(tf.add_n(norms), epsilon**2))
     scale = tf.where(global_norm <= radius,
-                     tf.broadcast_to(1.0, global_norm.get_shape()),
+                     tf.ones_like(global_norm),
                      radius / global_norm)
 
     def clip_to_norm(tensor):

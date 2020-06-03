@@ -91,24 +91,27 @@ def add_adversarial_regularization(estimator,
       # If no 'params' is passed, then it is possible for base_model_fn not to
       # accept a 'params' argument. See documentation for tf.estimator.Estimator
       # for additional context.
-      # pylint: disable=g-long-lambda
-      spec_fn = ((lambda features: base_model_fn(
-          features, labels, mode, params, config)) if params else (
-              lambda features: base_model_fn(features, labels, mode, config)))
+      base_args = [mode, params, config] if params else [mode, config]
+      spec_fn = lambda feature, label: base_model_fn(feature, label, *base_args)
 
-      original_spec = spec_fn(features)
-
-      print("ORIGINAL_SPEC", original_spec)
+      original_spec = spec_fn(features, labels)
 
       # Adversarial regularization only happens in training.
       if mode != tf.estimator.ModeKeys.TRAIN:
         return original_spec
 
-      adv_neighbor, _ = nsl_lib.gen_adv_neighbor(features, original_spec.loss,
-                                                 adv_config.adv_neighbor_config)
+      adv_neighbor, _ = nsl_lib.gen_adv_neighbor(
+          features,
+          original_spec.loss,
+          adv_config.adv_neighbor_config,
+          # The pgd_model_fn is a dummy identity function since loss is
+          # directly available from spec_fn.
+          pgd_model_fn=lambda features: features,
+          pgd_loss_fn=lambda labels, features: spec_fn(features, labels).loss,
+          pgd_labels=labels)
 
       # Runs the base model again to compute loss on adv_neighbor.
-      adv_spec = spec_fn(adv_neighbor)
+      adv_spec = spec_fn(adv_neighbor, labels)
 
       final_loss = original_spec.loss + adv_config.multiplier * adv_spec.loss
 

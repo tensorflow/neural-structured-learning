@@ -21,9 +21,9 @@ import os
 import shutil
 import tempfile
 
+from absl.testing import parameterized
 import neural_structured_learning.configs as nsl_configs
 import neural_structured_learning.estimator as nsl_estimator
-
 import numpy as np
 import tensorflow as tf
 
@@ -43,7 +43,7 @@ def single_batch_input_fn(features, labels=None):
   return input_fn
 
 
-class AdversarialRegularizationTest(tf.test.TestCase):
+class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
   def setUp(self):
     super(AdversarialRegularizationTest, self).setUp()
@@ -79,19 +79,25 @@ class AdversarialRegularizationTest(tf.test.TestCase):
     predicted_scores = [x['predictions'] for x in predictions]
     self.assertAllClose([[3.0], [4.0]], predicted_scores)
 
+  @parameterized.named_parameters([
+      ('fgsm', 0.1, 1, None),
+      ('pgd', 0.1, 3, 0.25),
+  ])
   @test_util.run_v1_only('Requires tf.GraphKeys')
-  def test_adversarial_wrapper_adds_regularization(self):
+  def test_adversarial_wrapper_adds_regularization(self, adv_step_size,
+                                                   pgd_iterations, pgd_epsilon):
     # base model: y = w*x+b = 4*x1 + 3*x2 + 2
     weight = np.array([[4.0], [3.0]], dtype=np.float32)
     bias = np.array([2.0], dtype=np.float32)
     x0, y0 = np.array([[1.0, 1.0]]), np.array([8.0])
-    adv_step_size = 0.1
     learning_rate = 0.01
 
     base_est = self.build_linear_regressor(weight=weight, bias=bias)
     adv_config = nsl_configs.make_adv_reg_config(
         multiplier=1.0,  # equal weight on original and adv examples
-        adv_step_size=adv_step_size)
+        adv_step_size=adv_step_size,
+        pgd_iterations=pgd_iterations,
+        pgd_epsilon=pgd_epsilon)
     adv_est = nsl_estimator.add_adversarial_regularization(
         base_est,
         optimizer_fn=lambda: tf.train.GradientDescentOptimizer(learning_rate),
@@ -104,11 +110,16 @@ class AdversarialRegularizationTest(tf.test.TestCase):
     orig_grad_w = 2 * (orig_pred - y0) * x0.T  # [[2.0], [2.0]]
     orig_grad_b = 2 * (orig_pred - y0).reshape((1,))  # [2.0]
     grad_x = 2 * (orig_pred - y0) * weight.T  # [[8.0, 6.0]]
-    perturbation = adv_step_size * grad_x / np.linalg.norm(grad_x)
-    x_adv = x0 + perturbation  # [[1.08, 1.06]]
-    adv_pred = np.dot(x_adv, weight) + bias  # [9.5]
-    adv_grad_w = 2 * (adv_pred - y0) * x_adv.T  # [[3.24], [3.18]]
-    adv_grad_b = 2 * (adv_pred - y0).reshape((1,))  # [3.0]
+    # Gradient direction is independent of x, so perturbing for multiple
+    # iterations is the same as scaling the perturbation.
+    perturbation_magnitude = pgd_iterations * adv_step_size
+    if pgd_epsilon is not None:
+      perturbation_magnitude = np.minimum(perturbation_magnitude, pgd_epsilon)
+    perturbation = perturbation_magnitude * grad_x / np.linalg.norm(grad_x)
+    x_adv = x0 + perturbation  # fgm: [[1.08, 1.06]]; pgd: [[1.20, 1.15]]
+    adv_pred = np.dot(x_adv, weight) + bias  # fgm: [9.5]; pgd: [10.25]
+    adv_grad_w = 2 * (adv_pred - y0) * x_adv.T  # fgm: [[3.24], [3.18]]
+    adv_grad_b = 2 * (adv_pred - y0).reshape((1,))  # fgm: [3.0]; pgd: [4.5]
 
     new_bias = bias - learning_rate * (orig_grad_b + adv_grad_b)
     new_weight = weight - learning_rate * (orig_grad_w + adv_grad_w)

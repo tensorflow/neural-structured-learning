@@ -138,7 +138,10 @@ def adversarial_loss(features,
       features,
       labeled_loss,
       config=adv_config.adv_neighbor_config,
-      gradient_tape=gradient_tape)
+      gradient_tape=gradient_tape,
+      pgd_model_fn=model,
+      pgd_loss_fn=functools.partial(loss_fn, sample_weights=sample_weights),
+      pgd_labels=labels)
   adv_output = model(adv_input)
   if sample_weights is not None:
     adv_sample_weights = tf.math.multiply(sample_weights, adv_sample_weights)
@@ -713,7 +716,13 @@ class AdversarialRegularization(tf.keras.Model):
     config_kwargs = {k: v for k, v in config_kwargs.items() if v is not None}
     config = attr.evolve(self.adv_config.adv_neighbor_config, **config_kwargs)
     adv_inputs, _ = nsl_lib.gen_adv_neighbor(
-        inputs, labeled_loss, config=config, gradient_tape=tape)
+        inputs,
+        labeled_loss,
+        config=config,
+        gradient_tape=tape,
+        pgd_model_fn=self._call_base_model,
+        pgd_loss_fn=self._compute_total_loss,
+        pgd_labels=labels)
 
     if tf.executing_eagerly():
       # Converts `Tensor` objects to NumPy arrays and keeps other objects (e.g.

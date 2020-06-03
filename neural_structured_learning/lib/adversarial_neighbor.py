@@ -202,7 +202,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       logging.log_first_n(logging.WARNING,
                           'Cannot perturb non-Tensor input: %s', 1, sparse_keys)
     dense_features = dense_original_features
-    for t in range(self._adv_config.iterations):
+    for t in range(self._adv_config.pgd_iterations):
       keyed_grads = self._compute_gradient(loss, dense_features, gradient_tape)
       masked_grads = {
           key: utils.apply_feature_mask(grad, feature_masks.get(key, None))
@@ -221,8 +221,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         # Only include features for which perturbation occurred. There is
         # nothing to project for features without perturbations.
         diff[key] = dense_features[key] + perturb - dense_original_features[key]
-      if self._adv_config.epsilon is not None:
-        bounded_diff = utils.project_to_ball(diff, self._adv_config.epsilon,
+      if self._adv_config.pgd_epsilon is not None:
+        bounded_diff = utils.project_to_ball(diff, self._adv_config.pgd_epsilon,
                                              self._adv_config.adv_grad_norm)
       else:
         bounded_diff = diff
@@ -239,7 +239,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
                 feature_min.get(key, None), feature_max.get(key, None)))
 
       # Update for the next iteration.
-      if t < self._adv_config.iterations - 1:
+      if t < self._adv_config.pgd_iterations - 1:
         inputs_t = self._decompose_as(input_features, adv_neighbor)
         # Compute the new loss to calculate gradients with.
         features = self._compose_as_dict(inputs_t)
