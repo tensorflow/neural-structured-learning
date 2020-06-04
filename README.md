@@ -111,6 +111,7 @@ Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
 See our [research](research) directory for research projects in Neural
 Structured Learning:
 
+*   [Low-Dimensional Hyperbolic Knowledge Graph Embeddings](research/kg_hyp_emb)
 *   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
 *   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 
