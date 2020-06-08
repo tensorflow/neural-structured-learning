@@ -202,7 +202,7 @@ class KGModel(tf.keras.Model, abc.ABC):
     mean_rank = {}
     mean_reciprocal_rank = {}
     hits_at = {}
-    total_examples = tf.data.experimental.cardinality(examples).numpy()
+    total_examples = examples.cardinality().numpy()
     batch_size = min(batch_size, total_examples)
     for missing in ['rhs', 'lhs']:
       ranks = np.ones(total_examples)
