@@ -700,7 +700,8 @@ class AdversarialRegularization(tf.keras.Model):
       **config_kwargs: (optional) hyperparameters for generating adversarial
         preturbation. Any keyword argument here will overwrite the corresponding
         field in `nsl.configs.AdvNeighborConfig` specified in `__init__`.
-        Acceptable keys: `feature_mask`, `adv_step_size`, and `adv_grad_norm`.
+        Acceptable keys: `feature_mask`, `adv_step_size`, `adv_grad_norm`,
+        `clip_value_min`, `clip_value_max`, `pgd_iterations`, and `pgd_epsilon`.
 
     Returns:
       A dictionary of NumPy arrays, `SparseTensor`, or `RaggedTensor` objects of
