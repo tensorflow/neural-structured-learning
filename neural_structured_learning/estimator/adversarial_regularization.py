@@ -18,9 +18,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+import inspect
+
 import neural_structured_learning.configs as nsl_configs
 import neural_structured_learning.lib as nsl_lib
-
 import tensorflow as tf
 
 
@@ -55,6 +57,10 @@ def add_adversarial_regularization(estimator,
     adv_config = nsl_configs.AdvRegConfig()
 
   base_model_fn = estimator._model_fn  # pylint: disable=protected-access
+  try:
+    base_model_fn_args = inspect.signature(base_model_fn).parameters.keys()
+  except AttributeError:  # For Python 2 compatibility
+    base_model_fn_args = inspect.getargspec(base_model_fn).args  # pylint: disable=deprecated-method
 
   def adv_model_fn(features, labels, mode, params=None, config=None):
     """The adversarial-regularized model_fn.
@@ -82,19 +88,22 @@ def add_adversarial_regularization(estimator,
     Returns:
       A `tf.estimator.EstimatorSpec` with adversarial regularization.
     """
+    # Parameters 'params' and 'config' are optional. If they are not passed,
+    # then it is possible for base_model_fn not to accept these arguments.
+    # See documentation for tf.estimator.Estimator for additional context.
+    kwargs = {'mode': mode}
+    if 'params' in base_model_fn_args:
+      kwargs['params'] = params
+    if 'config' in base_model_fn_args:
+      kwargs['config'] = config
+    base_fn = functools.partial(base_model_fn, **kwargs)
 
     # Uses the same variable scope for calculating the original objective and
     # adversarial regularization.
     with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope(),
                                      reuse=tf.compat.v1.AUTO_REUSE,
                                      auxiliary_name_scope=False):
-      # If no 'params' is passed, then it is possible for base_model_fn not to
-      # accept a 'params' argument. See documentation for tf.estimator.Estimator
-      # for additional context.
-      base_args = [mode, params, config] if params else [mode, config]
-      spec_fn = lambda feature, label: base_model_fn(feature, label, *base_args)
-
-      original_spec = spec_fn(features, labels)
+      original_spec = base_fn(features, labels)
 
       # Adversarial regularization only happens in training.
       if mode != tf.estimator.ModeKeys.TRAIN:
@@ -107,11 +116,11 @@ def add_adversarial_regularization(estimator,
           # The pgd_model_fn is a dummy identity function since loss is
           # directly available from spec_fn.
           pgd_model_fn=lambda features: features,
-          pgd_loss_fn=lambda labels, features: spec_fn(features, labels).loss,
+          pgd_loss_fn=lambda labels, features: base_fn(features, labels).loss,
           pgd_labels=labels)
 
       # Runs the base model again to compute loss on adv_neighbor.
-      adv_spec = spec_fn(adv_neighbor, labels)
+      adv_spec = base_fn(adv_neighbor, labels)
 
       final_loss = original_spec.loss + adv_config.multiplier * adv_spec.loss
 

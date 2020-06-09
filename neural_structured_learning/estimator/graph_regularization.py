@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import inspect
+
 import neural_structured_learning.configs as configs
 from neural_structured_learning.lib import distances
 from neural_structured_learning.lib import utils
@@ -51,6 +53,10 @@ def add_graph_regularization(estimator,
     graph_reg_config = configs.GraphRegConfig()
 
   base_model_fn = estimator._model_fn  # pylint: disable=protected-access
+  try:
+    base_model_fn_args = inspect.signature(base_model_fn).parameters.keys()
+  except AttributeError:  # For Python 2 compatibility
+    base_model_fn_args = inspect.getargspec(base_model_fn).args  # pylint: disable=deprecated-method
 
   def graph_reg_model_fn(features, labels, mode, params=None, config=None):
     """The graph-regularized model function.
@@ -79,6 +85,14 @@ def add_graph_regularization(estimator,
     Returns:
       A `tf.estimator.EstimatorSpec` with graph regularization.
     """
+    # Parameters 'params' and 'config' are optional. If they are not passed,
+    # then it is possible for base_model_fn not to accept these arguments.
+    # See documentation for tf.estimator.Estimator for additional context.
+    kwargs = {'mode': mode}
+    if 'params' in base_model_fn_args:
+      kwargs['params'] = params
+    if 'config' in base_model_fn_args:
+      kwargs['config'] = config
 
     # Uses the same variable scope for calculating the original objective and
     # the graph regularization loss term.
@@ -100,13 +114,7 @@ def add_graph_regularization(estimator,
         sample_features = utils.strip_neighbor_features(
             features, graph_reg_config.neighbor_config)
 
-      # If no 'params' is passed, then it is possible for base_model_fn not to
-      # accept a 'params' argument. See documentation for tf.estimator.Estimator
-      # for additional context.
-      if params:
-        base_spec = base_model_fn(sample_features, labels, mode, params, config)
-      else:
-        base_spec = base_model_fn(sample_features, labels, mode, config)
+      base_spec = base_model_fn(sample_features, labels, **kwargs)
 
       has_nbr_inputs = nbr_weights is not None and nbr_features
 
