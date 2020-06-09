@@ -35,7 +35,9 @@ def _make_model(neighbor_config, inputs, keep_rank, weight_dtype=None):
   Args:
     neighbor_config: An instance of `configs.GraphNeighborConfig`.
     inputs: A `tf.keras.Input` or a nested structure of `tf.keras.Input`s.
-    keep_rank: Whether to keep the extra neighborhood size dimention.
+    keep_rank: Whether to retain the rank of the original input tensors by
+      merging the neighborhood size with the batch_size dimension, or add an
+      extra neighborhood size dimension.
     weight_dtype: Optional `tf.DType` for weights.
 
   Returns:
@@ -105,15 +107,15 @@ class NeighborFeaturesTest(tf.test.TestCase, parameterized.TestCase):
     # Check that neighbors and weights are grouped together for each sample.
     for i in range(batch_size):
       self.assertAllEqual(
-          neighbors[i] if keep_rank else
-          neighbors[(i * num_neighbors):((i + 1) * num_neighbors)],
+          neighbors[(i * num_neighbors):((i + 1) * num_neighbors)]
+          if keep_rank else neighbors[i],
           np.stack([
               features['NL_nbr_0_image'][i],
               features['NL_nbr_1_image'][i],
               features['NL_nbr_2_image'][i],
           ]))
       self.assertAllEqual(
-          weights[i] if keep_rank else np.split(weights, batch_size)[i],
+          np.split(weights, batch_size)[i] if keep_rank else weights[i],
           np.stack([
               features['NL_nbr_0_weight'][i],
               features['NL_nbr_1_weight'][i],
@@ -160,8 +162,8 @@ class NeighborFeaturesTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(
         weights,
         np.array([0.9, 0.25, 0.3, 0., 0.6, 0.75, 0.,
-                  0.]).reshape((batch_size, 2,
-                                1) if keep_rank else (batch_size * 2, 1)))
+                  0.]).reshape((batch_size * 2,
+                                1) if keep_rank else (batch_size, 2, 1)))
     # Check that neighbors are grouped together.
     dense_neighbors = self.evaluate(tf.sparse.to_dense(neighbors['input'], -1.))
     neighbor0 = self.evaluate(
@@ -170,8 +172,8 @@ class NeighborFeaturesTest(tf.test.TestCase, parameterized.TestCase):
         tf.sparse.to_dense(features['NL_nbr_1_input'], -1))
     for i in range(batch_size):
       actual = (
-          dense_neighbors[i]
-          if keep_rank else np.split(dense_neighbors, batch_size)[i])
+          np.split(dense_neighbors, batch_size)[i]
+          if keep_rank else dense_neighbors[i])
       self.assertAllEqual(actual, np.stack([neighbor0[i], neighbor1[i]]))
 
 

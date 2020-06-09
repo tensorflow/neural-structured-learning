@@ -99,7 +99,7 @@ class NeighborFeatures(tf.keras.layers.Layer):
     self._feature_names = (
         feature_names if feature_names is None else set(feature_names))
 
-  def call(self, inputs, keep_rank=False):
+  def call(self, inputs, keep_rank=True):
     """Extracts neighbor features and weights from a dictionary of inputs.
 
     This function is a wrapper around `utils.unpack_neighbor_features`. See
@@ -109,9 +109,10 @@ class NeighborFeatures(tf.keras.layers.Layer):
     Args:
       inputs: Dictionary of `tf.Tensor` features with keys for neighbors and
         weights described by `neighbor_config`.
-      keep_rank: Defaults to `False`. If `True`, each value of
-        `neighbor_features` will have an extra neighborhood size dimension at
-        axis 1.
+      keep_rank: Boolean indicating whether each value of `neighbor_features`
+        retains the rank from the corresponding value in `sample_features`
+        by merging the neighborhood size with the batch_size dimension, or
+        contains an extra neighborhood dimension at axis 1. Defaults to `True`.
 
     Returns:
       A tuple (sample_features, neighbor_features, neighbor_weights) of tensors.

@@ -443,15 +443,15 @@ def _interleave_and_merge(tensors,
     # This is the equivalent of tf.stack() for sparse tensors.
     concatenated_tensors = tf.sparse.concat(
         axis=1, sp_inputs=[tf.sparse.expand_dims(t, 1) for t in tensors])
-    return (concatenated_tensors if keep_rank else tf.sparse.reshape(
-        concatenated_tensors, shape=merged_shape))
+    return (tf.sparse.reshape(concatenated_tensors, shape=merged_shape)
+            if keep_rank else concatenated_tensors)
   else:
     stacked_tensors = tf.stack(tensors, axis=1)
-    return (stacked_tensors if keep_rank else tf.reshape(
-        stacked_tensors, shape=merged_shape))
+    return (tf.reshape(stacked_tensors, shape=merged_shape)
+            if keep_rank else stacked_tensors)
 
 
-def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
+def unpack_neighbor_features(features, neighbor_config, keep_rank=True):
   """Extracts sample features, neighbor features, and neighbor weights.
 
   For example, suppose `features` contains a single sample feature named
@@ -520,8 +520,9 @@ def unpack_neighbor_features(features, neighbor_config, keep_rank=False):
       1]`, where `B` is the batch size. Neighbor weight tensors cannot be sparse
       tensors.
     neighbor_config: An instance of `nsl.configs.GraphNeighborConfig`.
-    keep_rank: Whether to preserve the neighborhood size dimension. Defaults to
-      `False`.
+    keep_rank: Boolean indicating whether to retain the rank from the input or
+      to introduce a new dimension for the neighborhood size (axis 1). Defaults
+      to `True`.
 
   Returns:
     sample_features: a dictionary mapping feature names to tensors. The shape
