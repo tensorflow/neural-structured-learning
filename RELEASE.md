@@ -17,7 +17,7 @@
     features need not be fed to the model anymore.
 *   Change the default value of `keep_rank` from `False` to `True` as well as
     flip its semantics in `nsl.keras.layers.NeighborFeatures.call` and
-    `nsl.utils.unpack_neighbor_features`
+    `nsl.utils.unpack_neighbor_features`.
 *   Supports feature value constraints for adversarial neighbors. See
     `clip_value_min` and `clip_value_max` in `nsl.configs.AdvNeighborConfig`.
 *   Supports adversarial regularization with PGD in Keras and estimator models.
