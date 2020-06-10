@@ -123,8 +123,6 @@ class AdversarialLossTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters([
       ('sequential', build_linear_keras_sequential_model),
-      ('sequential_no_input_layer',
-       build_linear_keras_sequential_model_no_input_layer),
       ('functional', build_linear_keras_functional_model),
       ('subclassed', build_linear_keras_subclassed_model),
   ])
