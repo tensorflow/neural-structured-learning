@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for internal Python strict compatibility macro.
-load("//devtools/python/blaze:python3.bzl", "py2and3_strict_test")
+# Placeholder for internal Python strict & test compatibility macro.
 
 # Description:
 # Build rules for custom Keras layers in Neural Structured Learning.
@@ -35,13 +34,12 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "layers_test",
     size = "medium",
     srcs = [
         "layers_test.py",
     ],
-    python_version = "PY3",
     deps = [
         ":layers",
         # package absl/testing:parameterized
@@ -64,13 +62,12 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "neighbor_features_test",
     srcs = [
         "neighbor_features_test.py",
     ],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":neighbor_features",
         # package absl/testing:parameterized
@@ -95,11 +92,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "pairwise_distance_test",
     srcs = ["pairwise_distance_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":pairwise_distance",
         "//neural_structured_learning/configs",

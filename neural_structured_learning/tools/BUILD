@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for internal Python strict compatibility macro.
-load("//devtools/python/blaze:python3.bzl", "py2and3_strict_test")
+# Placeholder for internal Python strict & test compatibility macro.
 
 # Description:
 # Build rules for tools in Neural Structured Learning.
@@ -46,11 +45,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "graph_utils_test",
     srcs = ["graph_utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         # package absl/testing:absltest
@@ -71,11 +69,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "build_graph_test",
     srcs = ["build_graph_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":build_graph_lib",
         ":graph_utils",
@@ -108,11 +105,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "pack_nbrs_test",
     srcs = ["pack_nbrs_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         ":pack_nbrs_lib",

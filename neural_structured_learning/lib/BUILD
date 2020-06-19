@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for internal Python strict compatibility macro.
-load("//devtools/python/blaze:python3.bzl", "py2and3_strict_test")
+# Placeholder for internal Python strict & test compatibility macro.
 
 # Description:
 # Build rules for libraries and ops in Neural Structured Learning.
@@ -60,11 +59,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "adversarial_neighbor_test",
     srcs = ["adversarial_neighbor_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":adversarial_neighbor",
         # package absl/testing:parameterized
@@ -85,11 +83,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "distances_test",
     srcs = ["distances_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":distances",
         "//neural_structured_learning/configs",
@@ -109,11 +106,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "regularizer_test",
     srcs = ["regularizer_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":regularizer",
         "//neural_structured_learning/configs",
@@ -133,12 +129,11 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "utils_test",
     size = "small",
     srcs = ["utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":utils",
         # package absl/testing:parameterized

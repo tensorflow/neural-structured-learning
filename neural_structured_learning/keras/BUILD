@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for internal Python strict compatibility macro.
-load("//devtools/python/blaze:python3.bzl", "py2and3_strict_test")
+# Placeholder for internal Python strict & test compatibility macro.
 
 # Description:
 # Build rules for Keras APIs in Neural Structured Learning.
@@ -48,11 +47,10 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "adversarial_regularization_multi_device_test",
     srcs = ["adversarial_regularization_multi_device_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
         "//neural_structured_learning/configs",
@@ -61,11 +59,10 @@ py2and3_strict_test(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
         # package absl/testing:parameterized
@@ -88,12 +85,11 @@ py_library(
     ],
 )
 
-py2and3_strict_test(
+py_test(
     name = "graph_regularization_test",
     timeout = "long",
     srcs = ["graph_regularization_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":graph_regularization",
         # package protobuf,
