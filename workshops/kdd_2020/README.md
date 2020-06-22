@@ -8,8 +8,8 @@ Hands-on tutorial at [KDD 2020](https://www.kdd.org/kdd2020/).
 *   Arjun Gopalan (Google Research)
 *   Cesar Ilharco Magalhaes (Google Research)
 *   Chun-Sung Ferng (Google Research)
+*   Chun-Ta Lu (Google Research)
 *   Da-Cheng Juan (Google Research)
-*   Georg Osang (IST Austria and Google Research)
 *   George Yu (Google Research)
 *   Philip Pham (Google Research)
 
