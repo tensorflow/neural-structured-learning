@@ -63,15 +63,16 @@ def add_edge(graph, edge):
       supplied, it defaults to 1.0.
 
   Returns:
-    `None`. Instead, this function has a side-effect on the `graph` argument.
+    `True` if and only if a new edge was added to `graph`.
   """
   source = edge[0]
-  if source not in graph: graph[source] = {}
-  t_dict = graph[source]
   target = edge[1]
   weight = float(edge[2]) if len(edge) > 2 else 1.0
-  if target not in t_dict or weight > t_dict[target]:
+  t_dict = graph.setdefault(source, {})
+  is_new_edge = target not in t_dict
+  if is_new_edge or weight > t_dict[target]:
     t_dict[target] = weight
+  return is_new_edge
 
 
 def add_undirected_edges(graph):

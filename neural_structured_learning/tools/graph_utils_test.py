@@ -29,13 +29,15 @@ class GraphUtilsTest(absltest.TestCase):
 
   def testAddEdge(self):
     graph = {}
-    graph_utils.add_edge(graph, ['A', 'B', '0.5'])
-    graph_utils.add_edge(graph, ['A', 'C', 0.7])  # Tests that the edge
-    graph_utils.add_edge(graph, ['A', 'C', 0.9])  # ...with maximal weight
-    graph_utils.add_edge(graph, ['A', 'C', 0.8])  # ...is used.
-    graph_utils.add_edge(graph, ('B', 'A', '0.4'))
-    graph_utils.add_edge(graph, ('B', 'C'))  # Tests default weight
-    graph_utils.add_edge(graph, ('D', 'A', 0.75))
+    self.assertTrue(graph_utils.add_edge(graph, ['A', 'B', '0.5']))
+    # The next 3 calls test that the edge with maximal weight is used.
+    self.assertTrue(graph_utils.add_edge(graph, ['A', 'C', 0.7]))
+    self.assertFalse(graph_utils.add_edge(graph, ['A', 'C', 0.9]))
+    self.assertFalse(graph_utils.add_edge(graph, ['A', 'C', 0.8]))
+    self.assertTrue(graph_utils.add_edge(graph, ('B', 'A', '0.4')))
+    # Tests that when no weight is specified, it defaults to 1.0.
+    self.assertTrue(graph_utils.add_edge(graph, ('B', 'C')))
+    self.assertTrue(graph_utils.add_edge(graph, ('D', 'A', 0.75)))
     self.assertDictEqual(graph, GRAPH)
 
   def testAddUndirectedEdges(self):
