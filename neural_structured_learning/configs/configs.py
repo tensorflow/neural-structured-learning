@@ -17,8 +17,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import attr
 import enum
+
+import attr
 import tensorflow as tf
 
 
@@ -289,6 +290,36 @@ class VirtualAdvConfig(object):
   distance_config = attr.ib(default=DistanceConfig())
   num_approx_steps = attr.ib(default=1)
   approx_difference = attr.ib(default=1e-6)
+
+
+@attr.s
+class GraphBuilderConfig(object):
+  """Encapsulates configuration parameters for building a graph.
+
+  For more information, see `nsl.tools.build_graph_from_config`.
+
+  Attributes:
+    id_feature_name: The name of the feature in the input `tf.train.Example`
+      objects representing the ID of examples.
+    embedding_feature_name: The name of the feature in the input
+      `tf.train.Example` objects representing the embedding of examples.
+    similarity_threshold: Threshold used to determine which edges to retain in
+      the resulting graph.
+    lsh_bits: Determines the maximum number of LSH buckets into which input data
+      points will be bucketed by the graph builder. See the
+      `nsl.tools.build_graph_from_config` documentation for details. This
+      defaults to 0, in which case all pairs of inputs will be compared,
+      probably resulting in slow running times on larger input sets.
+    random_seed: Value used to seed the random number generator used to perform
+      randomized LSH bucketing of the inputs when `lsh_bits > 0`. By default,
+      the generator will be initialized randomly, but setting this to any
+      integer will initialize it deterministically.
+  """
+  id_feature_name = attr.ib(default='id')
+  embedding_feature_name = attr.ib(default='embedding')
+  similarity_threshold = attr.ib(default=0.8)
+  lsh_bits = attr.ib(default=0)
+  random_seed = attr.ib(default=None)
 
 
 @attr.s

@@ -10,6 +10,7 @@ from neural_structured_learning.configs.configs import DEFAULT_ADVERSARIAL_PARAM
 from neural_structured_learning.configs.configs import DEFAULT_DISTANCE_PARAMS
 from neural_structured_learning.configs.configs import DistanceConfig
 from neural_structured_learning.configs.configs import DistanceType
+from neural_structured_learning.configs.configs import GraphBuilderConfig
 from neural_structured_learning.configs.configs import GraphNeighborConfig
 from neural_structured_learning.configs.configs import GraphRegConfig
 from neural_structured_learning.configs.configs import IntegrationConfig
@@ -31,6 +32,7 @@ __all__ = [
     'DEFAULT_DISTANCE_PARAMS',
     'DistanceConfig',
     'DistanceType',
+    'GraphBuilderConfig',
     'GraphNeighborConfig',
     'GraphRegConfig',
     'IntegrationConfig',

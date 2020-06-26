@@ -226,18 +226,6 @@ def pack_nbrs(labeled_examples_path,
   Finally, the merged examples are written to a TFRecord file named by
   `output_training_data_path`.
 
-  Note that this function can also be invoked as a binary from a shell. Sample
-  usage:
-
-  `python -m neural_structured_learning.tools.pack_nbrs` [*flags*]
-  *labeled.tfr unlabeled.tfr graph.tsv output.tfr*
-
-  For details about this program's flags, run:
-
-  ```
-  python -m neural_structured_learning.tools.pack_nbrs --help
-  ```
-
   Args:
     labeled_examples_path: Names a TFRecord file containing labeled
       `tf.train.Example` instances.

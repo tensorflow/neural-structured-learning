@@ -63,6 +63,7 @@ py_library(
         # package absl:app
         # package absl/flags
         # package absl/logging
+        "//neural_structured_learning/configs",
         # package numpy
         # package six
         # package tensorflow
