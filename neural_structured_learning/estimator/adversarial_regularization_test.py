@@ -126,6 +126,27 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(new_bias, adv_est.get_variable_value(BIAS_VARIABLE))
     self.assertAllClose(new_weight, adv_est.get_variable_value(WEIGHT_VARIABLE))
 
+  @test_util.run_v1_only('Requires tf.train.GradientDescentOptimizer')
+  def test_adversarial_wrapper_saving_batch_statistics(self):
+    x0, y0 = np.array([[0.9, 0.1], [0.2, 0.8]]), np.array([1, 0])
+    input_fn = single_batch_input_fn({FEATURE_NAME: x0}, y0)
+    fc = tf.feature_column.numeric_column(FEATURE_NAME, shape=[2])
+    base_est = tf.estimator.DNNClassifier(
+        hidden_units=[4],
+        feature_columns=[fc],
+        model_dir=self.model_dir,
+        batch_norm=True)
+    adv_est = nsl_estimator.add_adversarial_regularization(
+        base_est,
+        optimizer_fn=lambda: tf.train.GradientDescentOptimizer(0.005))
+
+    adv_est.train(input_fn=input_fn, steps=1)
+    moving_mean = adv_est.get_variable_value(
+        'dnn/hiddenlayer_0/batchnorm_0/moving_mean')
+    moving_variance = adv_est.get_variable_value(
+        'dnn/hiddenlayer_0/batchnorm_0/moving_variance')
+    self.assertNotAllClose(moving_mean, np.zeros(moving_mean.shape))
+    self.assertNotAllClose(moving_variance, np.ones(moving_variance.shape))
 
 if __name__ == '__main__':
   tf.test.main()

@@ -130,10 +130,15 @@ def add_adversarial_regularization(estimator,
       else:
         optimizer = optimizer_fn()
 
-      final_train_op = optimizer.minimize(
+      train_op = optimizer.minimize(
           loss=final_loss, global_step=tf.compat.v1.train.get_global_step())
 
-    return original_spec._replace(loss=final_loss, train_op=final_train_op)
+      update_ops = tf.compat.v1.get_collection(
+          tf.compat.v1.GraphKeys.UPDATE_OPS)
+      if update_ops:
+        train_op = tf.group(train_op, *update_ops)
+
+    return original_spec._replace(loss=final_loss, train_op=train_op)
 
   # Replaces the model_fn while keeps other fields/methods in the estimator.
   estimator._model_fn = adv_model_fn  # pylint: disable=protected-access
