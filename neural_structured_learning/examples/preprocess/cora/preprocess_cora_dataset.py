@@ -133,7 +133,7 @@ def parse_cora_content(in_file, train_percentage):
   random.seed(1)
   train_examples = {}
   test_examples = {}
-  with open(in_file, 'rU') as cora_content:
+  with open(in_file, 'r') as cora_content:
     for line in cora_content:
       entries = line.rstrip('\n').split('\t')
       # entries contains [ID, Word1, Word2, ..., Label]; 'Words' are 0/1 values.
