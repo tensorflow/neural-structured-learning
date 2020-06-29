@@ -1,8 +1,8 @@
-# Neural Structured Learning: Training neural networks with structured signals
+# Neural Structured Learning: Training Neural Networks with Structured Signals
 
 Hands-on tutorial at [KDD 2020](https://www.kdd.org/kdd2020/).
 
-## Tutors
+## Organizers
 
 *   Allan Heydon (Google Research)
 *   Arjun Gopalan (Google Research)
@@ -28,14 +28,13 @@ graph neural networks [7,8].
 
 ## Outline
 
-Below is an outline of how our tutorial will be structured. This is subject to
-minor changes.
+Below is the outline of our tutorial.
 
 ### Introduction to NSL
 
-We will begin the tutorial with a presentation that gives an overview of the
-Neural Structured Learning framework as well as explains the benefits of
-learning with structure.
+We will begin the tutorial with an overview of the Neural Structured Learning
+framework and motivate the advantages of training neural networks with
+structured signals.
 
 ### Data preprocessing in NSL
 
@@ -45,47 +44,51 @@ This part of the tutorial will include a presentation discussing:
 -   Augmenting training data for graph-based regularization in NSL
 -   Related tools in the NSL framework
 
-### Graph regularization using natural graphs
+### Graph regularization using natural graphs (Lab 1)
 
 Graph regularization [2] forces neural networks to learn similar
 predictions/representations for entities connected to each other in a similarity
-graph. Natural graphs or organic graphs are sets of data points that have an
+graph. *Natural graphs* or *organic graphs* are sets of data points that have an
 inherent relationship between each other. We will demonstrate via a practical
-tutorial, the use of natural graphs for graph regularization for classifying the
+tutorial, the use of natural graphs for graph regularization to classify the
 veracity of public message posts.
 
-### Graph regularization using synthesized graphs
+### Graph regularization using synthesized graphs (Lab 2)
 
 Input data may not always be represented as a graph. However, one can infer
 similarity relationships between entities and subsequently build a similarity
-graph. We will demonstrate via a practical tutorial, the use of graph building
-and subsequent graph regularization for text classification.
+graph. We will demonstrate graph building and subsequent graph regularization
+for text classification using a practical tutorial. While graphs can be built in
+many ways, we will make use of text embeddings in this tutorial to build a
+graph.
 
-### Adversarial regularization
+### Adversarial regularization (Lab 3)
 
--   Practical tutorial demonstrating adversarial learning techniques [3,4] for
-    image classification. It will cover methods like Fast Gradient Sign Method
-    (FGSM) and Projected Gradient Descent (PGD).
+Adversarial learning has been shown to be effective in improving the accuracy of
+a model as well as its robustness to adversarial attacks. We will demonstrate
+adversarial learning techniques [3,4] like *Fast Gradient Sign Method* (FGSM)
+and *Projected Gradient Descent* (PGD) for image classification using a
+practical tutorial.
 
-### Neural Structured Learning in TensorFlow Extended (TFX)
+### NSL in TensorFlow Extended (TFX)
 
--   Short presentation on how Neural Structured Learning can be integrated with
+-   Presentation on how Neural Structured Learning can be integrated with
     [TFX](https://www.tensorflow.org/tfx) pipelines.
 
 ### Research and Future Directions
 
--   Presentation discussing recent research related to NSL and future directions
+-   Presentation discussing:
+    -   Recent research related to NSL
+    -   Future directions for NSL research and development
+    -   Academic and industrial collaboration opportunities
 -   Prototype showing how NSL can be used with the
-    [Graph Nets](https://github.com/deepmind/graph_nets) library.
+    [Graph Nets](https://github.com/deepmind/graph_nets) [9] library.
 
-### Closing
+### Conclusion
 
-We will conclude our tutorial session with a presentation that will include:
-
--   Summary
--   Resources
--   Q/A
--   Survey/feedback
+We will conclude our tutorial with a summary of the entire session, provide
+links to various NSL resources, and share a link to a brief survey to get
+feedback on the NSL framework and the hands-on tutorial.
 
 ## References
 
@@ -107,3 +110,4 @@ We will conclude our tutorial session with a presentation that will include:
     2019
 8.  Z. Wu, S. Pan, F. Chen, G. Long, C. Zhang, P. Yu, “A Comprehensive Survey on
     Graph Neural Networks” arXiv 2019.
+9.  https://github.com/deepmind/graph_nets
