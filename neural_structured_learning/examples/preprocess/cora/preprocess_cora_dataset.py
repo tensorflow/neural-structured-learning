@@ -14,7 +14,7 @@
 r"""Tool that preprocesses Cora data for Graph Keras trainers.
 
 The Cora dataset can be downloaded from:
-https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz
+https://linqs-data.soe.ucsc.edu/public/cora/cora.tar.gz
 
 In particular, this tool does the following:
 (a) Converts Cora data (cora.content) into TF Examples,
