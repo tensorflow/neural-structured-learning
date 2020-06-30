@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # URL for downloading Cora dataset.
-URL=https://linqs-data.soe.ucsc.edu/public/cora/cora.tar.gz
+URL=https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz
 
 # Target folder to store and process data.
 DATA_DIR=/tmp
@@ -34,7 +34,7 @@ function download () {
 
 # Download and unzip the dataset. Data will be at '${DATA_DIR}/cora/' folder.
 download ${URL} ${DATA_DIR}
-tar -C ${DATA_DIR} -xvzf ${DATA_DIR}/cora.tar.gz
+tar -C ${DATA_DIR} -xvzf ${DATA_DIR}/cora.tgz
 
 # Pre-process cora dataset. The file 'preprocess_cora_dataset.py' is assumed to
 # be located in the current directory.
