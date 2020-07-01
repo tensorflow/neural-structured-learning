@@ -127,8 +127,7 @@ def read_tsv_graph(filename):
   with open(filename, 'rU') as f:
     for tsv_line in f:
       edge = tsv_line.rstrip('\n').split('\t')
-      add_edge(graph, edge)
-      edge_cnt += 1
+      if add_edge(graph, edge): edge_cnt += 1
   logging.info('Done reading %d edges from: %s (%.2f seconds).', edge_cnt,
                filename, (time.time() - start_time))
   return graph
