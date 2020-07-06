@@ -151,10 +151,14 @@ def add_graph_regularization(estimator,
         optimizer = tf.train.AdagradOptimizer(learning_rate=0.05)
       else:
         optimizer = optimizer_fn()
-      final_train_op = optimizer.minimize(
+      train_op = optimizer.minimize(
           loss=total_loss, global_step=tf.compat.v1.train.get_global_step())
+      update_ops = tf.compat.v1.get_collection(
+          tf.compat.v1.GraphKeys.UPDATE_OPS)
+      if update_ops:
+        train_op = tf.group(train_op, *update_ops)
 
-    return base_spec._replace(loss=total_loss, train_op=final_train_op)
+    return base_spec._replace(loss=total_loss, train_op=train_op)
 
   # Replaces the model_fn while keeping other fields/methods in the estimator.
   estimator._model_fn = graph_reg_model_fn  # pylint: disable=protected-access

@@ -436,6 +436,73 @@ class GraphRegularizationTest(tf.test.TestCase):
     self._train_and_check_eval_results(
         train_example, test_example, max_neighbors=2, weight=weight, bias=bias)
 
+  @test_util.run_v1_only('Requires tf.GraphKeys')
+  def test_graph_reg_wrapper_saving_batch_statistics(self):
+    """Verifies that batch statistics in batch-norm layers are saved."""
+
+    def optimizer_fn():
+      return tf.train.GradientDescentOptimizer(0.005)
+
+    def embedding_fn(features, mode):
+      input_layer = features[FEATURE_NAME]
+      with tf.compat.v1.variable_scope('hidden_layer', reuse=tf.AUTO_REUSE):
+        hidden_layer = tf.compat.v1.layers.dense(
+            input_layer, units=4, activation=tf.nn.relu)
+        batch_norm_layer = tf.compat.v1.layers.batch_normalization(
+            hidden_layer, training=(mode == tf.estimator.ModeKeys.TRAIN))
+      return batch_norm_layer
+
+    def model_fn(features, labels, mode, params=None, config=None):
+      del params, config
+      embeddings = embedding_fn(features, mode)
+      with tf.compat.v1.variable_scope('logit', reuse=tf.AUTO_REUSE):
+        logits = tf.compat.v1.layers.dense(embeddings, units=1)
+      predictions = tf.argmax(logits, 1)
+      if mode == tf.estimator.ModeKeys.PREDICT:
+        return tf.estimator.EstimatorSpec(
+            mode=mode,
+            predictions={
+                'logits': logits,
+                'predictions': predictions
+            })
+
+      loss = tf.losses.sigmoid_cross_entropy(labels, logits)
+      if mode == tf.estimator.ModeKeys.EVAL:
+        return tf.estimator.EstimatorSpec(mode=mode, loss=loss)
+
+      optimizer = optimizer_fn()
+      train_op = optimizer.minimize(
+          loss, global_step=tf.compat.v1.train.get_global_step())
+      update_ops = tf.compat.v1.get_collection(
+          tf.compat.v1.GraphKeys.UPDATE_OPS)
+      train_op = tf.group(train_op, *update_ops)
+      return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+
+    def input_fn():
+      nbr_feature = '{}{}_{}'.format(NBR_FEATURE_PREFIX, 0, FEATURE_NAME)
+      nbr_weight = '{}{}{}'.format(NBR_FEATURE_PREFIX, 0, NBR_WEIGHT_SUFFIX)
+      features = {
+          FEATURE_NAME: tf.constant([[0.1, 0.9], [0.8, 0.2]]),
+          nbr_feature: tf.constant([[0.11, 0.89], [0.81, 0.21]]),
+          nbr_weight: tf.constant([[0.9], [0.8]]),
+      }
+      labels = tf.constant([[1], [0]])
+      return tf.data.Dataset.from_tensor_slices((features, labels)).batch(2)
+
+    base_est = tf.estimator.Estimator(model_fn, model_dir=self.model_dir)
+    graph_reg_config = nsl_configs.make_graph_reg_config(
+        max_neighbors=1, multiplier=1)
+    graph_reg_est = nsl_estimator.add_graph_regularization(
+        base_est, embedding_fn, optimizer_fn, graph_reg_config=graph_reg_config)
+    graph_reg_est.train(input_fn, steps=1)
+
+    moving_mean = graph_reg_est.get_variable_value(
+        'hidden_layer/batch_normalization/moving_mean')
+    moving_variance = graph_reg_est.get_variable_value(
+        'hidden_layer/batch_normalization/moving_variance')
+    self.assertNotAllClose(moving_mean, np.zeros(moving_mean.shape))
+    self.assertNotAllClose(moving_variance, np.ones(moving_variance.shape))
+
 
 if __name__ == '__main__':
   tf.test.main()
