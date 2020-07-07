@@ -104,7 +104,39 @@ class GraphBuilder(object):
   """Computes the similarity graph from a set of (dense) embeddings."""
 
   def __init__(self, graph_builder_config):
+    """Initializes this GraphBuilder from the given configuration instance.
+
+    Args:
+      graph_builder_config: A `nsl.configs.GraphBuilderConfig` instance.
+
+    Raises:
+      ValueError: If `lsh_bits < 0`, or if `lsh_bits > 0 and lsh_rounds < 1`.
+    """
     self.config = graph_builder_config
+    if self.config.lsh_bits < 0:
+      raise ValueError('lsh_bits < 0')
+    if self.config.lsh_bits > 0 and self.config.lsh_rounds < 1:
+      raise ValueError('lsh_bits > 0 but lsh_rounds < 1')
+
+    # Keep a set of previously written edges if it's possible we might
+    # generate the same edge multiple times. This can happen only if both
+    # 'lsh_bits > 0' and 'lsh_rounds > 1'. To save space, we pick a canonical
+    # ordering (source < target) for each bi-directional edge. Note that we
+    # do not need to store the edge weight as well because for any
+    # (source, target) pair, the cosine similarity between them will never
+    # change.
+    self.edge_set = None
+    if self.config.lsh_bits > 0 and self.config.lsh_rounds > 1:
+      self.edge_set = set()
+
+  def _is_new_edge(self, src, tgt):
+    """Returns `True` iff the edge `src` to `tgt` has not been generated yet."""
+    canonical_edge = (src, tgt) if src < tgt else (tgt, src)
+    # Remember set size before calling add() because add() returns None.
+    # This way we don't have to hash 'canonical_edge' twice.
+    set_size_before_add = len(self.edge_set)
+    self.edge_set.add(canonical_edge)
+    return len(self.edge_set) > set_size_before_add
 
   def _bucket(self, lsh_matrix, embedding):
     """Returns the bucket ID of the given `embedding` relative to `lsh_matrix`.
@@ -147,17 +179,13 @@ class GraphBuilder(object):
     # Generate a random matrix of values in the range [-1.0, 1.0] to use
     # to create the LSH buckets.
     num_dims = next(iter(embeddings.values())).size
-    np.random.seed(self.config.random_seed)
     lsh_matrix = np.random.rand(self.config.lsh_bits, num_dims) * 2 - 1
 
     # Add each embedding to its appropriate bucket
-    start_time = time.time()
     bucket_map = {}
     for key, embedding in six.iteritems(embeddings):
       s = bucket_map.setdefault(self._bucket(lsh_matrix, embedding), set())
       s.add(key)
-    logging.info('Bucketed embeddings into %d bucket(s) in %.2f seconds.',
-                 len(bucket_map), time.time() - start_time)
     return bucket_map
 
   def _generate_edges_for_bucket(self, bucket, embeddings):
@@ -174,15 +202,15 @@ class GraphBuilder(object):
     for src, tgt in itertools.combinations(bucket, 2):
       weight = np.dot(embeddings[src], embeddings[tgt])
       if weight >= self.config.similarity_threshold:
-        yield (src, tgt, weight)
+        if self.edge_set is None or self._is_new_edge(src, tgt):
+          yield (src, tgt, weight)
 
   def _generate_edges(self, embeddings):
     """Generates edges among pairs of the given `embeddings`.
 
-    This function considers all distinct pairs of nodes in `embeddings`,
-    computes the similarity between all such pairs (by calling the `_similarity`
-    method), and yields any edge for which the similarity is at least
-    `self.similarity_threshold`.
+    This function considers related pairs of nodes in `embeddings`,
+    computes the cosine similarity between all such pairs, and yields any edge
+    for which the cosine similarity is at least `self.similarity_threshold`.
 
     Args:
       embeddings: A `dict`: node_id -> embedding.
@@ -191,16 +219,27 @@ class GraphBuilder(object):
       A tuple (source, target, weight) denoting a (directed) edge from 'source'
       to 'target' with the given 'weight'.
     """
-    start_time = time.time()
-    edge_cnt = 0
-    bucket_map = self._generate_lsh_buckets(embeddings)
-    for bucket in bucket_map.values():
-      for edge in self._generate_edges_for_bucket(bucket, embeddings):
-        yield edge
-        edge_cnt += 1
-        if (edge_cnt % 1000000) == 0:
-          logging.info('Created %d bi-directional edges in %.2f seconds....',
-                       edge_cnt, time.time() - start_time)
+    for lsh_round in range(max(1, self.config.lsh_rounds)):
+      start_time = time.time()
+      edge_cnt = 0
+      bucket_map = self._generate_lsh_buckets(embeddings)
+      logging_prefix = 'LSH bucketing round {}'.format(lsh_round)
+      logging.info('%s: created %d bucket(s) in %.2f seconds.', logging_prefix,
+                   len(bucket_map),
+                   time.time() - start_time)
+      for bucket in bucket_map.values():
+        for edge in self._generate_edges_for_bucket(bucket, embeddings):
+          edge_cnt += 1
+          if (edge_cnt % 1000000) == 0:
+            logging.info(
+                '%s: generated %d new bi-directional edges in %.2f seconds....',
+                logging_prefix, edge_cnt,
+                time.time() - start_time)
+          yield edge
+      logging.info(
+          '%s completed: generated %d new bi-directional edges in %.2f seconds.',
+          logging_prefix, edge_cnt,
+          time.time() - start_time)
 
   def build(self, embedding_files, output_graph_path):
     """Reads embeddings and writes the similarity graph to `output_graph_path`.
@@ -220,6 +259,8 @@ class GraphBuilder(object):
     start_time = time.time()
     logging.info('Building graph and writing edges to TSV file: %s',
                  output_graph_path)
+    np.random.seed(self.config.random_seed)
+    logging.info('Using random seed value: %s', self.config.random_seed)
     edge_cnt = 0
     with open(output_graph_path, 'w') as f:
       for (src, tgt, wt) in self._generate_edges(embeddings):
@@ -267,14 +308,60 @@ def build_graph_from_config(embedding_files, output_graph_path,
   The `lsh_bits` configuration attribute is used to control the maximum number
   of LSH buckets. In particular, if `lsh_bits` has the value `n`, then there
   can be at most `2^n` LSH buckets. Using a larger value for `lsh_bits` will
-  (generally) result in a larger number of buckets, and therefore, faster
-  running times. The disadvantage to using too many LSH buckets, however, is
-  that we may not create a graph edge between two instances that are otherwise
-  highly similar because they happened to be randomly hashed into two different
-  LSH buckets. A good rule of thumb is to set
-  `lsh_bits = ceiling(log_2(num_instances / 1000))`.
+  (generally) result in a larger number of buckets, and therefore, smaller
+  number of instances in each bucket that need to be compared to each other.
+  As a result, increasing `lsh_bits` can lead to dramatically faster running
+  times.
 
-  The resulting graph edges are written to the TSV file named by
+  The disadvantage to using too many LSH buckets, however, is that we won't
+  create a graph edge between two instances that are highly similar if they
+  happen to be randomly hashed into two different LSH buckets. To address
+  that problem, the `lsh_rounds` parameter can be used to perform multiple
+  rounds of the LSH bucketing process. Even if two similar instances may get
+  hashed to different LSH buckets during the first round, they may get hashed
+  into the same LSH bucket on a subsequent round. An edge is created in the
+  output graph if two intances are hashed into the same bucket and deemed to
+  be similar enough on *any* of the LSH rounds (i.e., the resulting graph is the
+  *union* of the graph edges generated on each LSH round).
+
+  To illustrate these concepts and how various `lsh_bits` and `lsh_rounds`
+  values correlate with graph building running times, we performed multiple runs
+  of the graph builder on a dataset containing 50,000 instances, each with a
+  100-dimensional embedding. When `lsh_bits = 0`, the program has to compare
+  each instance against every other instance, for a total of roughly 2.5B
+  comparisons, which takes nearly half an hour to complete and generates a total
+  of 35,313 graph edges (when `similarity_threshold = 0.9`). As `lsh_bits` is
+  increased, we lose recall (i.e., fewer than 35,313 edges are generated), but
+  the recall can then be improved by increasing `lsh_rounds`. This table shows
+  the minimum `lsh_rounds` value required to achieve a recall of >= 99.7%
+  (except for the `lsh_bits = 1` case), as well as the elapsed running time:
+
+  ```none
+  lsh_bits   lsh_rounds    Recall    Running time
+     0          N/A        100.0%      27m 46s
+     1           2          99.4%      24m 33s
+     2           3          99.8%      15m 35s
+     3           4          99.7%       9m 37.9s
+     4           6          99.9%       7m 07.5s
+     5           8          99.9%       4m 59.2s
+     6           9          99.7%       3m 01.2s
+     7          11          99.8%       2m 02.3s
+     8          13          99.8%       1m 20.8s
+     9          16          99.7%          58.5s
+    10          18          99.7%          43.6s
+  ```
+
+  As the table illustrates, by increasing both `lsh_bits` and `lsh_rounds`, we
+  can dramatically decrease the running time of the graph builder without
+  sacrificing edge recall. We have found that a good rule of thumb is to set
+  `lsh_bits >= ceiling(log_2(num_instances / 1000))`, so the expected LSH bucket
+  size will be at most 1000. However, if your instances are clustered or you
+  want an even faster run, you may want to use a larger `lsh_bits` value. Note,
+  however, that when the similarity threshold is lower, recall rates are reduced
+  more quickly the larger the value of `lsh_bits` is, so be careful not to set
+  that parameter too high for smaller `similarity_threshold` values.
+
+  The generated graph edges are written to the TSV file named by
   `output_graph_path`. Each output edge is represented by a TSV line with the
   following form:
 
@@ -292,6 +379,9 @@ def build_graph_from_config(embedding_files, output_graph_path,
       should be written.
     graph_builder_config: A `nsl.configs.GraphBuilderConfig` specifying the
       graph building parameters.
+
+  Raises:
+    ValueError: If `lsh_bits < 0`, or if `lsh_bits > 0 and lsh_rounds < 1`.
   """
   graph_builder = GraphBuilder(graph_builder_config)
   graph_builder.build(embedding_files, output_graph_path)
@@ -302,7 +392,9 @@ def build_graph(embedding_files,
                 similarity_threshold=0.8,
                 id_feature_name='id',
                 embedding_feature_name='embedding',
-                lsh_bits=0):
+                lsh_bits=0,
+                lsh_rounds=2,
+                random_seed=None):
   """Like `nsl.tools.build_graph_from_config`, but with individual parameters.
 
   This API exists to maintain backward compatibility, but is deprecated in favor
@@ -322,15 +414,26 @@ def build_graph(embedding_files,
     lsh_bits: Determines the maximum number of LSH buckets into which input data
       points will be bucketed by the graph builder. See the
       `nsl.tools.build_graph_from_config` documentation for details.
+    lsh_rounds: The number of rounds of LSH bucketing to perform when
+      `lsh_bits > 0`. This is also the number of LSH buckets each point will be
+      hashed into.
+    random_seed: Value used to seed the random number generator used to perform
+      randomized LSH bucketing of the inputs when `lsh_bits > 0`. By default,
+      the generator will be initialized randomly, but setting this to any
+      integer will initialize it deterministically.
+
+  Raises:
+      ValueError: If `lsh_bits < 0`, or if `lsh_bits > 0 and lsh_rounds < 1`.
   """
   build_graph_from_config(
-      embedding_files,
-      output_graph_path,
+      embedding_files, output_graph_path,
       nsl_configs.GraphBuilderConfig(
           id_feature_name=id_feature_name,
           embedding_feature_name=embedding_feature_name,
           similarity_threshold=similarity_threshold,
-          lsh_bits=lsh_bits))
+          lsh_bits=lsh_bits,
+          lsh_rounds=lsh_rounds,
+          random_seed=random_seed))
 
 
 def _main(argv):
@@ -349,6 +452,7 @@ def _main(argv):
           embedding_feature_name=flag.embedding_feature_name,
           similarity_threshold=flag.similarity_threshold,
           lsh_bits=flag.lsh_bits,
+          lsh_rounds=flag.lsh_rounds,
           random_seed=flag.random_seed))
 
 
@@ -371,6 +475,10 @@ if __name__ == '__main__':
       potential buckets for better performance. The larger your number of
       input instances, the larger this value should be. A good rule of thumb is
       to set `lsh_bits = ceiling(log_2(num_instances / 1000))`.""")
+  flags.DEFINE_integer(
+      'lsh_rounds', 2,
+      """The number of rounds of LSH bucketing to perform when `lsh_bits > 0`.
+      This is also the number of LSH buckets each point will be hashed into.""")
   flags.DEFINE_integer(
       'random_seed', None,
       """Value used to seed the random number generator used to perform

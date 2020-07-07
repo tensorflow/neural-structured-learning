@@ -79,6 +79,7 @@ py_test(
         ":graph_utils",
         # package protobuf,
         # package absl/testing:absltest
+        # package six
         # package tensorflow
     ],
 )
