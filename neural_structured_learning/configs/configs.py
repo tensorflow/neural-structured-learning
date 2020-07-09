@@ -306,24 +306,24 @@ class GraphBuilderConfig(object):
       Defaults to `'embedding'`.
     similarity_threshold: Threshold used to determine which edges to retain in
       the resulting graph. Defaults to 0.8.
-    lsh_bits: Determines the maximum number of LSH buckets into which input data
-      points will be bucketed by the graph builder. See the
-      `nsl.tools.build_graph_from_config` documentation for details. This
-      defaults to 0, in which case all pairs of inputs will be compared,
-      probably resulting in slow running times on larger input sets. Defaults
-      to 0.
+    lsh_splits: On each LSH bucketing round, the space containing the input
+      instances will be randomly split/partitioned this many times for better
+      graph builder performance. See the `nsl.tools.build_graph_from_config`
+      documentation for details. Defaults to 0, in which case all pairs of
+      inputs will be compared, probably resulting in slow running times on
+      larger input sets.
     lsh_rounds: The number of rounds of LSH bucketing to perform when
-      `lsh_bits > 0`. This is also the number of LSH buckets each point will be
-      hashed into. Defaults to 2.
+      `lsh_splits > 0`. This is also the number of LSH buckets each point will
+      be hashed into. Defaults to 2.
     random_seed: Value used to seed the random number generator used to perform
-      randomized LSH bucketing of the inputs when `lsh_bits > 0`. By default,
+      randomized LSH bucketing of the inputs when `lsh_splits > 0`. By default,
       the generator will be initialized randomly, but setting this to any
       integer will initialize it deterministically. Defaults to `None`.
   """
   id_feature_name = attr.ib(default='id')
   embedding_feature_name = attr.ib(default='embedding')
   similarity_threshold = attr.ib(default=0.8)
-  lsh_bits = attr.ib(default=0)
+  lsh_splits = attr.ib(default=0)
   lsh_rounds = attr.ib(default=2)
   random_seed = attr.ib(default=None)
 

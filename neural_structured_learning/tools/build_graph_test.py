@@ -88,11 +88,11 @@ class BuildGraphTest(absltest.TestCase):
 
   def testBuildGraphInvalidLshBitsValue(self):
     with self.assertRaises(ValueError):
-      build_graph_lib.build_graph([], None, lsh_bits=-1)
+      build_graph_lib.build_graph([], None, lsh_splits=-1)
 
   def testBuildGraphInvalidLshRoundsValue(self):
     with self.assertRaises(ValueError):
-      build_graph_lib.build_graph([], None, lsh_bits=1, lsh_rounds=0)
+      build_graph_lib.build_graph([], None, lsh_splits=1, lsh_rounds=0)
 
   def testBuildGraphNoThresholdingNoLSH(self):
     """All edges whose weight is greater than 0 are retained."""
@@ -175,7 +175,7 @@ class BuildGraphTest(absltest.TestCase):
     build_graph_lib.build_graph([embedding_path],
                                 graph_path,
                                 similarity_threshold=0.9,
-                                lsh_bits=2,
+                                lsh_splits=2,
                                 lsh_rounds=1,
                                 random_seed=12345)
     g_actual = graph_utils.read_tsv_graph(graph_path)
@@ -200,7 +200,7 @@ class BuildGraphTest(absltest.TestCase):
     build_graph_lib.build_graph([embedding_path],
                                 graph_path,
                                 similarity_threshold=0.9,
-                                lsh_bits=2,
+                                lsh_splits=2,
                                 lsh_rounds=4,
                                 random_seed=12345)
     g_actual = graph_utils.read_tsv_graph(graph_path)
