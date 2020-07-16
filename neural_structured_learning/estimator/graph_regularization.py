@@ -144,11 +144,17 @@ def add_graph_regularization(estimator,
           nbr_embeddings,
           weights=nbr_weights,
           distance_config=graph_reg_config.distance_config)
-      total_loss = base_spec.loss + graph_reg_config.multiplier * graph_loss
+      scaled_graph_loss = graph_reg_config.multiplier * graph_loss
+      tf.compat.v1.summary.scalar('loss/scaled_graph_loss', scaled_graph_loss)
+
+      supervised_loss = base_spec.loss
+      tf.compat.v1.summary.scalar('loss/supervised_loss', supervised_loss)
+
+      total_loss = supervised_loss + scaled_graph_loss
 
       if not optimizer_fn:
         # Default to Adagrad optimizer, the same as the canned DNNEstimator.
-        optimizer = tf.train.AdagradOptimizer(learning_rate=0.05)
+        optimizer = tf.compat.v1.train.AdagradOptimizer(learning_rate=0.05)
       else:
         optimizer = optimizer_fn()
       train_op = optimizer.minimize(

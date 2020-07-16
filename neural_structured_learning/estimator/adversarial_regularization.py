@@ -121,12 +121,18 @@ def add_adversarial_regularization(estimator,
 
       # Runs the base model again to compute loss on adv_neighbor.
       adv_spec = base_fn(adv_neighbor, labels)
+      scaled_adversarial_loss = adv_config.multiplier * adv_spec.loss
+      tf.compat.v1.summary.scalar('loss/scaled_adversarial_loss',
+                                  scaled_adversarial_loss)
 
-      final_loss = original_spec.loss + adv_config.multiplier * adv_spec.loss
+      supervised_loss = original_spec.loss
+      tf.compat.v1.summary.scalar('loss/supervised_loss', supervised_loss)
+
+      final_loss = supervised_loss + scaled_adversarial_loss
 
       if not optimizer_fn:
         # Default to the Adagrad optimizer, the same as canned DNNEstimator.
-        optimizer = tf.train.AdagradOptimizer(learning_rate=0.05)
+        optimizer = tf.compat.v1.train.AdagradOptimizer(learning_rate=0.05)
       else:
         optimizer = optimizer_fn()
 
