@@ -681,8 +681,10 @@ class AdversarialRegularization(tf.keras.Model):
         labeled_loss=labeled_loss,
         gradient_tape=tape,
         model_kwargs=kwargs)
-    self.add_loss(self.adv_config.multiplier * adv_loss)
-    self.add_metric(adv_loss, name='adversarial_loss', aggregation='mean')
+    scaled_adv_loss = self.adv_config.multiplier * adv_loss
+    self.add_loss(scaled_adv_loss)
+    self.add_metric(
+        scaled_adv_loss, name='scaled_adversarial_loss', aggregation='mean')
     return outputs
 
   def save(self, *args, **kwargs):

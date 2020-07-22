@@ -132,8 +132,10 @@ class GraphRegularization(tf.keras.Model):
     else:
       graph_loss = tf.constant(0, dtype=tf.float32)
 
+    scaled_graph_loss = self.graph_reg_config.multiplier * graph_loss
     # Note that add_metric() cannot be invoked in a control flow branch.
-    self.add_metric(graph_loss, name='graph_loss', aggregation='mean')
-    self.add_loss(self.graph_reg_config.multiplier * graph_loss)
+    self.add_metric(
+        scaled_graph_loss, name='scaled_graph_loss', aggregation='mean')
+    self.add_loss(scaled_graph_loss)
 
     return base_output
