@@ -1,3 +1,39 @@
+# Release 1.3.0
+
+## Major Features and Improvements
+
+*   Added locality-sensitive hashing (LSH) support to the graph builder tool.
+    This allows the graph builder to scale up to larger input datasets. As part
+    of this change, the new `nsl.configs.GraphBuilderConfig` class was
+    introduced, as well as a new `nsl.tools.build_graph_from_config` function.
+    The new parameters for controlling the LSH algorithm are named `lsh_rounds`
+    and `lsh_splits`.
+
+## Bug Fixes and Other Changes
+
+*   Fixed a bug in `nsl.tools.read_tsv_graph` that was incrementing the edge
+    count too often.
+*   Changed `nsl.tools.add_edge` to return a boolean result indicating if a new
+    edge was added or not; previously, this function was not returning any
+    value.
+*   Removed Python 2 unit tests.
+*   Fixed a bug in `nsl.estimator.add_adversarial_regularization` and
+    `nsl.estimator.add_graph_regularization` so that the `UPDATE_OPS` can be
+    triggered correctly.
+*   Updated graph-NSL tutorials not to parse neighbor features during
+    evaluation.
+*   Added scaled graph and adversarial loss values as scalars to the summary in
+    `nsl.estimator.add_graph_regularization` and
+    `nsl.estimator.add_adversarial_regularization` respectively.
+*   Updated graph and adversarial regularization loss metrics in
+    `nsl.keras.GraphRegularization` and `nsl.keras.AdversarialRegularization`
+    respectively, to include scaled values for consistency with their respective
+    loss term contributions.
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google.
+
 # Release 1.2.0
 
 ## Major Features and Improvements
