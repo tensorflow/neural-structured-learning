@@ -36,6 +36,8 @@ We will begin the tutorial with an overview of the Neural Structured Learning
 framework and motivate the advantages of training neural networks with
 structured signals.
 
+[Slides](slides/Introduction.pdf)
+
 ### Data preprocessing in NSL
 
 This part of the tutorial will include a presentation discussing:
@@ -43,6 +45,8 @@ This part of the tutorial will include a presentation discussing:
 -   Graph building as a general topic including locality sensitive hashing
 -   Augmenting training data for graph-based regularization in NSL
 -   Related tools in the NSL framework
+
+[Slides](slides/Data_Preprocessing.pdf)
 
 ### Graph regularization using natural graphs (Lab 1)
 
@@ -53,6 +57,8 @@ inherent relationship between each other. We will demonstrate via a practical
 tutorial, the use of natural graphs for graph regularization to classify the
 veracity of public message posts.
 
+[Slides](slides/Natural_Graphs.pdf)
+
 ### Graph regularization using synthesized graphs (Lab 2)
 
 Input data may not always be represented as a graph. However, one can infer
@@ -62,6 +68,8 @@ for text classification using a practical tutorial. While graphs can be built in
 many ways, we will make use of text embeddings in this tutorial to build a
 graph.
 
+[Slides](slides/Synthesized_graphs.pdf)
+
 ### Adversarial regularization (Lab 3)
 
 Adversarial learning has been shown to be effective in improving the accuracy of
@@ -70,10 +78,14 @@ adversarial learning techniques [3,4] like *Fast Gradient Sign Method* (FGSM)
 and *Projected Gradient Descent* (PGD) for image classification using a
 practical tutorial.
 
+[Slides](slides/Adversarial_Learning.pdf)
+
 ### NSL in TensorFlow Extended (TFX)
 
 -   Presentation on how Neural Structured Learning can be integrated with
     [TFX](https://www.tensorflow.org/tfx) pipelines.
+
+[Slides](slides/NSL_in_TFX.pdf)
 
 ### Research and Future Directions
 
@@ -84,11 +96,15 @@ practical tutorial.
 -   Prototype showing how NSL can be used with the
     [Graph Nets](https://github.com/deepmind/graph_nets) [9] library.
 
+[Slides](slides/Research_and_Future_Directions.pdf)
+
 ### Conclusion
 
 We will conclude our tutorial with a summary of the entire session, provide
 links to various NSL resources, and share a link to a brief survey to get
 feedback on the NSL framework and the hands-on tutorial.
+
+[Slides](slides/Summary.pdf)
 
 ## References
 
