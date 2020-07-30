@@ -36,7 +36,7 @@ We will begin the tutorial with an overview of the Neural Structured Learning
 framework and motivate the advantages of training neural networks with
 structured signals.
 
-[Slides](slides/Introduction.pdf)
+[[Slides](slides/Introduction.pdf)]
 
 ### Data preprocessing in NSL
 
@@ -46,7 +46,7 @@ This part of the tutorial will include a presentation discussing:
 -   Augmenting training data for graph-based regularization in NSL
 -   Related tools in the NSL framework
 
-[Slides](slides/Data_Preprocessing.pdf)
+[[Slides](slides/Data_Preprocessing.pdf)]
 
 ### Graph regularization using natural graphs (Lab 1)
 
@@ -57,7 +57,8 @@ inherent relationship between each other. We will demonstrate via a practical
 tutorial, the use of natural graphs for graph regularization to classify the
 veracity of public message posts.
 
-[Slides](slides/Natural_Graphs.pdf)
+[[Slides](slides/Natural_Graphs.pdf)]
+[[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/workshops/kdd_2020/graph_regularization_pheme_natural_graph.ipynb)]
 
 ### Graph regularization using synthesized graphs (Lab 2)
 
@@ -68,7 +69,8 @@ for text classification using a practical tutorial. While graphs can be built in
 many ways, we will make use of text embeddings in this tutorial to build a
 graph.
 
-[Slides](slides/Synthesized_graphs.pdf)
+[[Slides](slides/Synthesized_Graphs.pdf)]
+[[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_lstm_imdb.ipynb)]
 
 ### Adversarial regularization (Lab 3)
 
@@ -78,14 +80,15 @@ adversarial learning techniques [3,4] like *Fast Gradient Sign Method* (FGSM)
 and *Projected Gradient Descent* (PGD) for image classification using a
 practical tutorial.
 
-[Slides](slides/Adversarial_Learning.pdf)
+[[Slides](slides/Adversarial_Learning.pdf)]
+[[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/workshops/kdd_2020/adversarial_regularization_mnist.ipynb)]
 
 ### NSL in TensorFlow Extended (TFX)
 
 -   Presentation on how Neural Structured Learning can be integrated with
     [TFX](https://www.tensorflow.org/tfx) pipelines.
 
-[Slides](slides/NSL_in_TFX.pdf)
+[[Slides](slides/NSL_in_TFX.pdf)]
 
 ### Research and Future Directions
 
@@ -96,7 +99,7 @@ practical tutorial.
 -   Prototype showing how NSL can be used with the
     [Graph Nets](https://github.com/deepmind/graph_nets) [9] library.
 
-[Slides](slides/Research_and_Future_Directions.pdf)
+[[Slides](slides/Research_and_Future_Directions.pdf)]
 
 ### Conclusion
 
@@ -104,7 +107,7 @@ We will conclude our tutorial with a summary of the entire session, provide
 links to various NSL resources, and share a link to a brief survey to get
 feedback on the NSL framework and the hands-on tutorial.
 
-[Slides](slides/Summary.pdf)
+[[Slides](slides/Summary.pdf)]
 
 ## References
 
