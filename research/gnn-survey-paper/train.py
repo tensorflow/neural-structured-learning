@@ -8,7 +8,7 @@ from absl import flags
 
 from utils import load_dataset, build_model, cal_acc
 
-flags.DEFINE_string('dataset', 'cora', 
+flags.DEFINE_string('dataset', 'cora',
                     'The input dataset. Avaliable dataset now: cora')
 flags.DEFINE_string('model', 'gcn',
                     'GNN model. Available model now: gcn')
@@ -34,24 +34,24 @@ def train(model, adj, features, y_train, y_val):
         optimizer = tf.keras.optimizers.Adam(learning_rate=FLAGS.lr)
     elif FLAGS.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(learning_rate=FLAGS.lr)
-    
-    
+
+
     for epoch in range(FLAGS.epochs):
         epoch_start_time = time.time()
-        
+
         with tf.GradientTape() as tape:
             output = model(features, adj)
             train_loss = loss_fn(y_train, output[:train_last_id])
         gradients = tape.gradient(train_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-        
+
         train_acc = cal_acc(y_train, output[:train_last_id])
-        
+
         # Evaluate
         output = model(features, adj, training=False)
         val_loss = loss_fn(y_val, output[train_last_id:val_last_id])
         val_acc = cal_acc(y_val, output[train_last_id:val_last_id])
-        
+
         print('[%03d/%03d] %.2f sec(s) Train Acc: %.3f Loss: %.6f | Val Acc: %.3f loss: %.6f' % \
              (epoch + 1, FLAGS.epochs, time.time()-epoch_start_time, \
               train_acc, train_loss, val_acc, val_loss))
@@ -59,12 +59,12 @@ def train(model, adj, features, y_train, y_val):
 
 
 def main(_):
-    
+
     if FLAGS.gpu == -1:
         device = "/cpu:0"
     else:
         device = "/gpu:{}".format(FLAGS.gpu)
-    
+
     with tf.device(device):
         tf.random.set_seed(1234)
         # Load the dataset and process features and adj matrix
@@ -73,12 +73,12 @@ def main(_):
         features_dim = features.shape[1]
         num_classes = max(y_test) + 1
         print('Build model...')
-        model = build_model(FLAGS.model, features_dim, FLAGS.num_layers, 
+        model = build_model(FLAGS.model, features_dim, FLAGS.num_layers,
                             FLAGS.hidden_dim, num_classes, FLAGS.dropout)
-    
+
         print('Start Training...')
         train(model, adj, features, y_train, y_val)
-    
+
 
 if __name__ == '__main__':
     app.run(main)
