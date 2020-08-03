@@ -37,7 +37,8 @@ def _make_functional_regularized_model(distance_config):
   def _make_unregularized_model(inputs, num_classes):
     """Makes standard 1 layer MLP with logistic regression."""
     x = tf.keras.layers.Dense(16, activation='relu')(inputs)
-    return tf.keras.Model(inputs, outputs=tf.keras.layers.Dense(num_classes)(x))
+    model = tf.keras.Model(inputs, tf.keras.layers.Dense(num_classes)(x))
+    return model
 
   # Each example has 4 features and 2 neighbors, each with an edge weight.
   inputs = (tf.keras.Input(shape=(4,), dtype=tf.float32, name='features'),
@@ -45,6 +46,8 @@ def _make_functional_regularized_model(distance_config):
             tf.keras.Input(
                 shape=(2, 1), dtype=tf.float32, name='neighbor_weights'))
   features, neighbors, neighbor_weights = inputs
+  neighbors = tf.reshape(neighbors, (-1,) + tuple(features.shape[1:]))
+  neighbor_weights = tf.reshape(neighbor_weights, [-1, 1])
   unregularized_model = _make_unregularized_model(features, 3)
   logits = unregularized_model(features)
   model = tf.keras.Model(inputs=inputs, outputs=logits)
