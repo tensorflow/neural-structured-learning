@@ -90,16 +90,14 @@ def load_dataset(dataset):
     features = normalize_features(features)
     adj = normalize_adj(adj)
 
-    # 5% for train, 500 for validation, other for test
-    train_num = int(labels.shape[0] * 0.05)
-    val_num = train_num + 500
+    # 5% for train, 300 for validation, 1000 for test
+    idx_train = slice(140)
+    idx_val = slice(200, 500)
+    idx_test = slice(500, 1500)
 
     features = tf.convert_to_tensor(np.array(features.todense()))
     labels = tf.convert_to_tensor(np.where(labels)[1])
     adj = tf.convert_to_tensor(np.array(adj.todense()))
 
-    y_train = labels[:train_num]
-    y_val = labels[train_num:val_num]
-    y_test = labels[val_num:]
-    return adj, features, y_train, y_val, y_test
+    return adj, features, labels, idx_train, idx_val, idx_test
 

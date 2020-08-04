@@ -34,7 +34,8 @@ class GCN(tf.keras.Model):
                                           "output_dim": num_classes,
                                           "bias": bias})
 
-    def call(self, features, adj):
+    def call(self, inputs):
+        features, adj = inputs[0], inputs[1]
         for i in range(self.num_layers-1):
             x = (features, adj)
             features = self.gc[i](x)
