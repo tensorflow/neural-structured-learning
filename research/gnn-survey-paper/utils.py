@@ -13,7 +13,12 @@ def build_model(model_name, features_dim, num_layers, hidden_dim, num_classes, d
 
     # Only gcn available now
     if model_name == 'gcn':
-        model = GCN(features_dim, num_layers, hidden_dim, num_classes, dropout)
+        model = GCN(features_dim=features_dim, 
+                    num_layers=num_layers, 
+                    hidden_dim=hidden_dim, 
+                    num_classes=num_classes, 
+                    dropout_prob=dropout,
+                    bias=True)
 
     elif model_name == 'gat':
         raise NotImplementedError

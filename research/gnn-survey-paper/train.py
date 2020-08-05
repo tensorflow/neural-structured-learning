@@ -8,17 +8,17 @@ from absl import flags
 
 from utils import load_dataset, build_model, cal_acc
 
-flags.DEFINE_string('dataset', 'cora',
+flags.DEFINE_enum('dataset', 'cora', ['cora'],
                     'The input dataset. Avaliable dataset now: cora')
-flags.DEFINE_string('model', 'gcn',
-                    'GNN model. Available model now: gcn')
+flags.DEFINE_enum('model', 'gcn', ['gcn'],
+                  'GNN model. Available model now: gcn')
 flags.DEFINE_float('dropout', 0.5, 'Dropout probability')
 flags.DEFINE_integer('gpu', '-1', 'Gpu id, -1 means cpu only')
 flags.DEFINE_float('lr', 1e-2, 'Initial learning rate')
 flags.DEFINE_integer('epochs', 200, 'Number of training epochs')
 flags.DEFINE_integer('num_layers', 2, 'Number of gnn layers')
 flags.DEFINE_list('hidden_dim', [32], 'Dimension of gnn hidden layers')
-flags.DEFINE_string('optimizer', 'adam', 'Optimizer for training')
+flags.DEFINE_enum('optimizer', 'adam', ['adam', 'sgd'], 'Optimizer for training')
 flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 regularization')
 flags.DEFINE_string('save_dir', 'models/cora/gcn', 'Directory stores trained model')
 
@@ -33,6 +33,7 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
         optimizer = tf.keras.optimizers.Adam(learning_rate=FLAGS.lr)
     elif FLAGS.optimizer == 'sgd':
         optimizer = tf.keras.optimizers.SGD(learning_rate=FLAGS.lr)
+    
 
     inputs = (features, adj)
     for epoch in range(FLAGS.epochs):
@@ -68,8 +69,6 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
     output = model(inputs, training=False)
     test_acc = cal_acc(labels[idx_test], output[idx_test])
     print("***Test Accuracy: %.3f***"% (test_acc))
-
-
 
 
 def main(_):
