@@ -447,7 +447,9 @@ class GraphRegularizationTest(tf.test.TestCase):
       input_layer = features[FEATURE_NAME]
       with tf.compat.v1.variable_scope('hidden_layer', reuse=tf.AUTO_REUSE):
         hidden_layer = tf.compat.v1.layers.dense(
-            input_layer, units=4, activation=tf.nn.relu)
+            input_layer, units=4, activation=lambda x: tf.abs(x) + 0.1)
+        # The always-positive activation funciton is to make sure the batch mean
+        # is non-zero.
         batch_norm_layer = tf.compat.v1.layers.batch_normalization(
             hidden_layer, training=(mode == tf.estimator.ModeKeys.TRAIN))
       return batch_norm_layer
@@ -482,12 +484,12 @@ class GraphRegularizationTest(tf.test.TestCase):
       nbr_feature = '{}{}_{}'.format(NBR_FEATURE_PREFIX, 0, FEATURE_NAME)
       nbr_weight = '{}{}{}'.format(NBR_FEATURE_PREFIX, 0, NBR_WEIGHT_SUFFIX)
       features = {
-          FEATURE_NAME: tf.constant([[0.1, 0.9], [0.8, 0.2]]),
-          nbr_feature: tf.constant([[0.11, 0.89], [0.81, 0.21]]),
-          nbr_weight: tf.constant([[0.9], [0.8]]),
+          FEATURE_NAME: tf.constant([[0.1, 0.9], [-0.8, -0.2], [0.3, -0.7]]),
+          nbr_feature: tf.constant([[0.1, 0.89], [-0.81, -0.2], [0.3, -0.69]]),
+          nbr_weight: tf.constant([[0.9], [0.8], [0.7]]),
       }
-      labels = tf.constant([[1], [0]])
-      return tf.data.Dataset.from_tensor_slices((features, labels)).batch(2)
+      labels = tf.constant([[1], [0], [1]])
+      return tf.data.Dataset.from_tensor_slices((features, labels)).batch(3)
 
     base_est = tf.estimator.Estimator(model_fn, model_dir=self.model_dir)
     graph_reg_config = nsl_configs.make_graph_reg_config(
