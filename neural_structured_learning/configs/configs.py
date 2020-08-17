@@ -314,7 +314,7 @@ class GraphBuilderConfig(object):
       larger input sets.
     lsh_rounds: The number of rounds of LSH bucketing to perform when
       `lsh_splits > 0`. This is also the number of LSH buckets each point will
-      be hashed into. Defaults to 2.
+      be hashed into. Defaults to 1.
     random_seed: Value used to seed the random number generator used to perform
       randomized LSH bucketing of the inputs when `lsh_splits > 0`. By default,
       the generator will be initialized randomly, but setting this to any
@@ -324,7 +324,7 @@ class GraphBuilderConfig(object):
   embedding_feature_name = attr.ib(default='embedding')
   similarity_threshold = attr.ib(default=0.8)
   lsh_splits = attr.ib(default=0)
-  lsh_rounds = attr.ib(default=2)
+  lsh_rounds = attr.ib(default=1)
   random_seed = attr.ib(default=None)
 
 
