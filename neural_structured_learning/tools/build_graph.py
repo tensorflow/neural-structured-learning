@@ -219,7 +219,10 @@ class GraphBuilder(object):
       A tuple (source, target, weight) denoting a (directed) edge from 'source'
       to 'target' with the given 'weight'.
     """
-    for lsh_round in range(max(1, self.config.lsh_rounds)):
+    # If lsh_splits < 1, we ignore lsh_rounds and always perform 1 round, since
+    # performing multiple rounds in the case of no splits does not help.
+    rounds = self.config.lsh_rounds if self.config.lsh_splits > 0 else 1
+    for lsh_round in range(rounds):
       start_time = time.time()
       edge_cnt = 0
       bucket_map = self._generate_lsh_buckets(embeddings)

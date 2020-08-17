@@ -86,6 +86,10 @@ class BuildGraphTest(absltest.TestCase):
   def _create_graph_file(self):
     return self.create_tempfile('graph.tsv').full_path
 
+  def _num_file_lines(self, graph_path):
+    with open(graph_path, 'rU') as f:
+      return sum(1 for _ in f)
+
   def testBuildGraphInvalidLshBitsValue(self):
     with self.assertRaises(ValueError):
       build_graph_lib.build_graph([], None, lsh_splits=-1)
@@ -103,6 +107,7 @@ class BuildGraphTest(absltest.TestCase):
     build_graph_lib.build_graph([embedding_path],
                                 graph_path,
                                 similarity_threshold=0)
+    self.assertEqual(self._num_file_lines(graph_path), 6)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(
         g_actual, {
@@ -129,6 +134,7 @@ class BuildGraphTest(absltest.TestCase):
     build_graph_lib.build_graph([embedding_path],
                                 graph_path,
                                 similarity_threshold=0.51)
+    self.assertEqual(self._num_file_lines(graph_path), 0)
     g_actual = graph_utils.read_tsv_graph(graph_path)
     self.assertDictEqual(g_actual, {})
 
@@ -178,6 +184,7 @@ class BuildGraphTest(absltest.TestCase):
                                 lsh_splits=2,
                                 lsh_rounds=1,
                                 random_seed=12345)
+    self.assertEqual(self._num_file_lines(graph_path), num_points * 2 - 8)
     g_actual = graph_utils.read_tsv_graph(graph_path)
 
     # Check that the graph contains fewer than 2 * N edges
@@ -203,6 +210,7 @@ class BuildGraphTest(absltest.TestCase):
                                 lsh_splits=2,
                                 lsh_rounds=4,
                                 random_seed=12345)
+    self.assertEqual(self._num_file_lines(graph_path), num_points * 2)
     g_actual = graph_utils.read_tsv_graph(graph_path)
 
     # Constuct the expected graph: each point should be a neighbor of the
