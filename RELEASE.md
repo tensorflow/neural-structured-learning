@@ -1,3 +1,22 @@
+# Release 1.3.1
+
+## Major Features and Improvements
+
+None.
+
+## Bug Fixes and Other Changes
+
+*   Fixed the NSL graph builder to ignore `lsh_rounds` when `lsh_splits` < 1. By
+    default, the prior version of the graph builder would repeat the work twice
+    by default. In addition, the default value for `lsh_rounds` has been changed
+    from 2 to 1.
+*   Updated the NSL IMDB tutorial to use the new LSH support when building the
+    graph, thereby speeding up the graph building time by ~5x.
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google.
+
 # Release 1.3.0
 
 ## Major Features and Improvements
