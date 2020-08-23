@@ -89,6 +89,7 @@ practical tutorial.
     [TFX](https://www.tensorflow.org/tfx) pipelines.
 
 [[Slides](slides/NSL_in_TFX.pdf)]
+[[Colab tutorial](https://www.tensorflow.org/tfx/tutorials/tfx/neural_structured_learning)]
 
 ### Research and Future Directions
 
