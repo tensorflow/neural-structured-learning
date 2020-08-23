@@ -22,8 +22,8 @@ from utils import load_dataset, build_model, cal_acc  # pylint: disable=g-multip
 
 flags.DEFINE_enum('dataset', 'cora', ['cora'],
                   'The input dataset. Avaliable dataset now: cora')
-flags.DEFINE_enum('model', 'gcn', ['gcn'],
-                  'GNN model. Available model now: gcn')
+flags.DEFINE_enum('model', 'gcn', ['gcn', 'gat'],
+                  'GNN model. Available model now: gcn, gat')
 flags.DEFINE_float('dropout_rate', 0.5, 'Dropout probability')
 flags.DEFINE_integer('gpu', '-1', 'Gpu id, -1 means cpu only')
 flags.DEFINE_float('lr', 1e-2, 'Initial learning rate')
@@ -32,12 +32,14 @@ flags.DEFINE_integer('num_layers', 2, 'Number of gnn layers')
 flags.DEFINE_list('hidden_dim', [32], 'Dimension of gnn hidden layers')
 flags.DEFINE_enum('optimizer', 'adam', ['adam', 'sgd'],
                   'Optimizer for training')
+flags.DEFINE_integer('num_heads', 8, 'Number of multi-head attentions')
 flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 regularization')
 flags.DEFINE_string('save_dir', 'models/cora/gcn',
                     'Directory stores trained model')
+flags.DEFINE_boolean('normalize_adj', True, 'Whether to normalize adj matrix')
+flags.DEFINE_boolean('sparse_features', True, 'Whether to use sparse features')
 
 FLAGS = flags.FLAGS
-
 
 def train(model, adj, features, labels, idx_train, idx_val, idx_test):
   """Train gnn model."""
@@ -54,7 +56,7 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
     epoch_start_time = time.time()
 
     with tf.GradientTape() as tape:
-      output = model(inputs)
+      output = model(inputs, training=True)
       train_loss = loss_fn(labels[idx_train], output[idx_train])
       # L2 regularization
       for weight in model.trainable_weights:
@@ -97,11 +99,12 @@ def main(_):
     # Load the dataset and process features and adj matrix
     print('Loading {} dataset...'.format(FLAGS.dataset))
     adj, features, labels, idx_train, idx_val, idx_test = load_dataset(
-        FLAGS.dataset)
+        FLAGS.dataset, FLAGS.sparse_features, FLAGS.normalize_adj)
     num_classes = max(labels) + 1
     print('Build model...')
     model = build_model(FLAGS.model, FLAGS.num_layers, FLAGS.hidden_dim,
-                        num_classes, FLAGS.dropout_rate)
+                        num_classes, FLAGS.dropout_rate, FLAGS.num_heads,
+                        FLAGS.sparse_features)
     print('Start Training...')
     train(model, adj, features, labels, idx_train, idx_val, idx_test)
 

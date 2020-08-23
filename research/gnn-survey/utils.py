@@ -14,13 +14,14 @@
 """Utilities for GNN."""
 import os
 
-from models import GCN
+from models import GCN, GAT
 import numpy as np
 import scipy.sparse as sp
 import tensorflow as tf
 
 
-def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate):
+def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate,
+                num_heads, sparse):
   """Create gnn model and initialize parameters weights."""
   # Convert hidden_dim to integers
   for i in range(len(hidden_dim)):
@@ -33,9 +34,15 @@ def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate):
         hidden_dim=hidden_dim,
         num_classes=num_classes,
         dropout_rate=dropout_rate,
+        sparse=sparse,
         bias=True)
   elif model_name == 'gat':
-    raise NotImplementedError
+    model = GAT(
+        num_layers=num_layers,
+        hidden_dim=hidden_dim,
+        num_classes=num_classes,
+        dropout_rate=dropout_rate,
+        num_heads=num_heads)
 
   return model
 
@@ -68,7 +75,7 @@ def encode_onehot(labels):
   return onehot_labels
 
 
-def normalize_adj(adj):
+def normalize_adj_matrix(adj):
   """Normalize adjacency matrix."""
   rowsum = np.array(adj.sum(1))
   d_inv_sqrt = np.power(rowsum, -0.5).flatten()
@@ -84,8 +91,16 @@ def normalize_features(features):
   features = r_mat_inv.dot(features)
   return features
 
+def sparse_matrix_to_tf_sparse_tensor(matrix):
+  """Convert scipy sparse matrix to tf sparse tensor"""
+  sp_matrix = matrix.tocoo().astype(np.float32)
+  indices = tf.convert_to_tensor(
+    np.vstack((sp_matrix.row, sp_matrix.col)).T.astype(np.int64))
+  values = tf.convert_to_tensor(sp_matrix.data)
+  shape = tf.TensorShape(sp_matrix.shape)
+  return tf.sparse.SparseTensor(indices, values, shape)
 
-def load_dataset(dataset):
+def load_dataset(dataset, sparse_features, normalize_adj):
   """Loads Cora dataset."""
   dir_path = os.path.join('data', dataset)
   content_path = os.path.join(dir_path, '{}.content'.format(dataset))
@@ -113,7 +128,8 @@ def load_dataset(dataset):
   adj = adj + sp.eye(adj.shape[0])
 
   features = normalize_features(features)
-  adj = normalize_adj(adj)
+  if normalize_adj:
+    adj = normalize_adj_matrix(adj)
 
   # 5% for train, 300 for validation, 1000 for test
   idx_train = slice(140)
@@ -122,6 +138,9 @@ def load_dataset(dataset):
 
   features = tf.convert_to_tensor(np.array(features.todense()))
   labels = tf.convert_to_tensor(np.where(labels)[1])
-  adj = tf.convert_to_tensor(np.array(adj.todense()))
+  if sparse_features:
+    adj = sparse_matrix_to_tf_sparse_tensor(adj)
+  else:
+    adj = tf.convert_to_tensor(np.array(adj.todense()))
 
   return adj, features, labels, idx_train, idx_val, idx_test
