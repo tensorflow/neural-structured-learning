@@ -23,7 +23,7 @@ import types
 
 import attr
 import neural_structured_learning.configs as nsl_configs
-import neural_structured_learning.lib as nsl_lib
+from neural_structured_learning.lib import adversarial_neighbor
 import six
 import tensorflow as tf
 
@@ -134,7 +134,7 @@ def adversarial_loss(features,
       predictions = predictions if predictions is not None else model(features)
       labeled_loss = loss_fn(labels, predictions, sample_weights)
 
-  adv_input, adv_sample_weights = nsl_lib.gen_adv_neighbor(
+  adv_input, adv_sample_weights = adversarial_neighbor.gen_adv_neighbor(
       features,
       labeled_loss,
       config=adv_config.adv_neighbor_config,
@@ -642,7 +642,8 @@ class AdversarialRegularization(tf.keras.Model):
   def _forward_pass(self, inputs, labels, sample_weights, base_model_kwargs):
     """Runs the usual forward pass to compute outputs, loss, and metrics."""
     with tf.GradientTape() as tape:
-      tape.watch(tf.nest.flatten(inputs))
+      tape.watch([t for t in tf.nest.flatten(inputs)
+                  if adversarial_neighbor.is_differentiable_tensor(t)])
       outputs = self._call_base_model(inputs, **base_model_kwargs)
       # If the base_model is a subclassed model, its output_names are not
       # available before its first call. If it is a dynamic subclassed model,
@@ -718,7 +719,7 @@ class AdversarialRegularization(tf.keras.Model):
 
     config_kwargs = {k: v for k, v in config_kwargs.items() if v is not None}
     config = attr.evolve(self.adv_config.adv_neighbor_config, **config_kwargs)
-    adv_inputs, _ = nsl_lib.gen_adv_neighbor(
+    adv_inputs, _ = adversarial_neighbor.gen_adv_neighbor(
         inputs,
         labeled_loss,
         config=config,

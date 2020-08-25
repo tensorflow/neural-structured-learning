@@ -41,7 +41,7 @@ py_library(
     deps = [
         # package attr
         "//neural_structured_learning/configs",
-        "//neural_structured_learning/lib",
+        "//neural_structured_learning/lib:adversarial_neighbor",
         # package six
         # package tensorflow
     ],

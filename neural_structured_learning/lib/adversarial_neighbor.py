@@ -38,6 +38,15 @@ def _apply_feature_constraints(feature, min_value, max_value):
   return feature
 
 
+# This function is intended to be package-private, i.e. used within NSL only.
+def is_differentiable_tensor(tensor):
+  """Tests if the input is a `tf.Tensor` object with a differentiable dtype."""
+  return isinstance(tensor, tf.Tensor) and (
+      tensor.dtype.is_floating or tensor.dtype.is_complex or
+      # The following types could be floating point numbers.
+      tensor.dtype in (tf.resource, tf.variant))
+
+
 class _GenAdvNeighbor(abs_gen.GenNeighbor):
   """Class for generating adversarial neighbors based on gradient-based methods.
 
@@ -191,7 +200,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     # feature_masks can be looked up by key.
     features = self._compose_as_dict(input_features)
     dense_original_features, sparse_original_features = self._split_dict(
-        features, lambda feature: isinstance(feature, tf.Tensor))
+        features, is_differentiable_tensor)
     feature_masks = self._compose_as_dict(self._adv_config.feature_mask)
     feature_min = self._compose_as_dict(self._adv_config.clip_value_min)
     feature_max = self._compose_as_dict(self._adv_config.clip_value_max)
@@ -243,8 +252,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         inputs_t = self._decompose_as(input_features, adv_neighbor)
         # Compute the new loss to calculate gradients with.
         features = self._compose_as_dict(inputs_t)
-        dense_features, _ = self._split_dict(
-            features, lambda feature: isinstance(feature, tf.Tensor))
+        dense_features, _ = self._split_dict(features, is_differentiable_tensor)
         if gradient_tape is not None:
           with gradient_tape:
             # Gradient calculated against dense features only.
