@@ -96,7 +96,12 @@ def get_queries(self, input_tensor):
 If you use the codes, please cite the following paper [6]:
 
 ```
-TODO: add bibtex
+@article{chami2020low,
+  title={Low-Dimensional Hyperbolic Knowledge Graph Embeddings},
+  author={Chami, Ines and Wolf, Adva and Juan, Da-Cheng and Sala, Frederic and Ravi, Sujith and R{\'e}, Christopher},
+  journal={arXiv preprint arXiv:2005.00545},
+  year={2020}
+}
 ```
 
 ## References

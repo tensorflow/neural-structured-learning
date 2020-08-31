@@ -57,7 +57,7 @@ def givens_reflection(r, x):
   givens = givens / tf.norm(givens, ord=2, axis=-1, keepdims=True)
   x = tf.reshape(x, (batch_size, -1, 2))
   x_ref = givens[:, :, 0:1] * tf.concat(
-      (x[:, :, 0:1], -x[:, :, :1]), axis=-1) + givens[:, :, 1:] * tf.concat(
+      (x[:, :, 0:1], -x[:, :, 1:]), axis=-1) + givens[:, :, 1:] * tf.concat(
           (x[:, :, 1:], x[:, :, 0:1]), axis=-1)
   return tf.reshape(x_ref, (batch_size, -1))
 
@@ -79,3 +79,4 @@ def givens_rotations(r, x):
   x_rot = givens[:, :, 0:1] * x + givens[:, :, 1:] * tf.concat(
       (-x[:, :, 1:], x[:, :, 0:1]), axis=-1)
   return tf.reshape(x_rot, (batch_size, -1))
+
