@@ -18,19 +18,19 @@ import tensorflow as tf
 class GraphConvLayer(tf.keras.layers.Layer):
   """Single graph convolution layer."""
 
-  def __init__(self, output_dim, sparse, bias, **kwargs):
+  def __init__(self, output_dim, bias, sparse=True, **kwargs):
     """Initializes the GraphConvLayer.
 
     Args:
       output_dim: (int) Output dimension of gcn layer
-      sparse: (bool) sparse: Whether features are sparse
       bias: (bool) Whether bias needs to be added to the layer
+      sparse: (bool) sparse: Whether features are sparse
       **kwargs: Keyword arguments for tf.keras.layers.Layer.
     """
     super(GraphConvLayer, self).__init__(**kwargs)
     self.output_dim = output_dim
-    self.sparse = sparse
     self.bias = bias
+    self.sparse = sparse
 
   def build(self, input_shape):
     super(GraphConvLayer, self).build(input_shape)
@@ -98,13 +98,14 @@ class GraphAttnLayer(tf.keras.layers.Layer):
     x, adj = inputs[0], inputs[1]
     x = self.dropout(x)
     x = tf.matmul(x, self.weight)
-
+    
     # feat shape: [n_data, n_data, output_dim]
-    n_data = 2708
+    n_data = int(adj.shape[1])
+    
     feat_i = tf.reshape(tf.repeat(x, repeats=n_data), [n_data, n_data, self.output_dim])
     feat_j = tf.repeat(tf.expand_dims(x, axis=0), repeats=[n_data], axis=0)
+    
     attn_input = tf.concat([feat_i, feat_j], axis=2)
-
     energy = tf.squeeze(tf.matmul(attn_input, self.attention), axis=2)
     energy = self.leakyrelu(energy)
 

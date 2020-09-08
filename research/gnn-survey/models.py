@@ -38,8 +38,6 @@ class GCNBlock(tf.keras.layers.Layer):
     self._activation = tf.keras.layers.ReLU()
     self._dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
-  def build(self, input_shape):
-    super(GCNBlock, self).build(input_shape)
     self._graph_conv_layer = GraphConvLayer(self.hidden_dim, sparse=self.sparse,
                                             bias=self.bias)
 
@@ -116,8 +114,6 @@ class GATBlock(tf.keras.layers.Layer):
     self._activation = tf.keras.layers.ELU()
     self._dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
-  def build(self, input_shape):
-    super(GATBlock, self).build(input_shape)
     self._graph_attn_layer = [
       GraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
 
