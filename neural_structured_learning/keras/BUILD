@@ -37,7 +37,7 @@ py_library(
 py_library(
     name = "adversarial_regularization",
     srcs = ["adversarial_regularization.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # package attr
         "//neural_structured_learning/configs",
@@ -76,7 +76,7 @@ py_test(
 py_library(
     name = "graph_regularization",
     srcs = ["graph_regularization.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         "//neural_structured_learning/keras/layers",

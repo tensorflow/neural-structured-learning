@@ -27,7 +27,7 @@ exports_files(["LICENSE"])
 py_library(
     name = "tools",
     srcs = ["__init__.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":build_graph_lib",
         ":graph_utils",
@@ -38,7 +38,7 @@ py_library(
 py_library(
     name = "graph_utils",
     srcs = ["graph_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # package absl/logging
         # package six
@@ -58,7 +58,7 @@ py_test(
 py_library(
     name = "build_graph_lib",
     srcs = ["build_graph.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -96,7 +96,7 @@ py_binary(
 py_library(
     name = "pack_nbrs_lib",
     srcs = ["pack_nbrs.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         # package absl:app

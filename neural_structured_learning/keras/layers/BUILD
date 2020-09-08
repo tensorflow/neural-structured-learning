@@ -53,7 +53,7 @@ py_test(
 py_library(
     name = "neighbor_features",
     srcs = ["neighbor_features.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # package attr
         "//neural_structured_learning/configs",
@@ -81,7 +81,7 @@ py_test(
 py_library(
     name = "pairwise_distance",
     srcs = ["pairwise_distance.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # package attr
         # package enum

@@ -27,7 +27,7 @@ exports_files(["LICENSE"])
 py_library(
     name = "lib",
     srcs = ["__init__.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":abstract_gen_neighbor",
         ":adversarial_neighbor",
@@ -42,7 +42,7 @@ py_library(
 py_library(
     name = "abstract_gen_neighbor",
     srcs = ["abstract_gen_neighbor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
     ],
 )
@@ -50,7 +50,7 @@ py_library(
 py_library(
     name = "adversarial_neighbor",
     srcs = ["adversarial_neighbor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":abstract_gen_neighbor",
         ":utils",
@@ -76,7 +76,7 @@ py_test(
 py_library(
     name = "distances",
     srcs = ["distances.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         # package tensorflow
@@ -98,7 +98,7 @@ py_test(
 py_library(
     name = "regularizer",
     srcs = ["regularizer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":distances",
         ":utils",
@@ -121,7 +121,7 @@ py_test(
 py_library(
     name = "utils",
     srcs = ["utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         # package six
