@@ -443,7 +443,8 @@ class GraphRegularizationTest(tf.test.TestCase):
     def optimizer_fn():
       return tf.train.GradientDescentOptimizer(0.005)
 
-    def embedding_fn(features, mode):
+    def embedding_fn(features, mode, params=None):
+      del params
       input_layer = features[FEATURE_NAME]
       with tf.compat.v1.variable_scope('hidden_layer', reuse=tf.AUTO_REUSE):
         hidden_layer = tf.compat.v1.layers.dense(
@@ -491,7 +492,8 @@ class GraphRegularizationTest(tf.test.TestCase):
       labels = tf.constant([[1], [0], [1]])
       return tf.data.Dataset.from_tensor_slices((features, labels)).batch(3)
 
-    base_est = tf.estimator.Estimator(model_fn, model_dir=self.model_dir)
+    base_est = tf.estimator.Estimator(
+        model_fn, model_dir=self.model_dir, params=None)
     graph_reg_config = nsl_configs.make_graph_reg_config(
         max_neighbors=1, multiplier=1)
     graph_reg_est = nsl_estimator.add_graph_regularization(

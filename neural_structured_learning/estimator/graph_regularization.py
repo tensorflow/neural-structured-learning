@@ -35,10 +35,14 @@ def add_graph_regularization(estimator,
   Args:
     estimator: An object of type `tf.estimator.Estimator`.
     embedding_fn: A function that accepts the input layer (dictionary of feature
-      names and corresponding batched tensor values) as its first argument and
+      names and corresponding batched tensor values) as its first argument,
       an instance of `tf.estimator.ModeKeys` as its second argument to indicate
-      if the mode is training, evaluation, or prediction, and returns the
-      corresponding embeddings or logits to be used for graph regularization.
+      if the mode is training, evaluation, or prediction, and an optional third
+      argument named `params` which is a `dict` similar to the `params` argument
+      of `tf.estimator.Estimator`'s `model_fn`, and returns the corresponding
+      embeddings or logits to be used for graph regularization. The `params`
+      argument will receive what was passed to `estimator` at the time of its
+      creation as its `params` argument.
     optimizer_fn: A function that accepts no arguments and returns an instance
       of `tf.train.Optimizer`.
     graph_reg_config: An instance of `nsl.configs.GraphRegConfig` that specifies
@@ -89,8 +93,10 @@ def add_graph_regularization(estimator,
     # then it is possible for base_model_fn not to accept these arguments.
     # See documentation for tf.estimator.Estimator for additional context.
     kwargs = {'mode': mode}
+    embedding_fn_kwargs = dict()
     if 'params' in base_model_fn_args:
       kwargs['params'] = params
+      embedding_fn_kwargs['params'] = params
     if 'config' in base_model_fn_args:
       kwargs['config'] = config
 
@@ -129,10 +135,11 @@ def add_graph_regularization(estimator,
         return base_spec
 
       # Compute sample embeddings.
-      sample_embeddings = embedding_fn(sample_features, mode)
+      sample_embeddings = embedding_fn(sample_features, mode,
+                                       **embedding_fn_kwargs)
 
       # Compute the embeddings of the neighbors.
-      nbr_embeddings = embedding_fn(nbr_features, mode)
+      nbr_embeddings = embedding_fn(nbr_features, mode, **embedding_fn_kwargs)
 
       replicated_sample_embeddings = utils.replicate_embeddings(
           sample_embeddings, graph_reg_config.neighbor_config.max_neighbors)
