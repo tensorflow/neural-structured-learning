@@ -117,3 +117,73 @@ class GraphAttnLayer(tf.keras.layers.Layer):
     attn = self.dropout(attn)
     output = tf.matmul(attn, x)
     return output
+
+
+class SpGraphAttnLayer(tf.keras.layers.Layer):
+  """ Single sparse graph attention layer."""
+
+  def __init__(self, output_dim, dropout_rate, alpha=0.2, concat=True, **kwargs):
+    """Initializes the GraphAttnLayer.
+
+    Args:
+      output_dim: (int) Output dimension of gat layer
+      dropout_rate: (float) Dropout probability
+      alpha: (float) LeakyReLU angle of alpha
+      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+    """
+    super(SpGraphAttnLayer, self).__init__(**kwargs)
+    self.output_dim = output_dim
+    self.dropout_rate = dropout_rate
+    self.alpha = alpha
+
+    self.leakyrelu = tf.keras.layers.LeakyReLU(self.alpha)
+    self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
+    self.concat = concat
+
+  def build(self, input_shape):
+    super(SpGraphAttnLayer, self).build(input_shape)
+    self.weight = self.add_weight(
+        name='weight',
+        shape=(input_shape[0][-1], self.output_dim),
+        initializer='random_normal',
+        trainable=True)
+
+    self.attention_row = self.add_weight(
+        name='attention',
+        shape=(self.output_dim, 1),
+        initializer='random_normal',
+        trainable=True)
+
+    self.attention_col = self.add_weight(
+        name='attention',
+        shape=(self.output_dim, 1),
+        initializer='random_normal',
+        trainable=True)
+
+  def call(self, inputs):
+    x, adj = inputs[0], inputs[1]
+    x = self.dropout(x)
+    x = tf.matmul(x, self.weight)
+
+    attn_row = tf.matmul(x, self.attention_row)
+    attn_col = tf.matmul(x, self.attention_col)
+
+    attn = tf.sparse.add(adj * attn_row, adj * tf.transpose(attn_col, perm=[1, 0]))
+    attn = tf.sparse.SparseTensor(
+      indices=attn.indices,
+      values=self.leakyrelu(attn.values),
+      dense_shape=attn.dense_shape)
+
+    attn = tf.sparse.reorder(attn)
+    attn = tf.sparse.softmax(attn)
+
+    # sparse dropout
+    attn = tf.sparse.SparseTensor(
+      indices=attn.indices,
+      values=self.dropout(attn.values),
+      dense_shape=attn.dense_shape)
+
+    output = tf.sparse.sparse_dense_matmul(attn, x)
+    if self.concat:
+      return tf.nn.elu(output)
+    return output

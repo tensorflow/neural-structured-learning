@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Modeling for GNNs."""
-from layers import GraphAttnLayer
+from layers import GraphAttnLayer, SpGraphAttnLayer
 from layers import GraphConvLayer
 import tensorflow as tf
 
@@ -107,13 +107,14 @@ class GCN(tf.keras.Model):
 class GATBlock(tf.keras.layers.Layer):
   """Graph attention block."""
 
-  def __init__(self, hidden_dim, dropout_rate, num_heads, **kwargs):
+  def __init__(self, hidden_dim, dropout_rate, num_heads, sparse, **kwargs):
     """Initializes a GAT block.
 
     Args:
       hidden_dim: (int) Dimension of hidden layer.
       dropout_rate: (float) Dropout probability
       num_heads: (int) Number of attention heads.
+      sparse: (bool) Whether features are sparse
       **kwargs: Keyword arguments for tf.keras.layers.Layer.
     """
     super(GATBlock, self).__init__(**kwargs)
@@ -124,10 +125,12 @@ class GATBlock(tf.keras.layers.Layer):
     self._activation = tf.keras.layers.ELU()
     self._dropout = tf.keras.layers.Dropout(self.dropout_rate)
 
-    self._graph_attn_layer = [
-        GraphAttnLayer(self.hidden_dim, self.dropout_rate)
-        for _ in range(self.num_heads)
-    ]
+    if sparse:
+      self._graph_attn_layer = [
+        SpGraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
+    else:
+      self._graph_attn_layer = [
+        GraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
 
   def call(self, inputs):
     x = tf.concat([attn(inputs) for attn in self._graph_attn_layer], axis=1)
@@ -139,7 +142,7 @@ class GAT(tf.keras.Model):
   """Graph attention network for semi-supevised node classification."""
 
   def __init__(self, num_layers, hidden_dim, num_classes, dropout_rate,
-               num_heads, **kwargs):
+               num_heads, sparse, **kwargs):
     """Initializes a GAT model.
 
     Args:
@@ -148,6 +151,7 @@ class GAT(tf.keras.Model):
       num_classes: (int) Total number of classes
       dropout_rate: (float) Dropout probability
       num_heads: (int) Number of multi-head attentions
+      sparse: (bool) Whether features are sparse
       **kwargs: Keyword arguments for tf.keras.Model.
     """
     super(GAT, self).__init__(**kwargs)
@@ -159,7 +163,7 @@ class GAT(tf.keras.Model):
     # input layer
     self.gat = [
         GATBlock(
-            self.hidden_dim[0], dropout_rate=dropout_rate, num_heads=num_heads),
+            self.hidden_dim[0], dropout_rate=dropout_rate, num_heads=num_heads, sparse=sparse),
     ]
 
     # hidden layers
@@ -168,11 +172,20 @@ class GAT(tf.keras.Model):
           GATBlock(
               self.hidden_dim[i],
               dropout_rate=dropout_rate,
-              num_heads=self.num_heads))
+              num_heads=self.num_heads,
+              sparse=sparse))
 
     # output layer
-    self.classifier = GraphAttnLayer(
-        self.num_classes, dropout_rate=dropout_rate)
+    if sparse:
+      self.classifier = SpGraphAttnLayer(
+          self.num_classes,
+          dropout_rate=dropout_rate,
+          concat=False)
+    else:
+      self.classifier = GraphAttnLayer(
+          self.num_classes,
+          dropout_rate=dropout_rate,
+          concat=False)
 
   def call(self, inputs):
     features, adj = inputs[0], inputs[1]
