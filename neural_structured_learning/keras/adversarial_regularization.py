@@ -617,16 +617,21 @@ class AdversarialRegularization(tf.keras.Model):
     }
 
   def _call_base_model(self, inputs, **kwargs):
-    base_input_names = getattr(self.base_model, 'input_names', [])
+    base_input_names = getattr(self.base_model, 'input_names', None)
     if (isinstance(self.base_model, tf.keras.Sequential) and
+        base_input_names is not None and
         not set(base_input_names) & set(inputs.keys())):
       # In some cases, Sequential models are automatically compiled to graph
       # networks with automatically generated input names. In this case, the
       # user isn't expected to know those names, so we just flatten the inputs.
-      # But the input names are sometimes meaningful (e.g. DenseFeatures layer).
-      # We check if there is any intersection between the user-provided names
-      # and model's input names. If there is, we assume the names are meaningful
-      # and do name-based lookup in the next branch.
+      # But the input names are sometimes meaningful (e.g. explicitly set in
+      # `tf.keras.Input`). We check if there is any intersection between the
+      # user-provided names and model's input names. If there is, we assume the
+      # names are meaningful and do name-based lookup in the next branch. There
+      # are also cases that Sequential models aren't automatically compiled
+      # (e.g. with a DenseFeatures layer). In this case, we don't do any
+      # flattening or lookup, but rely on the _base_with_labels_in_features flag
+      # to indicate the correct set of features for the base model.
       inputs = tf.nest.flatten(self._remove_labels_and_weights(inputs))
     elif self.base_model._is_graph_network:  # pylint: disable=protected-access
       if base_input_names:

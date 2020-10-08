@@ -509,6 +509,40 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(w1_new, tf.keras.backend.get_value(dense1.weights[0]))
     self.assertAllClose(w2_new, tf.keras.backend.get_value(dense2.weights[0]))
 
+  def test_train_with_feature_column_input(self):
+    x1, x2 = np.array([[1.]]), np.array([[4., 5.]])
+    w = np.array([[2.], [3.], [6.]])
+    y = np.array([0.])
+    inputs = {'x1': x1, 'x2': x2, 'label': y}
+    lr, adv_step_size = 0.001, 0.1
+
+    feature_columns = [
+        tf.feature_column.numeric_column('x1', shape=[1]),
+        tf.feature_column.numeric_column('x2', shape=[2]),
+    ]
+    model = tf.keras.Sequential([
+        tf.keras.layers.DenseFeatures(feature_columns),
+        tf.keras.layers.Dense(
+            1,
+            use_bias=False,
+            kernel_initializer=tf.keras.initializers.Constant(w)),
+    ])
+
+    adv_config = configs.make_adv_reg_config(
+        multiplier=1.0, adv_step_size=adv_step_size, adv_grad_norm='l2')
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss='MAE')
+    adv_model.fit(x=inputs, batch_size=1, steps_per_epoch=1)
+
+    x = np.concatenate([x1, x2], axis=-1)
+    # loss = |x * w|, gradient(loss, x) = w
+    x_adv = x + adv_step_size * w.T / np.linalg.norm(w, ord=2)
+    # gradient(loss, w) = x
+    w_new = w - lr * (x + x_adv).T
+    self.assertAllClose(w_new,
+                        tf.keras.backend.get_value(model.layers[1].weights[0]))
+
   def test_train_subclassed_base_model_with_label_input(self):
     w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
 
