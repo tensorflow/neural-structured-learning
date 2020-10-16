@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Modeling for GNNs."""
-from layers import GraphAttnLayer, SpGraphAttnLayer
+from layers import GraphAttnLayer, SparseGraphAttnLayer
 from layers import GraphConvLayer
 import tensorflow as tf
 
@@ -127,7 +127,7 @@ class GATBlock(tf.keras.layers.Layer):
 
     if sparse:
       self._graph_attn_layer = [
-        SpGraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
+        SparseGraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
     else:
       self._graph_attn_layer = [
         GraphAttnLayer(self.hidden_dim, self.dropout_rate) for _ in range(self.num_heads)]
@@ -177,15 +177,13 @@ class GAT(tf.keras.Model):
 
     # output layer
     if sparse:
-      self.classifier = SpGraphAttnLayer(
+      self.classifier = SparseGraphAttnLayer(
           self.num_classes,
-          dropout_rate=dropout_rate,
-          concat=False)
+          dropout_rate=dropout_rate)
     else:
       self.classifier = GraphAttnLayer(
           self.num_classes,
-          dropout_rate=dropout_rate,
-          concat=False)
+          dropout_rate=dropout_rate)
 
   def call(self, inputs):
     features, adj = inputs[0], inputs[1]

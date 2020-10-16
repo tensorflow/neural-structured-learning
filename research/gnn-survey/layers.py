@@ -119,10 +119,10 @@ class GraphAttnLayer(tf.keras.layers.Layer):
     return output
 
 
-class SpGraphAttnLayer(tf.keras.layers.Layer):
+class SparseGraphAttnLayer(tf.keras.layers.Layer):
   """ Single sparse graph attention layer."""
 
-  def __init__(self, output_dim, dropout_rate, alpha=0.2, concat=True, **kwargs):
+  def __init__(self, output_dim, dropout_rate, alpha=0.2, **kwargs):
     """Initializes the GraphAttnLayer.
 
     Args:
@@ -131,17 +131,16 @@ class SpGraphAttnLayer(tf.keras.layers.Layer):
       alpha: (float) LeakyReLU angle of alpha
       **kwargs: Keyword arguments for tf.keras.layers.Layer.
     """
-    super(SpGraphAttnLayer, self).__init__(**kwargs)
+    super(SparseGraphAttnLayer, self).__init__(**kwargs)
     self.output_dim = output_dim
     self.dropout_rate = dropout_rate
     self.alpha = alpha
 
     self.leakyrelu = tf.keras.layers.LeakyReLU(self.alpha)
     self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
-    self.concat = concat
 
   def build(self, input_shape):
-    super(SpGraphAttnLayer, self).build(input_shape)
+    super(SparseGraphAttnLayer, self).build(input_shape)
     self.weight = self.add_weight(
         name='weight',
         shape=(input_shape[0][-1], self.output_dim),
@@ -184,6 +183,4 @@ class SpGraphAttnLayer(tf.keras.layers.Layer):
       dense_shape=attn.dense_shape)
 
     output = tf.sparse.sparse_dense_matmul(attn, x)
-    if self.concat:
-      return tf.nn.elu(output)
     return output

@@ -33,6 +33,7 @@ flags.DEFINE_list('hidden_dim', [8], 'Dimension of gnn hidden layers')
 flags.DEFINE_enum('optimizer', 'adam', ['adam', 'sgd'],
                   'Optimizer for training')
 flags.DEFINE_integer('num_heads', 8, 'Number of multi-head attentions')
+flags.DEFINE_integer('seed', 1234, 'Random seed')
 flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 regularization')
 flags.DEFINE_string('save_dir', 'models/cora/gcn',
                     'Directory stores trained model')
@@ -73,14 +74,15 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
     val_loss = loss_fn(labels[idx_val], output[idx_val])
     val_acc = cal_acc(labels[idx_val], output[idx_val])
 
-    if val_acc > best_val_acc:
-      best_val_acc = val_acc
-      model.save(FLAGS.save_dir)
+    #if val_acc > best_val_acc:
+    #  best_val_acc = val_acc
+    #  model.save(FLAGS.save_dir)
 
     print('[%03d/%03d] %.2f sec(s) Train Acc: %.3f Loss: %.6f | Val Acc: %.3f loss: %.6f' % \
          (epoch + 1, FLAGS.epochs, time.time()-epoch_start_time, \
           train_acc, train_loss, val_acc, val_loss))
-
+  
+  model.save(FLAGS.save_dir)
   print('Start Predicting...')
   model = tf.keras.models.load_model(FLAGS.save_dir)
   output = model(inputs, training=False)
@@ -96,7 +98,7 @@ def main(_):
     device = '/gpu:{}'.format(FLAGS.gpu)
 
   with tf.device(device):
-    tf.random.set_seed(1234)
+    tf.random.set_seed(FLAGS.seed)
     # Load the dataset and process features and adj matrix
     print('Loading {} dataset...'.format(FLAGS.dataset))
     adj, features, labels, idx_train, idx_val, idx_test = load_dataset(

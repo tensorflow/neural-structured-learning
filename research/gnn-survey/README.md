@@ -39,20 +39,48 @@ python train.py --save_dir=$SAVE_DIR
 
 ## Training examples
 
-* Reproduce gat results on cora (83.% average test accuracy):
+* Better gat results on cora (84.7% average test accuracy):
 
-`python train.py --model gcn --gpu 0 --epochs 500 --lr=0.005 --weight_decay 5e-4 --dropout 0.6 
-  --hidden_dim 8 --num_heads 8 --save_dir models/cora/gat --normalize_adj=True --sparse_features=True`
+`python train.py \
+  --model gat \
+  --gpu 0 \
+  --epochs 500 \
+  --lr=0.005 \
+  --weight_decay 5e-4 \
+  --dropout_rate 0.6 \
+  --hidden_dim 8 \
+  --num_heads 8 \
+  --save_dir models/cora/gat \
+  --normalize_adj=True \
+  --sparse_features=True`
 
-* Reproduce gcn results on cora (81.6% average test accuracy):
+* Reproduce gcn results on cora (81.5% average test accuracy):
 
-`python train.py --model gcn --gpu 0 --epochs 400 --lr 0.01 --weight_decay 5e-4 --dropout 0.5 
-  --hidden_dim 16 --save_dir models/cora/gcn --normalize_adj=True --sparse_features=True`
+`python train.py \
+  --model gcn \
+  --gpu 0 \
+  --epochs 300 \
+  --lr=0.01 \
+  --weight_decay 5e-4 \
+  --dropout_rate 0.5 \
+  --hidden_dim 16 \
+  --save_dir models/cora/gcn \
+  --normalize_adj=True \
+  --sparse_features=True`
   
-* Better gcn results on cora (82.4% average test accuracy):
+* Better gcn results on cora (82.5% average test accuracy):
 
-`python train.py --model gcn --gpu 0 --epochs 400 --lr 0.01 --weight_decay 5e-4 --dropout 0.6 
-  --hidden_dim 32 --save_dir models/cora/gcn --normalize_adj=True --sparse_features=True`
+`python train.py \
+  --model gcn \
+  --gpu 0 \
+  --epochs 500 \
+  --lr=0.01 \
+  --weight_decay 5e-4 \
+  --dropout_rate 0.6 \
+  --hidden_dim 32 \
+  --save_dir models/cora/gcn \
+  --normalize_adj=True \
+  --sparse_features=True`
 
 ## References
 
