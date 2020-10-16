@@ -43,7 +43,8 @@ def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate,
         hidden_dim=hidden_dim,
         num_classes=num_classes,
         dropout_rate=dropout_rate,
-        num_heads=num_heads)
+        num_heads=num_heads,
+        sparse=sparse)
 
   return model
 

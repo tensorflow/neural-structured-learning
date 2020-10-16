@@ -22,22 +22,22 @@ from utils import load_dataset, build_model, cal_acc  # pylint: disable=g-multip
 
 flags.DEFINE_enum('dataset', 'cora', ['cora'],
                   'The input dataset. Avaliable dataset now: cora')
-flags.DEFINE_enum('model', 'gcn', ['gcn', 'gat'],
+flags.DEFINE_enum('model', 'gat', ['gcn', 'gat'],
                   'GNN model. Available model now: gcn, gat')
-flags.DEFINE_float('dropout_rate', 0.5, 'Dropout probability')
+flags.DEFINE_float('dropout_rate', 0.6, 'Dropout probability')
 flags.DEFINE_integer('gpu', '-1', 'Gpu id, -1 means cpu only')
-flags.DEFINE_float('lr', 1e-2, 'Initial learning rate')
-flags.DEFINE_integer('epochs', 200, 'Number of training epochs')
+flags.DEFINE_float('lr', 5e-3, 'Initial learning rate')
+flags.DEFINE_integer('epochs', 1000, 'Number of training epochs')
 flags.DEFINE_integer('num_layers', 2, 'Number of gnn layers')
-flags.DEFINE_list('hidden_dim', [32], 'Dimension of gnn hidden layers')
+flags.DEFINE_list('hidden_dim', [8], 'Dimension of gnn hidden layers')
 flags.DEFINE_enum('optimizer', 'adam', ['adam', 'sgd'],
                   'Optimizer for training')
 flags.DEFINE_integer('num_heads', 8, 'Number of multi-head attentions')
+flags.DEFINE_integer('seed', 1234, 'Random seed')
 flags.DEFINE_float('weight_decay', 5e-4, 'Weight for L2 regularization')
 flags.DEFINE_string('save_dir', 'models/cora/gcn',
                     'Directory stores trained model')
-flags.DEFINE_boolean('normalize_adj', True, 'Whether to normalize adj matrix')
-# TODO(joshchang1112): Support GAT and loading saved models with sparse tensors.
+flags.DEFINE_boolean('normalize_adj', False, 'Whether to normalize adj matrix')
 flags.DEFINE_boolean('sparse_features', True, 'Whether to use sparse features')
 
 FLAGS = flags.FLAGS
@@ -82,6 +82,7 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
          (epoch + 1, FLAGS.epochs, time.time()-epoch_start_time, \
           train_acc, train_loss, val_acc, val_loss))
 
+  model.save(FLAGS.save_dir)
   print('Start Predicting...')
   model = tf.keras.models.load_model(FLAGS.save_dir)
   output = model(inputs, training=False)
@@ -97,7 +98,7 @@ def main(_):
     device = '/gpu:{}'.format(FLAGS.gpu)
 
   with tf.device(device):
-    tf.random.set_seed(1234)
+    tf.random.set_seed(FLAGS.seed)
     # Load the dataset and process features and adj matrix
     print('Loading {} dataset...'.format(FLAGS.dataset))
     adj, features, labels, idx_train, idx_val, idx_test = load_dataset(
