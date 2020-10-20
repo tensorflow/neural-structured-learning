@@ -90,6 +90,23 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     expected_tensor = tf.constant(0.0, shape=[2, 3])
     self.assertAllEqual(projected_tensor_dict['f1'], expected_tensor)
 
+  def testProjectToBallL2SingleTensor(self):
+    tensor = tf.constant([[3.0, -4.0], [-0.7, 2.4]])
+    projected_tensor = self.evaluate(
+        utils.project_to_ball(tensor, 1.0, configs.NormType.L2))
+    # norm: [5.0, 2.5], scale: [0.2, 0.4]
+    expected_result = [[0.6, -0.8], [-0.28, 0.96]]
+    self.assertAllClose(projected_tensor, expected_result)
+
+  def testProjectToBallL2TensorList(self):
+    tensors = [tf.constant([[1.0, -2.0], [-8.0, 1.0]]),
+               tf.constant([[2.0], [-4.0]])]
+    projected_tensors = self.evaluate(
+        utils.project_to_ball(tensors, 0.9, configs.NormType.L2))
+    # norm: [3.0, 0.9], scale: [0.3, 0.1]
+    expected_results = [[[0.3, -0.6], [-0.8, 0.1]], [[0.6], [-0.4]]]
+    self.assertAllClose(projected_tensors, expected_results)
+
   # The 3 test cases for this are as follows: (1) normalize both components. (2)
   # Clip components that exceed the radius, but preserve others. (3) Both
   # samples are within the ball, do nothing.
@@ -113,6 +130,21 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     expected_f2 = tf.constant([[1.0, 1.5], [1.5, 1.5]])
     self.assertAllEqual(projected_tensor_dict['f1'], expected_f1)
     self.assertAllEqual(projected_tensor_dict['f2'], expected_f2)
+
+  def testProjectToBallLInfSingleTensor(self):
+    tensor = tf.constant([[1.0, -3.0], [-2.0, 4.0]])
+    projected_tensor = self.evaluate(
+        utils.project_to_ball(tensor, 2.5, configs.NormType.INFINITY))
+    expected_result = [[1.0, -2.5], [-2.0, 2.5]]
+    self.assertAllClose(projected_tensor, expected_result)
+
+  def testProjectToBallLInfTensorList(self):
+    tensors = [tf.constant([[1.0, -3.0], [-2.0, 4.0]]),
+               tf.constant([[0.0], [-5.0]])]
+    projected_tensors = self.evaluate(
+        utils.project_to_ball(tensors, 2.5, configs.NormType.INFINITY))
+    expected_results = [[[1.0, -2.5], [-2.0, 2.5]], [[0.0], [-2.5]]]
+    self.assertAllClose(projected_tensors, expected_results)
 
   def testNormalizeInfWithOnes(self):
     target_tensor = tf.constant(1.0, shape=[2, 4])

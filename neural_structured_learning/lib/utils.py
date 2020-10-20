@@ -72,29 +72,28 @@ def _expand_to_rank(vector, rank):
   return tf.reshape(vector, shape=[-1] + [1] * (rank - 1))
 
 
-def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
+def project_to_ball(tensors, radius, norm_type, epsilon=1e-6):
   """Projects a tensor to the epsilon ball in the given norm.
 
   Only L-infinity and L2 norms are currently supported.
 
   Args:
-    t_dict: A dictionary of tensors to project to the epsilon ball. The first
-      dimension of each tensor (the batch_size) must all be equal.
+    tensors: A (nested) collection of tensors to project to the epsilon ball.
+      The first dimension of each tensor (the batch_size) must all be equal.
     radius: the radius of the ball.
     norm_type: One of `nsl.configs.NormType`. Currently L1 norm is not
       supported.
     epsilon: Used to avoid division by 0.
 
   Returns:
-    A dictionary of tensors projected to the epsilon ball.
+    A collection of tensors in the same structure as the input, projected to the
+    epsilon ball.
   """
   if norm_type not in {configs.NormType.INFINITY, configs.NormType.L2}:
     raise NotImplementedError('Only L2 and L-infinity norms are implemented.')
   if norm_type == configs.NormType.INFINITY:
-    for key, tensor in t_dict.items():
-      t_dict[key] = tf.clip_by_value(
-          tensor, clip_value_min=-radius, clip_value_max=radius)
-    return t_dict
+    clip = lambda tensor: tf.clip_by_value(tensor, -radius, radius)
+    return tf.nest.map_structure(clip, tensors)
   if norm_type == configs.NormType.L2:
 
     def squared_global_norm(tensor):
@@ -102,8 +101,8 @@ def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
       target_axes = list(range(1, len(tensor.get_shape())))
       return tf.reduce_sum(input_tensor=tf.square(tensor), axis=target_axes)
 
-    tensors = tf.nest.flatten(t_dict)
-    norms = tf.nest.map_structure(squared_global_norm, tensors)
+    tensor_list = tf.nest.flatten(tensors)
+    norms = list(map(squared_global_norm, tensor_list))
     global_norm = tf.sqrt(tf.maximum(tf.add_n(norms), epsilon**2))
     scale = tf.where(global_norm <= radius,
                      tf.ones_like(global_norm),
@@ -114,8 +113,7 @@ def project_to_ball(t_dict, radius, norm_type, epsilon=1e-6):
       shaped_scale = _expand_to_rank(scale, len(tensor.get_shape()))
       return shaped_scale * tensor
 
-    return tf.nest.pack_sequence_as(
-        t_dict, tf.nest.map_structure(clip_to_norm, tensors))
+    return tf.nest.map_structure(clip_to_norm, tensors)
 
 
 def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
