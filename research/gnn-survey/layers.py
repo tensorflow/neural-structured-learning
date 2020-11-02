@@ -167,12 +167,14 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
     attn_row = tf.matmul(x, self.attention_row)
     attn_col = tf.matmul(x, self.attention_col)
 
-    attn = tf.sparse.add(adj * attn_row,
+    attn = tf.sparse.add(adj * attn_row, 
                          adj * tf.transpose(attn_col, perm=[1, 0]))
     attn = tf.sparse.SparseTensor(
         indices=attn.indices,
         values=self.leakyrelu(attn.values),
         dense_shape=attn.dense_shape)
+
+    attn = tf.sparse.reorder(attn)
     attn = tf.sparse.softmax(attn)
 
     # sparse dropout
@@ -183,3 +185,74 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
 
     output = tf.sparse.sparse_dense_matmul(attn, x)
     return output
+
+
+class GraphIsomorphismLayer(tf.keras.layers.Layer):
+  """Single graph isomorphism layer."""
+
+  def __init__(self, mlp_layers, output_dim, dropout_rate, learn_eps=False, sparse=True, **kwargs):
+    """Initializes the GraphIsomorphismLayer.
+
+    Args:
+      mlp layers: (int) Number of mlp layers
+      output_dim: (int) Output dimension of gcn layer
+      dropout_rate: (float) Dropout probability
+      learn_eps: (bool) Whether to learn the epsilon weighting
+      sparse: (bool) sparse: Whether features are sparse
+      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+    """
+    super(GraphIsomorphismLayer, self).__init__(**kwargs)
+    self.mlp_layers = mlp_layers
+    self.output_dim = output_dim
+    self.dropout_rate = dropout_rate
+    self.learn_eps = learn_eps
+    self.sparse = sparse
+
+    self.relu = tf.keras.layers.ReLU()
+    self.dropout = tf.keras.layers.Dropout(self.dropout_rate)
+    self.batch_norm = []
+    for i in range(self.mlp_layers-1):
+      self.batch_norm.append(tf.keras.layers.BatchNormalization())
+
+  def build(self, input_shape):
+    super(GraphIsomorphismLayer, self).build(input_shape)
+    self.weight = []
+    for i in range(self.mlp_layers):
+      if i == 0:
+        self.weight.append(
+          self.add_weight(
+              name='weight'+str(i+1),
+              shape=(input_shape[0][-1], self.output_dim),
+              initializer='random_normal',
+              trainable=True)
+          )
+      else:
+        self.weight.append(
+          self.add_weight(
+              name='weight'+str(i+1),
+              shape=(self.output_dim, self.output_dim),
+              initializer='random_normal',
+              trainable=True)
+        )
+
+    if self.learn_eps:
+      self.eps = self.add_weight(
+          name='bias',
+          shape=(1,),
+          initializer='random_normal',
+          trainable=True)
+    else:
+      self.eps = 0
+
+  def call(self, inputs):
+    x, adj = inputs[0], inputs[1]
+    if self.sparse:
+      x = tf.sparse.sparse_dense_matmul(adj, x) + self.eps * x
+    else:
+      x = tf.matmul(adj, x) + self.eps * x
+
+    for i in range(self.mlp_layers-1):
+      x = self.batch_norm[i](tf.matmul(x, self.weight[i]))
+      x = self.dropout(self.relu(x))
+
+    return tf.matmul(x, self.weight[self.mlp_layers-1])

@@ -28,14 +28,14 @@ Update: ** Sparse version of GCN and GAT are available **
 bash download_dataset.sh
 ```
 
-1.  Train GAT on cora with default parameters.
+3.  Train GAT on cora with default parameters.
 
 ```
 SAVE_DIR="models/cora/gat"
 python train.py --save_dir=$SAVE_DIR
 ```
 
-1.  Check test results after training.
+4.  Check test results after training.
 
 ## Training Results
 
@@ -88,10 +88,27 @@ python train.py \
   --sparse_features=True
 ```
 
+*   GIN results on cora (81.7% average test accuracy):
+
+`python train.py \
+  --model gin \
+  --gpu 0 \
+  --epochs 150 \
+  --lr=0.01 \
+  --weight_decay 5e-4 \
+  --dropout_rate 0.8 \
+  --hidden_dim 64 \
+  --save_dir models/cora/gin \
+  --learn_eps=False \
+  --normalize_adj=False \
+  --sparse_features=True`
+
+
 ## References
 
 [^GCN]: Thomas N. Kipf, Max Welling "Semi-Supervised Classification with Graph
     Convolutional Networks"
     [GCN original github](https://github.com/tkipf/gcn/tree/master/gcn)
+
 [^GAT]: Petar Veličković, Guillem Cucurull, et al. "Graph Attention Networks"
     [GAT original github](https://github.com/PetarV-/GAT)
