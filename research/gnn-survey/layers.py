@@ -37,13 +37,13 @@ class GraphConvLayer(tf.keras.layers.Layer):
     self.weight = self.add_weight(
         name='weight',
         shape=(input_shape[0][-1], self.output_dim),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
     if self.bias:
       self.b = self.add_weight(
           name='bias',
           shape=(self.output_dim,),
-          initializer='random_normal',
+          initializer='glorot_normal',
           trainable=True)
 
   def call(self, inputs):
@@ -85,13 +85,13 @@ class GraphAttnLayer(tf.keras.layers.Layer):
     self.weight = self.add_weight(
         name='weight',
         shape=(input_shape[0][-1], self.output_dim),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
 
     self.attention = self.add_weight(
         name='attention',
         shape=(2 * self.output_dim, 1),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
 
   def call(self, inputs):
@@ -144,19 +144,19 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
     self.weight = self.add_weight(
         name='weight',
         shape=(input_shape[0][-1], self.output_dim),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
 
     self.attention_row = self.add_weight(
         name='attention',
         shape=(self.output_dim, 1),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
 
     self.attention_col = self.add_weight(
         name='attention',
         shape=(self.output_dim, 1),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=True)
 
   def call(self, inputs):
@@ -175,6 +175,7 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
         values=self.leakyrelu(attn.values),
         dense_shape=attn.dense_shape)
 
+    # Reorder the indices to help softmax function correctly applied
     attn = tf.sparse.reorder(attn)
     attn = tf.sparse.softmax(attn)
 
@@ -239,7 +240,7 @@ class GraphIsomorphismLayer(tf.keras.layers.Layer):
       self.eps = self.add_weight(
         name='epsilon',
         shape=(1,),
-        initializer='random_normal',
+        initializer='glorot_normal',
         trainable=self.learn_eps)
     else:
         self.eps = 0

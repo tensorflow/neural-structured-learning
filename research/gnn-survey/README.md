@@ -56,7 +56,7 @@ python train.py \
   --sparse_features=True
 ```
 
-*   Reproduce gcn results on cora (81.5% average test accuracy) [^GCN]:
+*   Reproduce gcn results on cora (81.5% average test accuracy)[^GCN]:
 
 ```
 python train.py \
@@ -113,3 +113,4 @@ python train.py \
 
 [^GAT]: Petar Veličković, Guillem Cucurull, et al. "Graph Attention Networks"
     [GAT original github](https://github.com/PetarV-/GAT)
+
