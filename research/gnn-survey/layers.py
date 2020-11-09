@@ -25,7 +25,7 @@ class GraphConvLayer(tf.keras.layers.Layer):
       output_dim: (int) Output dimension of gcn layer
       bias: (bool) Whether bias needs to be added to the layer
       sparse: (bool) sparse: Whether features are sparse
-      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+      **kwargs: Keyword arguments for `tf.keras.layers.Layer`.
     """
     super(GraphConvLayer, self).__init__(**kwargs)
     self.output_dim = output_dim
@@ -70,7 +70,7 @@ class GraphAttnLayer(tf.keras.layers.Layer):
       output_dim: (int) Output dimension of gat layer
       dropout_rate: (float) Dropout probability
       alpha: (float) LeakyReLU angle of alpha
-      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+      **kwargs: Keyword arguments for `tf.keras.layers.Layer`.
     """
     super(GraphAttnLayer, self).__init__(**kwargs)
     self.output_dim = output_dim
@@ -129,7 +129,7 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
       output_dim: (int) Output dimension of gat layer
       dropout_rate: (float) Dropout probability
       alpha: (float) LeakyReLU angle of alpha
-      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+      **kwargs: Keyword arguments for `tf.keras.layers.Layer`.
     """
     super(SparseGraphAttnLayer, self).__init__(**kwargs)
     self.output_dim = output_dim
@@ -169,6 +169,7 @@ class SparseGraphAttnLayer(tf.keras.layers.Layer):
 
     attn = tf.sparse.add(adj * attn_row, 
                          adj * tf.transpose(attn_col, perm=[1, 0]))
+
     attn = tf.sparse.SparseTensor(
         indices=attn.indices,
         values=self.leakyrelu(attn.values),
@@ -194,12 +195,12 @@ class GraphIsomorphismLayer(tf.keras.layers.Layer):
     """Initializes the GraphIsomorphismLayer.
 
     Args:
-      mlp layers: (int) Number of mlp layers
+      mlp_layers: (int) Number of mlp layers
       output_dim: (int) Output dimension of gcn layer
       dropout_rate: (float) Dropout probability
       learn_eps: (bool) Whether to learn the epsilon weighting
       sparse: (bool) sparse: Whether features are sparse
-      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+      **kwargs: Keyword arguments for `tf.keras.layers.Layer`.
     """
     super(GraphIsomorphismLayer, self).__init__(**kwargs)
     self.mlp_layers = mlp_layers
@@ -223,7 +224,7 @@ class GraphIsomorphismLayer(tf.keras.layers.Layer):
           self.add_weight(
               name='weight'+str(i+1),
               shape=(input_shape[0][-1], self.output_dim),
-              initializer='random_normal',
+              initializer='glorot_normal',
               trainable=True)
           )
       else:
@@ -231,18 +232,17 @@ class GraphIsomorphismLayer(tf.keras.layers.Layer):
           self.add_weight(
               name='weight'+str(i+1),
               shape=(self.output_dim, self.output_dim),
-              initializer='random_normal',
+              initializer='glorot_normal',
               trainable=True)
         )
-
     if self.learn_eps:
       self.eps = self.add_weight(
-          name='bias',
-          shape=(1,),
-          initializer='random_normal',
-          trainable=True)
+        name='epsilon',
+        shape=(1,),
+        initializer='random_normal',
+        trainable=self.learn_eps)
     else:
-      self.eps = 0
+        self.eps = 0
 
   def call(self, inputs):
     x, adj = inputs[0], inputs[1]

@@ -90,7 +90,8 @@ python train.py \
 
 *   GIN results on cora (81.7% average test accuracy):
 
-`python train.py \
+```
+python train.py \
   --model gin \
   --gpu 0 \
   --epochs 150 \
@@ -101,8 +102,8 @@ python train.py \
   --save_dir models/cora/gin \
   --learn_eps=False \
   --normalize_adj=False \
-  --sparse_features=True`
-
+  --sparse_features=True
+```
 
 ## References
 

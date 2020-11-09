@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Modeling for GNNs."""
-from layers import GraphAttnLayer, SparseGraphAttnLayer
+from layers import GraphAttnLayer
+from layers import SparseGraphAttnLayer
 from layers import GraphConvLayer
 from layers import GraphIsomorphismLayer
 import tensorflow as tf
@@ -239,7 +240,7 @@ class GIN(tf.keras.Model):
 
     Args:
       num_layers: (int) Number of gnn layers
-      mlp layers: (int) Number of mlp layers in GIN
+      mlp_layers: (int) Number of mlp layers in GIN
       hidden_dim: (list) List of hidden layers dimension
       num_classes: (int) Total number of classes
       dropout_rate: (float) Dropout probability
