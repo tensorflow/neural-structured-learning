@@ -16,19 +16,20 @@ import os
 
 from models import GAT
 from models import GCN
+from models import GIN
 import numpy as np
 import scipy.sparse as sp
 import tensorflow as tf
 
 
-def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate,
-                num_heads, sparse):
+def build_model(model_name, num_layers, mlp_layers, hidden_dim, num_classes,
+                dropout_rate, num_heads, learn_eps, sparse):
   """Create gnn model and initialize parameters weights."""
   # Convert hidden_dim to integers
   for i in range(len(hidden_dim)):
     hidden_dim[i] = int(hidden_dim[i])
 
-  # Only GCN and GAT are available.
+  # Only GCN, GAT and GIN are available.
   if model_name == 'gcn':
     model = GCN(
         num_layers=num_layers,
@@ -44,6 +45,15 @@ def build_model(model_name, num_layers, hidden_dim, num_classes, dropout_rate,
         num_classes=num_classes,
         dropout_rate=dropout_rate,
         num_heads=num_heads,
+        sparse=sparse)
+  elif model_name == 'gin':
+    model = GIN(
+        num_layers=num_layers,
+        mlp_layers=mlp_layers,
+        hidden_dim=hidden_dim,
+        num_classes=num_classes,
+        dropout_rate=dropout_rate,
+        learn_eps=learn_eps,
         sparse=sparse)
 
   return model

@@ -43,31 +43,31 @@ python train.py --save_dir=$SAVE_DIR
 
 ```
 python train.py \
-  --model gat \
-  --gpu 0 \
-  --epochs 500 \
+  --model=gat \
+  --gpu=0 \
+  --epochs=500 \
   --lr=0.005 \
-  --weight_decay 5e-4 \
-  --dropout_rate 0.6 \
-  --hidden_dim 8 \
-  --num_heads 8 \
-  --save_dir models/cora/gat \
+  --weight_decay=5e-4 \
+  --dropout_rate=0.6 \
+  --hidden_dim=8 \
+  --num_heads=8 \
+  --save_dir=models/cora/gat \
   --normalize_adj=True \
   --sparse_features=True
 ```
 
-*   Reproduce gcn results on cora (81.5% average test accuracy) [^GCN]:
+*   Reproduce gcn results on cora (81.5% average test accuracy)[^GCN]:
 
 ```
 python train.py \
-  --model gcn \
-  --gpu 0 \
-  --epochs 300 \
+  --model=gcn \
+  --gpu=0 \
+  --epochs=300 \
   --lr=0.01 \
-  --weight_decay 5e-4 \
-  --dropout_rate 0.5 \
-  --hidden_dim 16 \
-  --save_dir models/cora/gcn \
+  --weight_decay=5e-4 \
+  --dropout_rate=0.5 \
+  --hidden_dim=16 \
+  --save_dir=models/cora/gcn \
   --normalize_adj=True \
   --sparse_features=True
 ```
@@ -76,15 +76,32 @@ python train.py \
 
 ```
 python train.py \
-  --model gcn \
-  --gpu 0 \
-  --epochs 500 \
+  --model=gcn \
+  --gpu=0 \
+  --epochs=500 \
   --lr=0.01 \
-  --weight_decay 5e-4 \
-  --dropout_rate 0.6 \
-  --hidden_dim 32 \
-  --save_dir models/cora/gcn \
+  --weight_decay=5e-4 \
+  --dropout_rate=0.6 \
+  --hidden_dim=32 \
+  --save_dir=models/cora/gcn \
   --normalize_adj=True \
+  --sparse_features=True
+```
+
+*   GIN results on cora (81.7% average test accuracy):
+
+```
+python train.py \
+  --model=gin \
+  --gpu=0 \
+  --epochs=150 \
+  --lr=0.01 \
+  --weight_decay=5e-4 \
+  --dropout_rate=0.8 \
+  --hidden_dim=64 \
+  --save_dir=models/cora/gin \
+  --learn_eps=False \
+  --normalize_adj=False \
   --sparse_features=True
 ```
 

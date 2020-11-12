@@ -14,6 +14,7 @@
 """Modeling for GNNs."""
 from layers import GraphAttnLayer
 from layers import GraphConvLayer
+from layers import GraphIsomorphismLayer
 from layers import SparseGraphAttnLayer
 import tensorflow as tf
 
@@ -196,6 +197,99 @@ class GAT(tf.keras.Model):
     for i in range(self.num_layers - 1):
       x = (features, adj)
       features = self.gat[i](x)
+
+    x = (features, adj)
+    outputs = self.classifier(x)
+    return outputs
+
+
+class GINBlock(tf.keras.layers.Layer):
+  """Graph isomorphism block."""
+
+  def __init__(self, mlp_layers, hidden_dim, dropout_rate, learn_eps, sparse,
+               **kwargs):
+    """Initializes a GIN block.
+
+    Args:
+      mlp_layers: (int) Number of mlp layers in GIN
+      hidden_dim: (int) Dimension of hidden layer.
+      dropout_rate: (float) Dropout probability
+      learn_eps: (bool) Whether to learn the epsilon weighting
+      sparse: (bool) Whether features are sparse
+      **kwargs: Keyword arguments for tf.keras.layers.Layer.
+    """
+    super(GINBlock, self).__init__(**kwargs)
+    self.mlp_layers = mlp_layers
+    self.hidden_dim = hidden_dim
+    self.dropout_rate = dropout_rate
+    self.learn_eps = learn_eps
+    self.sparse = sparse
+
+    self._activation = tf.keras.layers.ReLU()
+    self._dropout = tf.keras.layers.Dropout(self.dropout_rate)
+
+    self._graph_iso_layer = GraphIsomorphismLayer(
+        self.mlp_layers,
+        self.hidden_dim,
+        self.dropout_rate,
+        learn_eps=self.learn_eps,
+        sparse=self.sparse)
+
+  def call(self, inputs):
+    x = self._graph_iso_layer(inputs)
+    x = self._activation(x)
+    return self._dropout(x)
+
+
+class GIN(tf.keras.Model):
+  """Graph isomorphism network for semi-supevised node classification."""
+
+  def __init__(self, num_layers, mlp_layers, hidden_dim, num_classes,
+               dropout_rate, learn_eps, sparse, **kwargs):
+    """Initializes a GIN model.
+
+    Args:
+      num_layers: (int) Number of gnn layers
+      mlp_layers: (int) Number of mlp layers in GIN
+      hidden_dim: (list) List of hidden layers dimension
+      num_classes: (int) Total number of classes
+      dropout_rate: (float) Dropout probability
+      learn_eps: (bool) Whether to learn the epsilon weighting
+      sparse: (bool) Whether features are sparse
+      **kwargs: Keyword arguments for tf.keras.Model.
+    """
+    super(GIN, self).__init__(**kwargs)
+    self.num_layers = num_layers
+    self.mlp_layers = mlp_layers
+    self.hidden_dim = hidden_dim
+    self.num_classes = num_classes
+    self.dropout_rate = dropout_rate
+    self.learn_eps = learn_eps
+    self.sparse = sparse
+    # input layer and hidden layers
+    self.gin = []
+    for i in range(self.num_layers - 1):
+      self.gin.append(
+          GINBlock(
+              self.mlp_layers,
+              self.hidden_dim[i],
+              dropout_rate=dropout_rate,
+              learn_eps=learn_eps,
+              sparse=sparse))
+
+    # output layer
+    self.classifier = GraphIsomorphismLayer(
+        1,
+        self.num_classes,
+        self.dropout_rate,
+        learn_eps=self.learn_eps,
+        sparse=self.sparse)
+
+  def call(self, inputs):
+    features, adj = inputs[0], inputs[1]
+    for i in range(self.num_layers - 1):
+      x = (features, adj)
+      features = self.gin[i](x)
 
     x = (features, adj)
     outputs = self.classifier(x)
