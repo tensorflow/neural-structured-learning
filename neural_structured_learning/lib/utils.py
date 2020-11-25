@@ -73,13 +73,18 @@ def _expand_to_rank(vector, rank):
 
 
 def project_to_ball(tensors, radius, norm_type, epsilon=1e-6):
-  """Projects a tensor to the epsilon ball in the given norm.
+  """Projects batched tensors to a ball with the given radius in the given norm.
+
+  For each example in the batch, its global norm (across all tensors) will be
+  clipped to the given raidus. If its global norm is already smaller or equal to
+  the given radius, its values won't be changed.
 
   Only L-infinity and L2 norms are currently supported.
 
   Args:
-    tensors: A (nested) collection of tensors to project to the epsilon ball.
-      The first dimension of each tensor (the batch_size) must all be equal.
+    tensors: A (nested) collection of batched tensors to project to the given
+      ball. The first dimension of each tensor is the batch size and must all be
+      equal.
     radius: the radius of the ball.
     norm_type: One of `nsl.configs.NormType`. Currently L1 norm is not
       supported.
@@ -87,7 +92,7 @@ def project_to_ball(tensors, radius, norm_type, epsilon=1e-6):
 
   Returns:
     A collection of tensors in the same structure as the input, projected to the
-    epsilon ball.
+    given ball.
   """
   if norm_type not in {configs.NormType.INFINITY, configs.NormType.L2}:
     raise NotImplementedError('Only L2 and L-infinity norms are implemented.')
