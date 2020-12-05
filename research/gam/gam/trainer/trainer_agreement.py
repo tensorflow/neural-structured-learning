@@ -299,7 +299,7 @@ class TrainerAgreement(Trainer):
     training an agreement model, but also from the TrainerClassification class
     when creating the agreement loss term.
 
-    Arguments:
+    Args:
       src_features: A Tensor or Placeholder of shape (batch_size, num_features)
         containing the features of the source sample of an edge.
       tgt_features: A Tensor or Placeholder of shape (batch_size, num_features)
@@ -404,7 +404,7 @@ class TrainerAgreement(Trainer):
     with respect to the true labels. This is for monitoring only, and is not
     used when training.
 
-    Arguments:
+    Args:
       data: A CotrainDataset object.
       session: A TensorFlow session.
 
@@ -436,7 +436,7 @@ class TrainerAgreement(Trainer):
     This calculates the accuracy for both class 1 (agreement) and class 0
     (disagreement).
 
-    Arguments:
+    Args:
       session: A TensorFlow session.
       feed_dict: A train feed dictionary.
 
@@ -503,7 +503,7 @@ class TrainerAgreement(Trainer):
     For nodes, the agreement labels are 1.0 if the two nodes in a pair have the
     same label, or 0.0 otherwise.
 
-    Arguments:
+    Args:
       labeled_samples: An array of integers representing the indices of the
         labeled nodes.
       num_samples: An integer representing the desired number of validation
@@ -543,7 +543,7 @@ class TrainerAgreement(Trainer):
   def _compute_ratio_pos_neg(self, labels):
     """Compute the agreement positive to negative sample ratio.
 
-    Arguments:
+    Args:
       labels: An array containing labels for the labeled samples. Note that
         these are the labels for the classification task, not for the agreement
         prediction task, so they are in range [0, num_classes - 1].
@@ -746,7 +746,7 @@ class TrainerAgreement(Trainer):
     we keep them as inputs to this function because we want to have a common
     interface with the TrainerPerfectAgreement class.
 
-    Arguments:
+    Args:
       session: A TensorFlow session where to run the model.
       src_features: An array of shape (num_samples, num_features) containing the
         features of the first element of the pair.
@@ -779,7 +779,7 @@ class TrainerAgreement(Trainer):
     as a weighted average of the labeled samples, using the predicted agreement
     scores as weights.
 
-    Arguments:
+    Args:
       session: A TensorFlow seession.
       indices: A list of integers representing the indices of the test samples
         to label.
@@ -851,7 +851,7 @@ class TrainerAgreement(Trainer):
     Provides batches of node pairs, including their features and the agreement
     label (i.e. whether their labels agree).
 
-    Arguments:
+    Args:
       labeled_nodes:  An array of integers representing the indices of the
         labeled samples.
       data: A Dataset object used to provided the labels of the labeled samples.
@@ -897,7 +897,7 @@ class TrainerAgreement(Trainer):
     The agreement model is trained using pairs of labeled samples from the train
     set, and is evaluated on pairs of labeled samples from the validation set.
 
-    Arguments:
+    Args:
       labeled_samples:
       ratio_val: A number between (0, 1) representing the ratio of all labeled
         samples to be set aside for validation.
@@ -1043,7 +1043,7 @@ class TrainerPerfectAgreement(object):
     The function contains many unused arguments, in order to conform with the
     interface of the TrainerAgreement class.
 
-    Arguments:
+    Args:
       unused_session: A TensorFlow session where to run the model.
       unused_src_features: An array of shape (num_samples, num_features)
         containing the features of the first element of the pair.
@@ -1072,7 +1072,7 @@ class TrainerPerfectAgreement(object):
     TrainerAgreement, but here we use the oracle labels to make the agreement
     prediction.
 
-    Arguments:
+    Args:
       src_indices: A Tensor or Placeholder of shape (batch_size,) containing the
         indices of the samples that are the sources of the edges.
       tgt_indices: A Tensor or Placeholder of shape (batch_size,) containing the
@@ -1110,7 +1110,7 @@ class TrainerPerfectAgreement(object):
     as a weighted average of the labeled samples, using the predicted agreement
     scores as weights.
 
-    Arguments:
+    Args:
       indices: A list of integers representing the indices of the test samples
         to label.
       num_neighbors: An integer representing the number of labeled samples to
@@ -1175,7 +1175,7 @@ class TrainerAgreementAlwaysAgree(object):
     The function contains many unused arguments, in order to conform with the
     interface of the TrainerAgreement class.
 
-    Arguments:
+    Args:
       unused_session: A TensorFlow session where to run the model.
       unused_src_features: An array of shape (num_samples, num_features)
         containing the features of the first element of the pair.
@@ -1200,7 +1200,7 @@ class TrainerAgreementAlwaysAgree(object):
     This function is the equivalent of `create_agreement_prediction` in
     TrainerAgreement, but here we always predict 1.0.
 
-    Arguments:
+    Args:
       src_indices: A Tensor or Placeholder of shape (batch_size,) containing the
         indices of the samples that are the sources of the edges.
       unused_args: Other unused arguments, which we allow in order to create a

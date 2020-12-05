@@ -208,7 +208,7 @@ class Dataset(object):
   def label_samples(self, indices_samples, new_labels):
     """Updates the labels of the samples with the provided indices.
 
-    Arguments:
+    Args:
       indices_samples: Array of integers representing the sample indices to
         update. These must samples that are not already considered training
         samples, otherwise they will be duplicated.
@@ -231,7 +231,7 @@ class Dataset(object):
   def update_labels(self, indices, new_labels):
     """Updates the labels of the samples with the provided indices.
 
-    Arguments:
+    Args:
       indices: A list of integers representing sample indices.
       new_labels: A list of integers representing the new labels of th samples
         in indices_samples.
@@ -673,7 +673,7 @@ class CotrainDataset(object):
   def label_samples(self, indices_samples, new_labels):
     """Updates the labels of the samples with the provided indices.
 
-    Arguments:
+    Args:
       indices_samples: Array of integers representing the sample indices to
         update. These must samples that are not already considered training
         samples, otherwise they will be duplicated.

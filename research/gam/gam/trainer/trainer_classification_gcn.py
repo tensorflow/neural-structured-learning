@@ -451,7 +451,7 @@ class TrainerClassificationGCN(Trainer):
     both samples are labeled (LL), for one of them we use the prediction and for
     the other the true label -- otherwise there are no gradients to proagate.
 
-    Arguments:
+    Args:
       data: A CotrainDataset object.
       is_train: A placeholder for a boolean that specifies if this is function
         is called as part of model training or inference.
@@ -636,7 +636,7 @@ class TrainerClassificationGCN(Trainer):
     The first element of the pair is selected from the src_indices, and the
     second element is selected from tgt_indices.
 
-    Arguments:
+    Args:
       src_indices: Numpy array containing the indices available for the source
         node.
       tgt_indices: Numpy array containing the indices available for the tgt
@@ -743,7 +743,7 @@ class TrainerClassificationGCN(Trainer):
   def train(self, data, session=None, **kwargs):
     """Train the classification model on the provided dataset.
 
-    Arguments:
+    Args:
       data: A CotrainDataset object.
       session: A TensorFlow session or None.
       **kwargs: Other keyword arguments.

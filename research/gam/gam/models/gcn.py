@@ -224,7 +224,7 @@ class GCN(Model):
     multi-class classification, it is softmax cross entropy.
     A weight decay loss is also added to the parameters passed in reg_params.
 
-    Arguments:
+    Args:
       predictions: A tensor of predictions. For multiclass classification its
         shape is (num_samples, num_classes), where the second dimension contains
         a logit per class. For binary classification, its shape is
@@ -263,7 +263,7 @@ class GCN(Model):
   def normalize_predictions(self, predictions):
     """Converts predictions to probabilities.
 
-    Arguments:
+    Args:
       predictions: A tensor of logits. For multiclass classification its shape
         is (num_samples, num_classes), where the second dimension contains a
         logit per class. For binary classification, its shape is (num_samples,),

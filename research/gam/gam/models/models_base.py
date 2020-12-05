@@ -115,7 +115,7 @@ class Model(object):
     - project_concat: The two inputs are projected to another space, and then
                       concatenated.
 
-    Arguments:
+    Args:
       inputs: A batch of features of shape (batch_size, num_features) or
         a tuple of two such batches of features.
     Returns:
@@ -145,7 +145,7 @@ class Model(object):
   def _project(self, inputs, reuse=tf.compat.v1.AUTO_REUSE):
     """Projects the provided inputs using a multilayer perceptron.
 
-    Arguments:
+    Args:
       inputs: A batch of features whose first dimension is the batch size.
       reuse: A boolean specifying whether to reuse the same projection weights
         or create new ones.
