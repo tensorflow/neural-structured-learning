@@ -343,7 +343,7 @@ class TrainerCotraining(Trainer):
   def _select_samples_to_label(self, data, trainer_cls, session):
     """Selects which samples to label next.
 
-    Arguments:
+    Args:
       data: A CotrainData object.
       trainer_cls: A TrainerClassification object.
       session: A TensorFlow Session.

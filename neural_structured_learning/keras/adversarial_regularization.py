@@ -87,7 +87,7 @@ def adversarial_loss(features,
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
   ```
 
-  Arguments:
+  Args:
     features: Input features, should be a `Tensor` or a collection of `Tensor`
       objects. If it is a collection, the first dimension of all `Tensor`
       objects inside should be the same (i.e. batch size).

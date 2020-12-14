@@ -169,7 +169,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     the dense features will be perturbed and the values of sparse features will
     remain the same.
 
-    Arguments:
+    Args:
       input_features: a dense (float32) tensor, a list of dense tensors, or a
         dictionary of feature names and dense tensors. The shape of the
         tensor(s) should be either:
@@ -285,7 +285,7 @@ def gen_adv_neighbor(input_features,
   where `adv_step_size` is the step size (analogous to learning rate) for
   searching/calculating adversarial neighbor.
 
-  Arguments:
+  Args:
     input_features: a dense (float32) tensor, a list of dense tensors, or a
       dictionary of feature names and dense tensors. The shape of the tensor(s)
       should be either:

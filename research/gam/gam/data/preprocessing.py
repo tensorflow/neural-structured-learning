@@ -62,7 +62,7 @@ def split_train_val_unlabeled(train_inputs,
                               seed=None):
   """Splits the training data into train, validation and unlabeled samples.
 
-  Arguments:
+  Args:
       train_inputs: A numpy array containing the training inputs, where the
         first dimension represents the samples.
       train_labels: A numpy array containing the training labels, where the
