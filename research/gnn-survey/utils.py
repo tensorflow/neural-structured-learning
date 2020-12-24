@@ -162,12 +162,12 @@ def load_dataset(dataset, sparse_features, normalize_adj):
   if normalize_adj:
     adj = normalize_adj_matrix(adj)
 
-  features = tf.convert_to_tensor(np.array(features.todense()))
-  labels = tf.convert_to_tensor(np.where(labels)[1])
-
   idx_train = slice(140)
   idx_val = slice(200, 500)
   idx_test = slice(500, 1500)
+
+  features = tf.convert_to_tensor(np.array(features.todense()))
+  labels = tf.convert_to_tensor(np.where(labels)[1])
 
   if sparse_features:
     adj = sparse_matrix_to_tf_sparse_tensor(adj)

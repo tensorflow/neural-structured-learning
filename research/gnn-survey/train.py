@@ -81,14 +81,14 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
 
     if FLAGS.save_best_val:
       if val_acc >= best_val_acc:
-       best_val_acc = val_acc
-       model.save(FLAGS.save_dir)
+        best_val_acc = val_acc
+        model.save(FLAGS.save_dir)
 
     print('[%03d/%03d] %.2f sec(s) Train Acc: %.3f Loss: %.6f | Val Acc: %.3f loss: %.6f' % \
          (epoch + 1, FLAGS.epochs, time.time()-epoch_start_time, \
           train_acc, train_loss, val_acc, val_loss))
-  
-  if FLAGS.save_best_val == False:
+
+  if not FLAGS.save_best_val:
     model.save(FLAGS.save_dir)
   print('Start Predicting...')
   model = tf.keras.models.load_model(FLAGS.save_dir)
