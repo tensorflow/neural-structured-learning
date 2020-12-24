@@ -20,8 +20,8 @@ import tensorflow as tf
 
 from utils import load_dataset, build_model, cal_acc  # pylint: disable=g-multiple-import
 
-flags.DEFINE_enum('dataset', 'cora', ['cora'],
-                  'The input dataset. Avaliable dataset now: cora')
+flags.DEFINE_enum('dataset', 'cora', ['cora', 'citeseer'],
+                  'The input dataset. Avaliable dataset now: cora, citeseer')
 flags.DEFINE_enum('model', 'gat', ['gcn', 'gat', 'gin'],
                   'GNN model. Available model now: gcn, gat')
 flags.DEFINE_float('dropout_rate', 0.6, 'Dropout probability')
@@ -81,14 +81,14 @@ def train(model, adj, features, labels, idx_train, idx_val, idx_test):
 
     if FLAGS.save_best_val:
       if val_acc >= best_val_acc:
-        best_val_acc = val_acc
-        model.save(FLAGS.save_dir)
+       best_val_acc = val_acc
+       model.save(FLAGS.save_dir)
 
     print('[%03d/%03d] %.2f sec(s) Train Acc: %.3f Loss: %.6f | Val Acc: %.3f loss: %.6f' % \
          (epoch + 1, FLAGS.epochs, time.time()-epoch_start_time, \
           train_acc, train_loss, val_acc, val_loss))
-
-  if not FLAGS.save_best_val:
+  
+  if FLAGS.save_best_val == False:
     model.save(FLAGS.save_dir)
   print('Start Predicting...')
   model = tf.keras.models.load_model(FLAGS.save_dir)

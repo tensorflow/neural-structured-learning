@@ -65,24 +65,34 @@ def cal_acc(labels, logits):
   return acc.numpy().item()
 
 
-def encode_onehot(labels):
+def encode_onehot(dataset, labels):
   """Provides a mapping from string labels to integer indices."""
   label_index = {
-      'Case_Based': 0,
-      'Genetic_Algorithms': 1,
-      'Neural_Networks': 2,
-      'Probabilistic_Methods': 3,
-      'Reinforcement_Learning': 4,
-      'Rule_Learning': 5,
-      'Theory': 6,
+      'cora':{
+          'Case_Based': 0,
+          'Genetic_Algorithms': 1,
+          'Neural_Networks': 2,
+          'Probabilistic_Methods': 3,
+          'Reinforcement_Learning': 4,
+          'Rule_Learning': 5,
+          'Theory': 6
+      },
+      'citeseer':{
+          'AI': 0,
+          'IR': 1,
+          'HCI': 2,
+          'DB': 3,
+          'ML': 4,
+          'Agents': 5
+      }
   }
 
   # Convert to onehot label
-  num_classes = len(label_index)
+  num_classes = len(label_index[dataset])
   onehot_labels = np.zeros((len(labels), num_classes))
   idx = 0
   for s in labels:
-    onehot_labels[idx, label_index[s]] = 1
+    onehot_labels[idx, label_index[dataset][s]] = 1
     idx += 1
   return onehot_labels
 
@@ -115,23 +125,30 @@ def sparse_matrix_to_tf_sparse_tensor(matrix):
 
 
 def load_dataset(dataset, sparse_features, normalize_adj):
-  """Loads Cora dataset."""
+  """Loads dataset."""
   dir_path = os.path.join('data', dataset)
   content_path = os.path.join(dir_path, '{}.content'.format(dataset))
   citation_path = os.path.join(dir_path, '{}.cites'.format(dataset))
 
   content = np.genfromtxt(content_path, dtype=np.dtype(str))
-
-  idx = np.array(content[:, 0], dtype=np.int32)
+  idx = np.array(content[:, 0])
   features = sp.csr_matrix(content[:, 1:-1], dtype=np.float32)
-  labels = encode_onehot(content[:, -1])
+  labels = encode_onehot(dataset, content[:, -1])
 
   # Dict which maps paper id to data id
   idx_map = {j: i for i, j in enumerate(idx)}
-  edges_unordered = np.genfromtxt(citation_path, dtype=np.int32)
+  edges_unordered = np.genfromtxt(citation_path, dtype=np.dtype(str))
   edges = np.array(
       list(map(idx_map.get, edges_unordered.flatten())),
-      dtype=np.int32).reshape(edges_unordered.shape)
+      dtype=np.dtype(str)).reshape(edges_unordered.shape)
+
+  # Delete relation which the nodes appear in cites but not in content
+  del_rel = []
+  for i, j in enumerate(edges):
+    if j[0] == 'None' or j[1] == 'None':
+      del_rel.append(i)
+  edges = np.delete(edges, del_rel, 0)
+
   adj = sp.coo_matrix((np.ones(edges.shape[0]), (edges[:, 0], edges[:, 1])),
                       shape=(labels.shape[0], labels.shape[0]),
                       dtype=np.float32)
@@ -145,13 +162,13 @@ def load_dataset(dataset, sparse_features, normalize_adj):
   if normalize_adj:
     adj = normalize_adj_matrix(adj)
 
-  # 5% for train, 300 for validation, 1000 for test
+  features = tf.convert_to_tensor(np.array(features.todense()))
+  labels = tf.convert_to_tensor(np.where(labels)[1])
+
   idx_train = slice(140)
   idx_val = slice(200, 500)
   idx_test = slice(500, 1500)
 
-  features = tf.convert_to_tensor(np.array(features.todense()))
-  labels = tf.convert_to_tensor(np.where(labels)[1])
   if sparse_features:
     adj = sparse_matrix_to_tf_sparse_tensor(adj)
   else:
