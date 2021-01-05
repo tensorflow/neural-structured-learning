@@ -114,10 +114,11 @@ def add_adversarial_regularization(estimator,
           original_spec.loss,
           adv_config.adv_neighbor_config,
           # The pgd_model_fn is a dummy identity function since loss is
-          # directly available from spec_fn.
+          # directly available from base_fn.
           pgd_model_fn=lambda features: features,
           pgd_loss_fn=lambda labels, features: base_fn(features, labels).loss,
-          pgd_labels=labels)
+          pgd_labels=labels,
+          use_while_loop=False)
 
       # Runs the base model again to compute loss on adv_neighbor.
       adv_spec = base_fn(adv_neighbor, labels)

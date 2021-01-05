@@ -95,7 +95,7 @@ def adversarial_loss(features,
     model: A callable that takes `features` as inputs and computes `predictions`
       as outputs. An example would be a `tf.keras.Model` object.
     loss_fn: A callable which calcualtes labeled loss from `labels`,
-      `predictions`, and `sample_weights`. An example would be a
+      `predictions`, and `sample_weight`. An example would be a
       `tf.keras.losses.Loss` object.
     sample_weights: (optional) A 1-D `Tensor` of weights for the examples, with
       the same length as the first dimension of `features`.
@@ -140,8 +140,9 @@ def adversarial_loss(features,
       config=adv_config.adv_neighbor_config,
       gradient_tape=gradient_tape,
       pgd_model_fn=model,
-      pgd_loss_fn=functools.partial(loss_fn, sample_weights=sample_weights),
-      pgd_labels=labels)
+      pgd_loss_fn=functools.partial(loss_fn, sample_weight=sample_weights),
+      pgd_labels=labels,
+      use_while_loop=True)
   adv_output = model(adv_input)
   if sample_weights is not None:
     adv_sample_weights = tf.math.multiply(sample_weights, adv_sample_weights)
@@ -591,11 +592,11 @@ class AdversarialRegularization(tf.keras.Model):
       output_names = ['output_%d' % i for i in range(1, num_output + 1)]
     return output_names
 
-  def _compute_total_loss(self, labels, outputs, sample_weights=None):
+  def _compute_total_loss(self, labels, outputs, sample_weight=None):
     # `None` is passed instead of the actual metrics in order to skip computing
     # metric values and updating metric states.
     loss, _ = _compute_loss_and_metrics(self._labeled_losses, None, labels,
-                                        outputs, sample_weights)
+                                        outputs, sample_weight)
     return loss
 
   def _extract_labels_and_weights(self, inputs):
@@ -731,7 +732,8 @@ class AdversarialRegularization(tf.keras.Model):
         gradient_tape=tape,
         pgd_model_fn=self._call_base_model,
         pgd_loss_fn=self._compute_total_loss,
-        pgd_labels=labels)
+        pgd_labels=labels,
+        use_while_loop=True)
 
     if tf.executing_eagerly():
       # Converts `Tensor` objects to NumPy arrays and keeps other objects (e.g.

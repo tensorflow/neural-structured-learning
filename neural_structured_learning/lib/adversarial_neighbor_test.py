@@ -46,8 +46,8 @@ def call_gen_adv_neighbor_with_tf_function(x, loss_fn, adv_config):
   return gen_adv_neighbor(x)
 
 
-def call_multi_iter_gen_adv_neighbor_with_gradient_tape(x, y, model_fn, loss_fn,
-                                                        adv_config):
+def call_multi_iter_gen_adv_neighbor_with_gradient_tape(
+    x, y, model_fn, loss_fn, adv_config, use_while_loop=True):
   with tf.GradientTape() as tape:
     tape.watch(x)
     loss = loss_fn(y, model_fn(x))
@@ -58,12 +58,13 @@ def call_multi_iter_gen_adv_neighbor_with_gradient_tape(x, y, model_fn, loss_fn,
       gradient_tape=tape,
       pgd_labels=y,
       pgd_model_fn=model_fn,
-      pgd_loss_fn=loss_fn)
+      pgd_loss_fn=loss_fn,
+      use_while_loop=use_while_loop)
   return adv_neighbor
 
 
-def call_multi_iter_gen_adv_neighbor_with_tf_function(x, y, model_fn, loss_fn,
-                                                      adv_config):
+def call_multi_iter_gen_adv_neighbor_with_tf_function(
+    x, y, model_fn, loss_fn, adv_config, use_while_loop=True):
 
   @tf.function
   def gen_adv_neighbor(x):
@@ -74,7 +75,8 @@ def call_multi_iter_gen_adv_neighbor_with_tf_function(x, y, model_fn, loss_fn,
         adv_config,
         pgd_labels=y,
         pgd_model_fn=model_fn,
-        pgd_loss_fn=loss_fn)
+        pgd_loss_fn=loss_fn,
+        use_while_loop=use_while_loop)
     return adv_neighbor
 
   return gen_adv_neighbor(x)
@@ -132,7 +134,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     actual_neighbor = self.evaluate(adv_neighbor)
     self.assertAllClose(expected_neighbor, actual_neighbor)
 
-  def test_multi_iter_gen_adv_neighbor_proj_limits(self):
+  @parameterized.named_parameters([('while_loop', True), ('for_loop', False)])
+  def test_multi_iter_gen_adv_neighbor_proj_limits(self, use_while_loop):
     # Simple linear regression.
     x = tf.constant([[-1.0, 1.0]])
     y = tf.constant([0.0])
@@ -156,7 +159,8 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
         gradient_tape=tape,
         pgd_model_fn=model_fn,
         pgd_loss_fn=loss_fn,
-        pgd_labels=y)
+        pgd_labels=y,
+        use_while_loop=use_while_loop)
 
     # Take two steps in the gradient direction. Project back onto epsilon ball
     # after iteration 2.
@@ -245,51 +249,6 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(expected_neighbor_fc1, actual_neighbor['fc1'])
     self.assertAllClose(expected_neighbor_fc2, actual_neighbor['fc2'])
 
-  def _test_multi_iter_gen_adv_neighbor_for_feature_columns_setup(self):
-    # For linear regression
-    x = {
-        'fc1': tf.constant([[-1.0]]),
-        'fc2': tf.constant([[1.0]]),
-    }
-    y = tf.constant([0.0])
-    w = tf.constant([[3.0], [4.0]])
-
-    # gradient = [[6, 8]], normalized gradient = [[0.6, 0.8]]
-    # Two iterations of 0.6 * 0.1, clipped.
-    expected_neighbor_fc1 = [[-1.0 + 0.13 * 0.6]]
-    # Two iterations of 0.8 * 0.1, clipped.
-    expected_neighbor_fc2 = [[1.0 + 0.13 * 0.8]]
-    adv_config = configs.AdvNeighborConfig(
-        feature_mask={},
-        adv_step_size=0.1,
-        adv_grad_norm='l2',
-        pgd_iterations=2,
-        pgd_epsilon=0.13)
-    return x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config
-
-  @test_util.deprecated_graph_mode_only
-  def test_multi_iter_gen_adv_neighbor_for_feature_columns(self):
-    x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config = (
-        self._test_multi_iter_gen_adv_neighbor_for_feature_columns_setup())
-    x_stacked = tf.concat([x['fc1'], x['fc2']], axis=1)
-    model_fn = (
-        lambda inp: tf.matmul(tf.concat([inp['fc1'], inp['fc2']], axis=1), w))
-    loss_fn = tf.math.squared_difference
-    y_hat = tf.matmul(x_stacked, w)
-    loss = tf.math.squared_difference(y, y_hat)
-
-    adv_neighbor, _ = adv_lib.gen_adv_neighbor(
-        x,
-        loss,
-        adv_config,
-        pgd_model_fn=model_fn,
-        pgd_loss_fn=loss_fn,
-        pgd_labels=y)
-
-    actual_neighbor = self.evaluate(adv_neighbor)
-    self.assertAllClose(expected_neighbor_fc1, actual_neighbor['fc1'])
-    self.assertAllClose(expected_neighbor_fc2, actual_neighbor['fc2'])
-
   def test_gen_adv_neighbor_for_feature_columns_v2(self):
     x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config = (
         self._test_gen_adv_neighbor_for_feature_columns_setup())
@@ -308,28 +267,43 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(expected_neighbor_fc1, actual_neighbor['fc1'])
     self.assertAllClose(expected_neighbor_fc2, actual_neighbor['fc2'])
 
-  def test_multi_iter_gen_adv_neighbor_for_feature_columns_v2(self):
-    x, y, w, expected_neighbor_fc1, expected_neighbor_fc2, adv_config = (
-        self._test_multi_iter_gen_adv_neighbor_for_feature_columns_setup())
+  @parameterized.named_parameters([
+      ('grad_tape_while_loop',
+       call_multi_iter_gen_adv_neighbor_with_gradient_tape, True),
+      ('grad_tape_for_loop',
+       call_multi_iter_gen_adv_neighbor_with_gradient_tape, False),
+      ('tf_func_while_loop', call_multi_iter_gen_adv_neighbor_with_tf_function,
+       True),
+      ('tf_func_for_loop', call_multi_iter_gen_adv_neighbor_with_tf_function,
+       False),
+  ])
+  def test_multi_iter_gen_adv_neighbor_for_feature_columns(
+      self, gen_adv_neighbor_fn, use_while_loop):
+    # For linear regression
+    x = {
+        'fc1': tf.constant([[-1.0]]),
+        'fc2': tf.constant([[1.0]]),
+    }
+    y = tf.constant([0.0])
+    w = tf.constant([[3.0], [4.0]])
+
+    model_fn = lambda x: tf.matmul(tf.concat([x['fc1'], x['fc2']], axis=1), w)
     loss_fn = tf.math.squared_difference
-    model_fn = (
-        lambda inp: tf.matmul(tf.concat([inp['fc1'], inp['fc2']], axis=1), w))
-    with tf.GradientTape() as tape:
-      tape.watch(x)
-      # Simple linear regression
-      x_stacked = tf.concat([x['fc1'], x['fc2']], axis=1)
-      y_hat = tf.matmul(x_stacked, w)
-      loss = tf.math.squared_difference(y, y_hat)
 
-    adv_neighbor, _ = adv_lib.gen_adv_neighbor(
-        x,
-        loss,
-        adv_config,
-        gradient_tape=tape,
-        pgd_model_fn=model_fn,
-        pgd_loss_fn=loss_fn,
-        pgd_labels=y)
+    # gradient = [[6, 8]], normalized gradient = [[0.6, 0.8]]
+    # Two iterations of 0.6 * 0.1, clipped.
+    expected_neighbor_fc1 = [[-1.0 + 0.13 * 0.6]]
+    # Two iterations of 0.8 * 0.1, clipped.
+    expected_neighbor_fc2 = [[1.0 + 0.13 * 0.8]]
+    adv_config = configs.AdvNeighborConfig(
+        feature_mask={},
+        adv_step_size=0.1,
+        adv_grad_norm='l2',
+        pgd_iterations=2,
+        pgd_epsilon=0.13)
 
+    adv_neighbor = gen_adv_neighbor_fn(x, y, model_fn, loss_fn, adv_config,
+                                       use_while_loop)
     actual_neighbor = self.evaluate(adv_neighbor)
     self.assertAllClose(expected_neighbor_fc1, actual_neighbor['fc1'])
     self.assertAllClose(expected_neighbor_fc2, actual_neighbor['fc2'])
@@ -485,8 +459,7 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
 
     # Simple linear regression.
     x_stacked = tf.concat(
-        [x['fc1'], x['fc2'],
-         tf.cast(x['fc_int'], tf.dtypes.float32)], axis=1)
+        [x['fc1'], x['fc2'], tf.cast(x['fc_int'], tf.dtypes.float32)], axis=1)
     y_hat = tf.matmul(x_stacked, w)
     loss = tf.math.squared_difference(y, y_hat)
 
@@ -507,8 +480,7 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
       tape.watch(x)
       # Simple linear regression.
       x_stacked = tf.concat(
-          [x['fc1'], x['fc2'],
-           tf.cast(x['fc_int'], tf.dtypes.float32)], axis=1)
+          [x['fc1'], x['fc2'], tf.cast(x['fc_int'], tf.dtypes.float32)], axis=1)
       y_hat = tf.matmul(x_stacked, w)
       loss = tf.math.squared_difference(y, y_hat)
 
