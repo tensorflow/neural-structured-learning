@@ -72,6 +72,15 @@ def _expand_to_rank(vector, rank):
   return tf.reshape(vector, shape=[-1] + [1] * (rank - 1))
 
 
+def _reduce_across_tensors(reduce_fn, input_tensors):
+  """Applies a reduce_fn across a list of tensors on non-batch dimensions."""
+  reduced_within_tensor = [
+      reduce_fn(t, axis=list(range(1, t.shape.rank))) for t in input_tensors]
+  if len(input_tensors) == 1:
+    return reduced_within_tensor[0]
+  return reduce_fn(tf.stack(reduced_within_tensor, axis=-1), axis=-1)
+
+
 def project_to_ball(tensors, radius, norm_type, epsilon=1e-6):
   """Projects batched tensors to a ball with the given radius in the given norm.
 
@@ -121,6 +130,85 @@ def project_to_ball(tensors, radius, norm_type, epsilon=1e-6):
     return tf.nest.map_structure(clip_to_norm, tensors)
 
 
+def random_in_norm_ball(tensor_structure, radius, norm_type):
+  """Generates a random sample in a norm ball, conforming the given structure.
+
+  This function expects `tensor_structure` to represent a batch of examples,
+  where the tensors in the structure are features. The norms are calculated in
+  the whole feature space (including all tensors).
+
+  For L-inf norm, each feature dimension can be sampled independently from a
+  uniform distribution. For L2 and L1 norms, we use the result (Corollary 4 in
+  Barthe et al., 2005) that the first `n` coordinates of a uniformly random
+  point on the `p`-norm unit sphere in `R^(n+p)` are uniformly distributed in
+  the `p`-norm unit ball in `R^n`. For L2 norm, we draw random points on the
+  unit sphere from the standard normal distribution which density is
+  proportional to `exp(-x^2)`(Corollary 1 in Harman and Lacko, 2010). For L1
+  norm, we draw random points on the 1-norm unit sphere from the standard
+  Laplace distribution which density is proportional to `exp(-|x|)`. More
+  details on the papers: https://arxiv.org/abs/math/0503650 and
+  https://doi.org/10.1016/j.jmva.2010.06.002
+
+  Args:
+    tensor_structure:  A (nested) collection of batched, floating-point tensors.
+      Only the structure (number of tensors, shape, and dtype) is used, not the
+      values. The first dimension of each tensor is the batch size and must all
+      be equal.
+    radius: The radius of the norm ball to sample from.
+    norm_type: One of `nsl.configs.NormType` which specifies the norm of the
+      norm ball.
+
+  Returns:
+    A (nested) collection of tensors in the same structure as `tensor_structure`
+    but has its values drawn randomly. The norm of each example in the batch
+    is less than or equal to the given radius.
+  """
+  tensors = tf.nest.flatten(tensor_structure)
+  if not all(t.dtype.is_floating for t in tensors):
+    raise ValueError('random_in_norm_ball() only supports floating tensors.')
+  # Reject unless the set of first dimensions is {N}, {None}, or {N, None} for
+  # some number N.
+  if len(set(t.shape.as_list()[0] for t in tensors) - set([None])) > 1:
+    raise ValueError('The first dimension of all tensors should be the same.')
+  if isinstance(norm_type, six.string_types):  # Convert string to NormType.
+    norm_type = configs.NormType(norm_type)
+
+  if norm_type == configs.NormType.INFINITY:
+    return tf.nest.map_structure(
+        lambda t: tf.random.uniform(t.shape, -radius, radius, t.dtype),
+        tensor_structure)
+  elif norm_type == configs.NormType.L2:
+    # Sample each coordinate with Normal(0, 1).
+    samples = [tf.random.normal(t.shape, dtype=t.dtype) for t in tensors]
+    squared_norm = _reduce_across_tensors(tf.reduce_sum,
+                                          [tf.square(t) for t in samples])
+    # Squared L2 norm of two extra coordinates:
+    # Normal(0, 1)^2 + Normal(0, 1)^2 ~ Chi^2(2) ~ Exponential(0.5)
+    # Exponential(lambda) ~ Gamma(1, beta=lambda)
+    extra = tf.random.gamma(squared_norm.shape, 1.0, 0.5, squared_norm.dtype)
+    scale = radius / tf.math.sqrt(squared_norm + extra)
+    return tf.nest.pack_sequence_as(
+        tensor_structure,
+        [t * _expand_to_rank(scale, t.shape.rank) for t in samples])
+  elif norm_type == configs.NormType.L1:
+    # Sample each coordinate w/ Laplace(0, 1) ~ Exponential(1) - Exponential(1)
+    samples = []
+    for t in tensors:
+      samples.append(
+          tf.random.gamma(t.shape, 1., 1., t.dtype) -
+          tf.random.gamma(t.shape, 1., 1., t.dtype))
+    l1_norm = _reduce_across_tensors(tf.reduce_sum,
+                                     [tf.abs(t) for t in samples])
+    # L1 norm of one extra coordinate: |Laplace(0, 1)| ~ Exponential(1).
+    extra = tf.random.gamma(l1_norm.shape, 1.0, 1.0, l1_norm.dtype)
+    scale = radius / (l1_norm + extra)
+    return tf.nest.pack_sequence_as(
+        tensor_structure,
+        [t * _expand_to_rank(scale, t.shape.rank) for t in samples])
+  else:
+    raise ValueError(f'NormType not supported: {norm_type}')
+
+
 def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
   """Solves the maximization problem weights^T*x with the constraint norm(x)=1.
 
@@ -162,18 +250,9 @@ def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
   if not tensors:  # `weights` is an empty collection.
     return weights
 
-  def reduce_across_tensors(reduce_fn, input_tensors):
-    reduced_within_tensor = [
-        reduce_fn(t, axis=list(range(1, rank)))
-        for t, rank in zip(input_tensors, tensor_ranks)
-    ]
-    if len(input_tensors) == 1:
-      return reduced_within_tensor[0]
-    return reduce_fn(tf.stack(reduced_within_tensor, axis=-1), axis=-1)
-
   if norm_type == configs.NormType.L2:
-    squared_norm = reduce_across_tensors(tf.reduce_sum,
-                                         [tf.square(t) for t in tensors])
+    squared_norm = _reduce_across_tensors(tf.reduce_sum,
+                                          [tf.square(t) for t in tensors])
     inv_global_norm = tf.math.rsqrt(tf.maximum(squared_norm, epsilon**2))
     normalized_tensors = [
         tensor * _expand_to_rank(inv_global_norm, rank)
@@ -187,12 +266,12 @@ def maximize_within_unit_norm(weights, norm_type, epsilon=1e-6):
     # choose to distribute evenly among those dimensions for efficient
     # implementation.
     abs_tensors = [tf.abs(t) for t in tensors]
-    max_elem = reduce_across_tensors(tf.reduce_max, abs_tensors)
+    max_elem = _reduce_across_tensors(tf.reduce_max, abs_tensors)
     is_max_elem = [
         tf.cast(tf.equal(t, _expand_to_rank(max_elem, rank)), t.dtype)
         for t, rank in zip(abs_tensors, tensor_ranks)
     ]
-    num_nonzero = reduce_across_tensors(tf.reduce_sum, is_max_elem)
+    num_nonzero = _reduce_across_tensors(tf.reduce_sum, is_max_elem)
     denominator = tf.maximum(num_nonzero, epsilon)
     mask = [
         is_max * tf.sign(t) / _expand_to_rank(denominator, rank)

@@ -146,6 +146,42 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     expected_results = [[[1.0, -2.5], [-2.0, 2.5]], [[0.0], [-2.5]]]
     self.assertAllClose(projected_tensors, expected_results)
 
+  def testRandomInNormBallLInf(self):
+    tensors = {
+        'feature1': tf.constant([[.1], [.2]]),
+        'feature2': tf.constant([[[.3, .4], [.5, .6]], [[.7, .8], [.9, 1.]]]),
+    }
+    radius = 0.5
+    samples = self.evaluate(
+        utils.random_in_norm_ball(tensors, radius, configs.NormType.INFINITY))
+    self.assertSameElements(tensors.keys(), samples.keys())
+    flat_samples = tf.nest.flatten(samples)
+    for tensor, sample in zip(tf.nest.flatten(tensors), flat_samples):
+      self.assertShapeEqual(sample, tensor)
+      self.assertAllInRange(sample, -radius, radius)
+
+  @parameterized.named_parameters(
+      ('L2', configs.NormType.L2, 2),
+      ('L1', configs.NormType.L1, 1),
+  )
+  def testRandomInNormBall(self, norm_type, order):
+    tensors = {
+        'feature1': tf.constant([[.1], [.2]]),
+        'feature2': tf.constant([[[.3, .4], [.5, .6]], [[.7, .8], [.9, 1.]]]),
+    }
+    radius = 0.5
+    samples = self.evaluate(
+        utils.random_in_norm_ball(tensors, radius, norm_type))
+    self.assertSameElements(tensors.keys(), samples.keys())
+    flat_samples = tf.nest.flatten(samples)
+    for tensor, sample in zip(tf.nest.flatten(tensors), flat_samples):
+      self.assertShapeEqual(sample, tensor)
+    per_feature_norm = [
+        np.linalg.norm(sample, order, tuple(range(1, len(sample.shape))))
+        for sample in flat_samples]
+    global_norm = np.linalg.norm(np.stack(per_feature_norm, axis=1), order, 1)
+    self.assertAllLessEqual(global_norm, radius)
+
   def testNormalizeInfWithOnes(self):
     target_tensor = tf.constant(1.0, shape=[2, 4])
     normalized_tensor = self.evaluate(
