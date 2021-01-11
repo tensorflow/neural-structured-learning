@@ -13,8 +13,9 @@
 # limitations under the License.
 # TODO(ppham27): Consider consolidating with
 # examples/preprocess/cora/prep_data.sh.
-# URL for downloading Cora dataset.
-URL=https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz
+# URL for downloading dataset (Available dataset: cora, citeseer).
+DATASET=$1
+URL=https://linqs-data.soe.ucsc.edu/public/lbc/${DATASET}.tgz
 
 # Target folder to store and process data.
 DATA_DIR=data
@@ -32,6 +33,6 @@ function download () {
   fi
 }
 
-# Download and unzip the dataset. Data will be at '${DATA_DIR}/cora/' folder.
+# Download and unzip the dataset. Data will be at '${DATA_DIR}/${DATASET}/' folder.
 download ${URL} ${DATA_DIR}
-tar -C ${DATA_DIR} -xvzf ${DATA_DIR}/cora.tgz
+tar -C ${DATA_DIR} -xvzf ${DATA_DIR}/${DATASET}.tgz
