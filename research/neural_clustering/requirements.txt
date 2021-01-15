@@ -1,0 +1,3 @@
+absl-py
+numpy
+tensorflow-gpu==2.4.0

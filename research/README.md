@@ -34,3 +34,13 @@ versions or Python versions.
 [[1] O. Stretcu, K. Viswanathan, D. Movshovitz-Attias, E.A. Platanios, S. Ravi,
 A. Tomkins. "Graph Agreement Models for Semi-Supervised Learning." NeurIPS
 2019](https://papers.nips.cc/paper/9076-graph-agreement-models-for-semi-supervised-learning)
+
+## [Neural Clustering Processes](neural_clustering)
+
+The implementations of Neural Clustering Process (NCP) [4] are provided in the
+`neural_clustering` folder on a strict "as is" basis, without warranties or
+conditions of any kind. Also, these implementations may not be compatible with
+certain TensorFlow versions or Python versions.
+
+[[4] A. Pakman, Y. Wang, C. Mitelut, J. Lee, L. Paninski. "Neural Clustering
+Processes." ICML 2020](https://arxiv.org/abs/1901.00409)
