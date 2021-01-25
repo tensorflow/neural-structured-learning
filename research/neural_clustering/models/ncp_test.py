@@ -14,7 +14,7 @@
 """Tests for neural_structured_learning.research.neural_clustering.models.ncp."""
 
 from absl.testing import parameterized
-from neural_structured_learning.research.neural_clustering import models
+from neural_clustering import models
 import numpy as np
 import tensorflow as tf
 

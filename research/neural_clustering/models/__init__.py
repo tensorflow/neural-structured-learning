@@ -13,11 +13,11 @@
 # limitations under the License.
 """Keras API for neural clustering models."""
 
-from neural_structured_learning.research.neural_clustering.models.ncp_base import NCPBase
-from neural_structured_learning.research.neural_clustering.models.ncp_models import NCPWithMLP
-from neural_structured_learning.research.neural_clustering.models.ncp_wrapper import CategoricalSampler
-from neural_structured_learning.research.neural_clustering.models.ncp_wrapper import GreedySampler
-from neural_structured_learning.research.neural_clustering.models.ncp_wrapper import NCPWrapper
+from neural_clustering.models.ncp_base import NCPBase
+from neural_clustering.models.ncp_models import NCPWithMLP
+from neural_clustering.models.ncp_wrapper import CategoricalSampler
+from neural_clustering.models.ncp_wrapper import GreedySampler
+from neural_clustering.models.ncp_wrapper import NCPWrapper
 
 __all__ = [
     'NCPBase', 'NCPWithMLP', 'NCPWrapper', 'GreedySampler', 'CategoricalSampler'

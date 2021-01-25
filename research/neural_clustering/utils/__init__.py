@@ -13,7 +13,7 @@
 # limitations under the License.
 """Utility functions for neural clustering."""
 
-from neural_structured_learning.research.neural_clustering.utils.data_utils import batch_remap_label_ids
-from neural_structured_learning.research.neural_clustering.utils.data_utils import remap_label_ids
+from neural_clustering.utils.data_utils import batch_remap_label_ids
+from neural_clustering.utils.data_utils import remap_label_ids
 
 __all__ = ["batch_remap_label_ids", "remap_label_ids"]

@@ -13,7 +13,7 @@
 # limitations under the License.
 """NCP model wrapper and cluster samplers."""
 
-from neural_structured_learning.research.neural_clustering.utils.data_utils import batch_remap_label_ids
+from neural_clustering.utils.data_utils import batch_remap_label_ids
 import tensorflow as tf
 
 

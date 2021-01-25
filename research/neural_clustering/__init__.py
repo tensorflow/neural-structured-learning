@@ -13,8 +13,8 @@
 # limitations under the License.
 """Neural Clustering."""
 
-from neural_structured_learning.research.neural_clustering import data_generators
-from neural_structured_learning.research.neural_clustering import models
-from neural_structured_learning.research.neural_clustering import utils
+from neural_clustering import data_generators
+from neural_clustering import models
+from neural_clustering import utils
 
 __all__ = ["data_generators", "models", "utils"]

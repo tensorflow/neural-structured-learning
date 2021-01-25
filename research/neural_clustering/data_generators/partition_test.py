@@ -15,7 +15,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from neural_structured_learning.research.neural_clustering.data_generators import partition
+from neural_clustering.data_generators import partition
 import numpy as np
 
 

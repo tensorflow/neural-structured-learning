@@ -13,7 +13,7 @@
 # limitations under the License.
 """Neural Clustering Process models with concrete neural network layers."""
 
-from neural_structured_learning.research.neural_clustering.models.ncp_base import NCPBase
+from neural_clustering.models.ncp_base import NCPBase
 import tensorflow as tf
 
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Data generators for neural clustering."""
 
-from neural_structured_learning.research.neural_clustering.data_generators.mog import MOGGenerator
-from neural_structured_learning.research.neural_clustering.data_generators.partition import CRPGenerator
+from neural_clustering.data_generators.mog import MOGGenerator
+from neural_clustering.data_generators.partition import CRPGenerator
 
 __all__ = ["CRPGenerator", "MOGGenerator"]
