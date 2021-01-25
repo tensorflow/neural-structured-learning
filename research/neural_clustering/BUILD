@@ -32,3 +32,9 @@ py_library(
         "//neural_structured_learning/research/neural_clustering/utils",
     ],
 )
+
+py_library(
+    name = "setup",
+    srcs = ["setup.py"],
+    srcs_version = "PY3",
+)
