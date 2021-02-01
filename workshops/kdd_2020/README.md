@@ -2,6 +2,10 @@
 
 Hands-on tutorial at [KDD 2020](https://www.kdd.org/kdd2020/).
 
+**UPDATE**: Here is the
+[video recording](https://www.youtube.com/watch?v=YVk4YYfIfHw) of our tutorial
+at KDD 2020. The presentation starts at the 34 minute mark.
+
 ## Organizers
 
 *   Allan Heydon (Google Research)
