@@ -65,6 +65,6 @@ def batch_remap_label_ids(labels: np.ndarray) -> np.ndarray:
       new cluster IDs.
   """
   batch_remap_output = [remap_label_ids(label) for label in labels]
-  batch_remapped_labels = np.stack(x[0] for x in batch_remap_output)
+  batch_remapped_labels = np.stack([x[0] for x in batch_remap_output])
   batch_old_id_to_new_id = [x[1] for x in batch_remap_output]
   return batch_remapped_labels, batch_old_id_to_new_id

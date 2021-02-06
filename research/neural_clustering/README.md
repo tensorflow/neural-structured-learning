@@ -3,11 +3,16 @@
 This project contains a Tensorflow 2 implementation of Neural Clustering Process
 (NCP) [1], a neural network model for supervised amortized clustering.
 
-## Installation
+## How to run
 
 ```
 pip install -r requirements.txt
+
+pip install 'git+https://github.com/tensorflow/neural-structured-learning.git#egg=neural_clustering&subdirectory=research/neural_clustering'
 ```
+
+This [notebook](examples/ncp_demo_with_mog_data.ipynb) demonstrates how to train
+a neural clustering model and use it to cluster new datasets.
 
 ## References
 
