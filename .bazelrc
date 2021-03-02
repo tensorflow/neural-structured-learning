@@ -10,3 +10,11 @@ build --compilation_mode=opt
 build --copt=-march=native
 build --host_copt=-march=native
 build --copt=-O3
+
+build --experimental_repo_remote_exec
+build --cxxopt=-std=c++17
+build --host_cxxopt=-std=c++17
+
+build --action_env=PYTHON_BIN_PATH=/usr/bin/python3
+build --repo_env=PYTHON_BIN_PATH=/usr/bin/python3
+build --python_path=/usr/bin/python3
