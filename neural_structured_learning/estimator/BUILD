@@ -46,6 +46,7 @@ py_library(
 py_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":estimator",
@@ -72,6 +73,7 @@ py_library(
 py_test(
     name = "graph_regularization_test",
     srcs = ["graph_regularization_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":estimator",

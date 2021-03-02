@@ -38,6 +38,7 @@ py_test(
     srcs = [
         "layers_test.py",
     ],
+    python_version = "PY3",
     deps = [
         ":layers",
         # package absl/testing:parameterized
@@ -65,6 +66,7 @@ py_test(
     srcs = [
         "neighbor_features_test.py",
     ],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":neighbor_features",
@@ -93,6 +95,7 @@ py_library(
 py_test(
     name = "pairwise_distance_test",
     srcs = ["pairwise_distance_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":pairwise_distance",

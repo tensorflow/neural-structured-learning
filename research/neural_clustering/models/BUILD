@@ -58,7 +58,7 @@ py_library(
     srcs = ["ncp_wrapper.py"],
     srcs_version = "PY3",
     deps = [
-        "//neural_structured_learning/research/neural_clustering/utils:data_utils",
+        "//research/neural_clustering/utils:data_utils",
         # package tensorflow
     ],
 )
@@ -66,6 +66,7 @@ py_library(
 py_test(
     name = "ncp_test",
     srcs = ["ncp_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":models",

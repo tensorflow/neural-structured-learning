@@ -48,6 +48,7 @@ py_library(
 py_test(
     name = "adversarial_regularization_multi_device_test",
     srcs = ["adversarial_regularization_multi_device_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
@@ -60,6 +61,7 @@ py_test(
 py_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
@@ -87,6 +89,7 @@ py_test(
     name = "graph_regularization_test",
     timeout = "long",
     srcs = ["graph_regularization_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":graph_regularization",

@@ -60,6 +60,7 @@ py_library(
 py_test(
     name = "adversarial_neighbor_test",
     srcs = ["adversarial_neighbor_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":adversarial_neighbor",
@@ -84,6 +85,7 @@ py_library(
 py_test(
     name = "distances_test",
     srcs = ["distances_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":distances",
@@ -107,6 +109,7 @@ py_library(
 py_test(
     name = "regularizer_test",
     srcs = ["regularizer_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":regularizer",
@@ -131,6 +134,7 @@ py_test(
     name = "utils_test",
     size = "small",
     srcs = ["utils_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":utils",

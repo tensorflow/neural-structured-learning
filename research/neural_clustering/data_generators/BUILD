@@ -44,6 +44,7 @@ py_library(
 py_test(
     name = "partition_test",
     srcs = ["partition_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":partition",
@@ -63,6 +64,7 @@ py_library(
 py_test(
     name = "mog_test",
     srcs = ["mog_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":mog",

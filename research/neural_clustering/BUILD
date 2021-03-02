@@ -27,9 +27,9 @@ py_library(
     srcs = ["__init__.py"],
     srcs_version = "PY3",
     deps = [
-        "//neural_structured_learning/research/neural_clustering/data_generators",
-        "//neural_structured_learning/research/neural_clustering/models",
-        "//neural_structured_learning/research/neural_clustering/utils",
+        "//research/neural_clustering/data_generators",
+        "//research/neural_clustering/models",
+        "//research/neural_clustering/utils",
     ],
 )
 

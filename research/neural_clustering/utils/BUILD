@@ -43,6 +43,7 @@ py_library(
 py_test(
     name = "data_utils_test",
     srcs = ["data_utils_test.py"],
+    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":data_utils",
