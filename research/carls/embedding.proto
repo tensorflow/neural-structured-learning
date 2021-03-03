@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package carls;
+
+// Representation of an embedding vector and its related information.
+message EmbeddingVectorProto {
+  // The lookup key associated with this embedding vector, e.g., normalized
+  // keywords or sample IDs.
+  string tag = 1;
+
+  // Weight of the embedding vector, usually contains global information such as
+  // word frequency or probability P(w).
+  float weight = 3;
+
+  // Embedding vector.
+  repeated float value = 2 [packed = true];
+}

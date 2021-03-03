@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package carls;
+
+import "google/protobuf/any.proto";
+
+message TestBaseProto3Def {
+  google.protobuf.Any extension = 1000;
+}
+
+message TestExtendedProto3Def {}

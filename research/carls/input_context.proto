@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package carls;
+
+// An InputContext is a list of features that provides the context of an input.
+message InputContext {
+  // Map from feature name to InputFeature.
+  map<string, InputFeature> feature = 1;
+}
+
+// A generic sparse/dense feature representation.
+// Each feature must have a unique value list, be it string, float or int.
+// To include addition information for debugging, one can use debug_info.
+message InputFeature {
+  repeated FeatureValue feature_value = 1;
+}
+
+message FeatureValue {
+  oneof feature {
+    BytesFeature bytes_feature = 1;
+    FloatFeature float_feature = 2;
+    Int64Feature int64_feature = 3;
+  }
+}
+
+message BytesFeature {
+  bytes value = 1;
+  // Weights associated with this feature vlaue.
+  repeated float weight = 2;
+  // Human-readable informaiton for each of the feature values.
+  string debug_info = 3;
+}
+
+message FloatFeature {
+  float value = 1;
+  // Weights associated with this feature vlaue.
+  repeated float weight = 2;
+  // Human-readable informaiton for each of the feature values.
+  string debug_info = 3;
+}
+
+message Int64Feature {
+  int64 value = 1;
+  // Weights associated with this feature vlaue.
+  repeated float weight = 2;
+  // Human-readable informaiton for each of the feature values.
+  string debug_info = 3;
+}

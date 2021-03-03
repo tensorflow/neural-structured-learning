@@ -1,0 +1,26 @@
+// This file defines KnowledgeBankConfig and its extensions.
+syntax = "proto3";
+
+package carls;
+
+import "google/protobuf/any.proto";
+import "research/carls/embedding.proto";
+import "research/carls/knowledge_bank/initializer.proto";
+
+message KnowledgeBankConfig {
+  // Method to initialize a new embedding.
+  EmbeddingInitializer initializer = 1;
+
+  // Implementation is encoded in extension.
+  google.protobuf.Any extension = 1000;
+}
+
+// Stores the embedding in the proto directly. Note that protocol buffer only
+// allows a small number of entries so only use this for model testing.
+message InProtoKnowledgeBankConfig {
+  // Represent the embedding data as a map from string to EmbeddingVectorProto.
+  message EmbeddingData {
+    map<string, EmbeddingVectorProto> embedding_table = 1;
+  }
+  EmbeddingData embedding_data = 1;
+}

@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package carls;
+
+import "research/carls/dynamic_embedding_config.proto";
+import "research/carls/embedding.proto";
+
+message StartSessionRequest {
+  // The config for processing embedding lookup/update.
+  DynamicEmbeddingConfig config = 1;
+
+  // The name of the Op that uses dynamic embedding.
+  // A name and a config should uniquely identify a session.
+  string name = 2;
+}
+
+message StartSessionResponse {
+  // A unique key for DES to identify this session.
+  bytes session_handle = 1;
+}
+
+message LookupRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // List of lookup keys.
+  repeated string key = 2;
+
+  // If update = true, Lookup should allocate a new entry for a new key and
+  // also count frequency, often used in feedforward path in training.
+  // Otherwise, it should just be a lookup without changing any internal
+  // information, often used in inference.
+  bool update = 3;
+}
+
+message LookupResponse {
+  // Maps from keys to their embedding.
+  map<string, EmbeddingVectorProto> embedding_table = 1;
+}
+
+message UpdateRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // A batch of keys and their new values to be updated.
+  map<string, EmbeddingVectorProto> values = 2;
+}
+
+message UpdateResponse {}
+
+// KnowledgeBankService defines the service for handling embedding lookup,
+// updates and samples.
+service KnowledgeBankService {
+  // Starts a session with the DES server.
+  rpc StartSession(StartSessionRequest) returns (StartSessionResponse);
+
+  // Lookups the embeddings from a given batch of keys.
+  rpc Lookup(LookupRequest) returns (LookupResponse);
+
+  // Updates the embedding value for a given batch keys.
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+}

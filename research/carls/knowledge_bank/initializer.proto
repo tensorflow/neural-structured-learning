@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package carls;
+
+import "research/carls/embedding.proto";
+
+message EmbeddingInitializer {
+  message ZeroInitializer {}
+
+  message RandomUniformInitializer {
+    float low = 1;
+    float high = 2;
+  }
+
+  message RandomNormalInitializer {
+    float mean = 1;
+    float stddev = 2;
+  }
+
+  oneof initializer {
+    // Default embedding for new data.
+    EmbeddingVectorProto default_embedding = 1;
+    // Set all to zero, same as tf.zero_initializer.
+    ZeroInitializer zero_initializer = 2;
+    // Set a random number between low and high.
+    // Same as tf.random_uniform_initializer.
+    RandomUniformInitializer random_uniform_initializer = 3;
+    // Set a random Gaussian distribution for given (mean, stddev).
+    // Same as tf.random_normal_initializer.
+    RandomNormalInitializer random_normal_initializer = 4;
+  }
+
+  // Used for random number generation. If true, use deterministic seed.
+  bool use_deterministic_seed = 5;
+}

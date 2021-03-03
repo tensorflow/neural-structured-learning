@@ -1,0 +1,14 @@
+syntax = "proto2";
+
+package carls;
+
+message TestBaseProto2Def {
+  optional string name = 1;
+  extensions 1000 to max;
+}
+
+message TestExtendedProto2Def {
+  extend TestBaseProto2Def {
+    optional TestExtendedProto2Def ext = 1000;
+  }
+}

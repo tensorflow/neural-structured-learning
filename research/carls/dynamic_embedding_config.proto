@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package carls;
+
+import "research/carls/knowledge_bank/knowledge_bank_config.proto";
+
+// Configurations for a DynamicEmbedding. This is used to decide which storage
+// system is used for storing embeddings and also the corresponding
+// lookup/update/sampling strategy.
+message DynamicEmbeddingConfig {
+  int32 embedding_dimension = 1;
+
+  KnowledgeBankConfig knowledge_bank_config = 2;
+}
