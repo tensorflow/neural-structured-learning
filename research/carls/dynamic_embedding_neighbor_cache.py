@@ -19,9 +19,9 @@ from __future__ import print_function
 
 import typing
 
-from neural_structured_learning.research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from neural_structured_learning.research.carls import dynamic_embedding_ops as de_ops
-from neural_structured_learning.research.carls import neighbor_cache_client as nb_cache
+from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
+from research.carls import dynamic_embedding_ops as de_ops
+from research.carls import neighbor_cache_client as nb_cache
 
 
 class DynamicEmbeddingNeighborCache(nb_cache.NeighborCacheClient):

@@ -21,8 +21,8 @@ from __future__ import print_function
 import typing
 from absl import flags
 
-from neural_structured_learning.research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from neural_structured_learning.research.carls import kbs_server_helper
+from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
+from research.carls import kbs_server_helper_pybind as kbs_server_helper
 from google.protobuf import text_format
 
 FLAGS = flags.FLAGS

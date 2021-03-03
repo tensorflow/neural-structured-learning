@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests for kbs_server_helper's python cliff library."""
 
-from neural_structured_learning.research.carls import kbs_server_helper
+from research.carls import kbs_server_helper_pybind as kbs_server_helper
 
 import tensorflow as tf
 

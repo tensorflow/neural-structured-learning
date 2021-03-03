@@ -8,6 +8,7 @@ package(
 py_binary(
     name = "graph_keras_mlp_cora",
     srcs = ["graph_keras_mlp_cora.py"],
+    data = ["//research/carls:kbs_server_helper_pybind.so"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
@@ -18,7 +19,6 @@ py_binary(
         "//research/carls:dynamic_embedding_neighbor_cache",
         "//research/carls:dynamic_embedding_ops_py",
         "//research/carls:graph_regularization",
-        "//research/carls:kbs_server_helper",
         # package tensorflow
     ],
 )

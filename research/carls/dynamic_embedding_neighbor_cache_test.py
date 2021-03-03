@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests for neural_structured_learning.research.carls.dynamic_embedding_neighbor_cache."""
 
-from neural_structured_learning.research.carls import dynamic_embedding_neighbor_cache as de_nb_cache
-from neural_structured_learning.research.carls.testing import test_util
+from research.carls import dynamic_embedding_neighbor_cache as de_nb_cache
+from research.carls.testing import test_util
 
 import tensorflow as tf
 

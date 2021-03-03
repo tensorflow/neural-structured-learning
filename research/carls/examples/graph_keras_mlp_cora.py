@@ -39,10 +39,10 @@ from absl import logging
 import attr
 
 import neural_structured_learning as nsl
-from neural_structured_learning.research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from neural_structured_learning.research.carls import dynamic_embedding_neighbor_cache as de_nb_cache
-from neural_structured_learning.research.carls import graph_regularization
-from neural_structured_learning.research.carls import kbs_server_helper
+from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
+from research.carls import dynamic_embedding_neighbor_cache as de_nb_cache
+from research.carls import graph_regularization
+from research.carls import kbs_server_helper_pybind as kbs_server_helper
 import tensorflow as tf
 from google.protobuf import text_format
 

@@ -15,8 +15,8 @@
 
 import itertools
 from absl.testing import parameterized
-from neural_structured_learning.research.carls import dynamic_embedding_ops as de_ops
-from neural_structured_learning.research.carls.testing import test_util
+from research.carls import dynamic_embedding_ops as de_ops
+from research.carls.testing import test_util
 
 import tensorflow as tf
 

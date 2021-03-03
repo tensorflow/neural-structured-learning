@@ -19,8 +19,8 @@ from __future__ import print_function
 
 import typing
 
-from neural_structured_learning.research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from neural_structured_learning.research.carls.kernels import gen_dynamic_embedding_ops
+from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
+from research.carls.kernels import gen_dynamic_embedding_ops
 import tensorflow as tf
 
 

@@ -19,8 +19,8 @@ from __future__ import print_function
 
 from absl.testing import parameterized
 import neural_structured_learning.configs as configs
-from neural_structured_learning.research.carls import graph_regularization
-from neural_structured_learning.research.carls import neighbor_cache_client as ncc
+from research.carls import graph_regularization
+from research.carls import neighbor_cache_client as ncc
 
 import numpy as np
 import tensorflow as tf

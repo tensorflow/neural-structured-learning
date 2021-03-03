@@ -61,12 +61,12 @@ py_library(
     name = "test_util",
     testonly = 1,
     srcs = ["test_util.py"],
+    data = ["//research/carls:kbs_server_helper_pybind.so"],
     srcs_version = "PY3",
     deps = [
         # package protobuf,
         # package absl/flags
         "//research/carls:dynamic_embedding_config_py_pb2",
-        "//research/carls:kbs_server_helper",
         # package tensorflow
     ],
 )
