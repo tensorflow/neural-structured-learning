@@ -64,6 +64,8 @@ class AdvNeighborConfig(object):
       (FGSM) attack.
     pgd_epsilon: radius of the epsilon ball to project back to. Only used in
       Projected Gradient Descent (PGD) attack.
+    random_init: Apply a random perturbation before FGSM/PGD steps. Default set
+      to `False` for no random initialization being applied.
   """
   feature_mask = attr.ib(default=None)
   adv_step_size = attr.ib(default=0.001)
@@ -72,6 +74,7 @@ class AdvNeighborConfig(object):
   clip_value_max = attr.ib(default=None)
   pgd_iterations = attr.ib(default=1)  # 1 is the FGSM attack.
   pgd_epsilon = attr.ib(default=None)
+  random_init = attr.ib(default=False)
 
 
 @attr.s
@@ -96,7 +99,8 @@ def make_adv_reg_config(
     clip_value_min=attr.fields(AdvNeighborConfig).clip_value_min.default,
     clip_value_max=attr.fields(AdvNeighborConfig).clip_value_max.default,
     pgd_iterations=attr.fields(AdvNeighborConfig).pgd_iterations.default,
-    pgd_epsilon=attr.fields(AdvNeighborConfig).pgd_epsilon.default):
+    pgd_epsilon=attr.fields(AdvNeighborConfig).pgd_epsilon.default,
+    random_init=attr.fields(AdvNeighborConfig).random_init.default):
   """Creates an `nsl.configs.AdvRegConfig` object.
 
   Args:
@@ -125,6 +129,8 @@ def make_adv_reg_config(
       (FGSM) attack.
     pgd_epsilon: radius of the epsilon ball to project back to. Only used in
       Projected Gradient Descent (PGD) attack.
+    random_init: Apply a random perturbation before FGSM/PGD steps. Default set
+      to `False` for no random initialization being applied.
 
   Returns:
     An `nsl.configs.AdvRegConfig` object.
@@ -138,7 +144,8 @@ def make_adv_reg_config(
           clip_value_min=clip_value_min,
           clip_value_max=clip_value_max,
           pgd_iterations=pgd_iterations,
-          pgd_epsilon=pgd_epsilon))
+          pgd_epsilon=pgd_epsilon,
+          random_init=random_init))
 
 
 class AdvTargetType(enum.Enum):

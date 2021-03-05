@@ -1162,6 +1162,32 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     }
     self.assertAllClose(expected_neighbor, actual_neighbor)
 
+  @parameterized.named_parameters([
+      ('gradient_tape', call_multi_iter_gen_adv_neighbor_with_gradient_tape),
+      ('tf_function', call_multi_iter_gen_adv_neighbor_with_tf_function),
+  ])
+  def test_gen_adv_neighbor_with_random_init(self, gen_adv_neighbor_fn):
+    feature = np.array([[0.0, 100.0, 200.0, 300.0]])
+    label = np.array([0.0])
+    weights = np.array([[-1.0], [2.0], [0.1], [-0.7]])
+    epsilon = 10.0
+
+    model_fn = lambda x: tf.linalg.matmul(x, tf.constant(weights))
+    loss_fn = lambda label, prediction: prediction - label
+    adv_config = configs.AdvNeighborConfig(
+        feature_mask=None,
+        adv_step_size=1.0,
+        adv_grad_norm='l2',
+        pgd_iterations=0,  # So only random initialization moves the feature.
+        pgd_epsilon=epsilon,
+        random_init=True)
+    adv_neighbor = gen_adv_neighbor_fn(tf.constant(feature), tf.constant(label),
+                                       model_fn, loss_fn, adv_config)
+    actual_neighbor = self.evaluate(adv_neighbor)
+    self.assertNotAllEqual(feature, actual_neighbor)
+    self.assertLessEqual(
+        np.linalg.norm(feature - actual_neighbor, ord=2), epsilon)
+
 
 if __name__ == '__main__':
   tf.test.main()

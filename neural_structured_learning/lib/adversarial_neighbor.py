@@ -93,9 +93,10 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
                pgd_model_fn=None,
                pgd_loss_fn=None,
                use_while_loop=False):
-    if adv_config.pgd_iterations > 1 and (not pgd_model_fn or not pgd_loss_fn):
+    if (adv_config.pgd_iterations > 1 or
+        adv_config.random_init) and (not pgd_model_fn or not pgd_loss_fn):
       raise ValueError('Both pgd_model_fn and pgd_loss_fn have to be specified'
-                       ' when pgd_iterations > 1.')
+                       ' when pgd_iterations > 1 or random_init is set.')
     self._labeled_loss = labeled_loss
     self._adv_config = adv_config
     self._raise_invalid_gradient = raise_invalid_gradient
@@ -173,9 +174,12 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
         negatives[key] = value
     return positives, negatives
 
-  def _apply_gradients(self, dense_features, keyed_grads,
-                       dense_original_features):
-    """Applies gradients to the features to generate perturbed features.
+  def _compute_perturbations(self, dense_features, keyed_grads,
+                             dense_original_features):
+    """Generates perturbations based on gradients and features.
+
+    This computes the steepest descent direction from the gradient, multiplies
+    by the step size, and projects into the epsilon ball.
 
     Args:
       dense_features: A dictionary of tensors at which gradients are computed.
@@ -186,7 +190,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
 
     Returns:
       A dictionary of tensors with the same structure as `dense_features`
-      representing the perturbed features.
+      representing the perturbations to be applied on `dense_original_features`.
     """
     masked_grads = {
         key: utils.apply_feature_mask(grad, self.feature_masks.get(key, None))
@@ -205,9 +209,26 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       perturbations = utils.project_to_ball(perturbations,
                                             self._adv_config.pgd_epsilon,
                                             self._adv_config.adv_grad_norm)
-    # Apply feature constraints specified in the config.
+    return perturbations
+
+  def _apply_perturbations(self, dense_features, perturbations):
+    """Applies perturbations to the features to generate perturbed features.
+
+    This adds the perturbations to the features, and clips each feature to its
+    min/max value.
+
+    Args:
+      dense_features: A dictionary of tensors representing original features.
+      perturbations: A dictionary of tensors representing the adversarial
+        perturbations. The epsilon constraint (`adv_config.pgd_epsilon`) should
+        already be satisfied.
+
+    Returns:
+      A dictionary of tensors with the same structure as `dense_features`
+      representing the perturbed features.
+    """    # Apply feature constraints specified in the config.
     perturbed_features = {}
-    for key, feature in dense_original_features.items():
+    for key, feature in dense_features.items():
       if key not in perturbations:  # No perturbation due to no gradient
         perturbed_features[key] = feature
       else:
@@ -273,24 +294,40 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
             input_features, dict(dense_features, **sparse_original_features))
         loss = self._pgd_loss_fn(pgd_labels, self._pgd_model_fn(inputs))
       keyed_grads = self._compute_gradient(loss, dense_features, gradient_tape)
-      perturbed_features = self._apply_gradients(
-          dense_features, keyed_grads, dense_original_features)
+      perturbations = self._compute_perturbations(dense_features, keyed_grads,
+                                                  dense_original_features)
+      perturbed_features = self._apply_perturbations(dense_original_features,
+                                                     perturbations)
       return (step + 1, perturbed_features)
 
-    # The first step is calculated from the given labeled loss.
-    keyed_grads = self._compute_gradient(
-        self._labeled_loss, dense_original_features, self._gradient_tape)
-    perturbed_features = self._apply_gradients(
-        dense_original_features, keyed_grads, dense_original_features)
+    if self._adv_config.random_init:
+      # Randomly pick a perturbation in the epsilon ball. If the epsilon is not
+      # set (e.g. FGSM), use the step size instead.
+      perturbations = utils.random_in_norm_ball(
+          dense_original_features,
+          self._adv_config.pgd_epsilon or self._adv_config.adv_step_size,
+          self._adv_config.adv_grad_norm)
+      start_iteration = 0
+    else:
+      # The first step is calculated from the given labeled loss.
+      keyed_grads = self._compute_gradient(self._labeled_loss,
+                                           dense_original_features,
+                                           self._gradient_tape)
+      perturbations = self._compute_perturbations(dense_original_features,
+                                                  keyed_grads,
+                                                  dense_original_features)
+      start_iteration = 1
+    perturbed_features = self._apply_perturbations(dense_original_features,
+                                                   perturbations)
 
     # Following steps in PGD.
-    if self._adv_config.pgd_iterations > 1:
+    if self._adv_config.pgd_iterations > start_iteration:
       if self._use_while_loop:
         _, perturbed_features = tf.while_loop(
             lambda i, _: tf.less(i, self._adv_config.pgd_iterations),
-            pgd_step, (tf.constant(1), perturbed_features))
+            pgd_step, (tf.constant(start_iteration), perturbed_features))
       else:
-        for i in range(1, self._adv_config.pgd_iterations):
+        for i in range(start_iteration, self._adv_config.pgd_iterations):
           _, perturbed_features = pgd_step(i, perturbed_features)
 
     # Converts the perturbed examples back to their original structure.
