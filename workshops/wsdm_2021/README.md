@@ -110,15 +110,15 @@ structured data without assuming a fixed or maximum number of clusters.
 
 In this session, we will discuss:
 
-    -   Recent research related to NSL
-    -   Building graph neural networks with NSL and the
-        [Graph Nets](https://github.com/deepmind/graph_nets) [11] library
-    -   Future directions for NSL research and development
-    -   Academic and industrial collaboration opportunities
+-   Recent research related to NSL
+-   Building graph neural networks with NSL and the
+    [Graph Nets](https://github.com/deepmind/graph_nets) [11] library
+-   Future directions for NSL research and development
+-   Academic and industrial collaboration opportunities
 
-Finally, we will conclude our tutorial with a summary of the entire session,
-provide links to various NSL resources, and share a link to a brief survey to
-get feedback on the NSL framework and the hands-on tutorial.
+We will then conclude our tutorial with a summary of the entire session, provide
+links to various NSL resources, and share a link to a brief survey to get
+feedback on the NSL framework and the hands-on tutorial.
 
 [[Slides](slides/Research_and_Future_Directions.pdf)]
 
