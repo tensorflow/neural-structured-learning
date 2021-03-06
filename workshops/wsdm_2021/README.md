@@ -39,6 +39,8 @@ We will begin the tutorial with an overview of the Neural Structured Learning
 framework and motivate the advantages of training neural networks with
 structured signals.
 
+[[Slides](slides/Introduction.pdf)]
+
 ### Data preprocessing in NSL
 
 This part of the tutorial will include a presentation discussing:
@@ -46,6 +48,8 @@ This part of the tutorial will include a presentation discussing:
 -   Graph building as a general topic including locality sensitive hashing
 -   Augmenting training data for graph-based regularization in NSL
 -   Related tools in the NSL framework
+
+[[Slides](slides/Data_Preprocessing.pdf)]
 
 ### Graph regularization using natural graphs (Lab 1)
 
@@ -56,6 +60,7 @@ inherent relationship between each other. We will demonstrate via a practical
 tutorial, the use of natural graphs for graph regularization to classify the
 veracity of public message posts.
 
+[[Slides](slides/Natural_Graphs.pdf)]
 [[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/workshops/kdd_2020/graph_regularization_pheme_natural_graph.ipynb)]
 
 ### Graph regularization using synthesized graphs (Lab 2)
@@ -67,6 +72,7 @@ for text classification using a practical tutorial. While graphs can be built in
 many ways, we will make use of text embeddings in this tutorial to build a
 graph.
 
+[[Slides](slides/Synthesized_Graphs.pdf)]
 [[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_lstm_imdb.ipynb)]
 
 ### Adversarial regularization (Lab 3)
@@ -77,6 +83,7 @@ adversarial learning techniques [3,4] like *Fast Gradient Sign Method* (FGSM)
 and *Projected Gradient Descent* (PGD) for image classification using a
 practical tutorial.
 
+[[Slides](slides/Adversarial_Learning.pdf)]
 [[Colab tutorial](https://colab.research.google.com/github/tensorflow/neural-structured-learning/blob/master/workshops/kdd_2020/adversarial_regularization_mnist.ipynb)]
 
 ### Scalable graph learning with historical embeddings
@@ -87,6 +94,8 @@ embeddings i.e, embeddings computed and stored in a previous training step, to
 make the training time nearly invariant to the size of local neighborhoods. This
 also enables the use of dynamic graphs and neighborhoods for graph learning.
 
+[[Slides](slides/CARLS.pdf)]
+
 ### Neural Clustering Process (Lab 4)
 
 In this session, we will demonstrate supervised neural clustering methods [9,
@@ -94,23 +103,24 @@ In this session, we will demonstrate supervised neural clustering methods [9,
 perform probabilistic clustering on both generic data points and graph
 structured data without assuming a fixed or maximum number of clusters.
 
+[[Slides](slides/Neural_Clustering.pdf)]
 [[Colab tutorial](https://github.com/tensorflow/neural-structured-learning/blob/master/research/neural_clustering/examples/ncp_demo_with_mog_data.ipynb)]
 
 ### Research and Future Directions
 
--   Presentation discussing:
+In this session, we will discuss:
+
     -   Recent research related to NSL
     -   Building graph neural networks with NSL and the
         [Graph Nets](https://github.com/deepmind/graph_nets) [11] library
     -   Future directions for NSL research and development
     -   Academic and industrial collaboration opportunities
 
-### Conclusion
+Finally, we will conclude our tutorial with a summary of the entire session,
+provide links to various NSL resources, and share a link to a brief survey to
+get feedback on the NSL framework and the hands-on tutorial.
 
-We will conclude our tutorial with a summary of the entire session, provide
-links to various NSL resources, and share a link to a brief survey to get
-feedback on the NSL framework and the hands-on tutorial.
-
+[[Slides](slides/Research_and_Future_Directions.pdf)]
 
 ## References
 
