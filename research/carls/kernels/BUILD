@@ -46,7 +46,6 @@ cc_library(
     alwayslink = 1,
 )
 
-
 carls_gen_op_wrapper_py(
     name = "gen_dynamic_embedding_ops_py",
     out = "gen_dynamic_embedding_ops.py",

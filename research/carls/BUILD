@@ -15,13 +15,16 @@
 # Description:
 # Build rules for CARLS APIs in Neural Structured Learning.
 
-
 # Placeholder for py clif.
 # Placeholder for internal Python strict & test compatibility macro.
 # Placeholder for cc proto.
 load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
-load("//research/carls:bazel/build_rules.bzl",
-     "carls_cc_grpc_library", "carls_py_proto_library", "carls_cc_proto_library")
+load(
+    "//research/carls:bazel/build_rules.bzl",
+    "carls_cc_grpc_library",
+    "carls_cc_proto_library",
+    "carls_py_proto_library",
+)
 
 package(
     default_visibility = [":internal"],
@@ -34,6 +37,7 @@ package_group(
         "//research/...",
     ],
 )
+
 py_library(
     name = "carls",
     srcs = ["__init__.py"],
@@ -93,12 +97,13 @@ cc_library(
     srcs = ["proto_helper.cc"],
     hdrs = ["proto_helper.h"],
     deps = [
-        "@com_google_absl//absl/strings",
         "@com_github_google_glog//:glog",
+        "@com_google_absl//absl/strings",
         "@com_google_protobuf//:cc_wkt_protos",
         "@com_google_protobuf//:protobuf",
     ],
 )
+
 cc_test(
     name = "proto_helper_test",
     srcs = ["proto_helper_test.cc"],
@@ -128,6 +133,7 @@ cc_library(
         "@com_google_protobuf//:protobuf",
     ],
 )
+
 cc_test(
     name = "proto_factory_test",
     srcs = ["proto_factory_test.cc"],
@@ -168,9 +174,9 @@ cc_library(
         ":knowledge_bank_service_cc_grpc_proto",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
+        "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
-        "@com_github_grpc_grpc//:grpc++",
     ],
 )
 
@@ -194,7 +200,6 @@ cc_library(
         # Placeholder for alternative grpc++
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
         "@com_github_grpc_grpc//:grpc++",
-
     ],
 )
 
@@ -234,15 +239,15 @@ cc_library(
     deps = [
         ":dynamic_embedding_config_cc_proto",
         ":knowledge_bank_grpc_service",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/time",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
-        "@tensorflow_includes//:includes",
-        "@tensorflow_solib//:framework_lib",
         "@com_github_grpc_grpc//:gpr_codegen",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/time",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
     ],
 )
 
@@ -257,14 +262,15 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
 py_library(
     name = "dynamic_embedding_ops_py",
     srcs = ["dynamic_embedding_ops.py"],
     srcs_version = "PY3",
     visibility = ["//visibility:public"],
-#    data = [
-#        "//research/carls/kernels:libgendynamic_embedding_ops_py_gen_op.so",
-#        ],
+    #    data = [
+    #        "//research/carls/kernels:libgendynamic_embedding_ops_py_gen_op.so",
+    #        ],
     deps = [
         ":dynamic_embedding_config_py_pb2",
         "//research/carls/kernels:gen_dynamic_embedding_ops_py",

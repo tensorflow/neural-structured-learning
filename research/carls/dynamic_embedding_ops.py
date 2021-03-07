@@ -61,9 +61,12 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
     grad_placeholder = tf.constant(0.0)
   else:
     grad_placeholder = tf.Variable(0.0)
+
+  resource = gen_dynamic_embedding_ops.dynamic_embedding_manager_resource(
+      config.SerializeToString(), var_name, service_address, timeout_ms)
+
   return gen_dynamic_embedding_ops.dynamic_embedding_lookup(
-      keys, grad_placeholder, config.SerializeToString(), var_name,
-      service_address, timeout_ms)
+      keys, grad_placeholder, resource)
 
 
 def dynamic_embedding_update(keys: tf.Tensor,
@@ -97,6 +100,8 @@ def dynamic_embedding_update(keys: tf.Tensor,
   if not var_name:
     raise TypeError("Must specify a valid var_name.")
 
+  resource = gen_dynamic_embedding_ops.dynamic_embedding_manager_resource(
+      config.SerializeToString(), var_name, service_address, timeout_ms)
+
   return gen_dynamic_embedding_ops.dynamic_embedding_update(
-      keys, values, config.SerializeToString(), var_name, service_address,
-      timeout_ms)
+      keys, values, resource)

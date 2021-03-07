@@ -238,7 +238,7 @@ def carls_gen_op_wrapper_py(name, out, kernel_lib, linkopts = [], **kwargs):
     native.genrule(
         name = module_name + "_version_script",
         outs = [version_script_file],
-        cmd = "echo '{global:\n *tensorflow*;\n *deepmind*;\n local: *;};' >$@",
+        cmd = "echo '{global:\n *tensorflow*;\n *deepmind*;\n *google*;\n local: *;};' >$@",
         output_licenses = ["unencumbered"],
         visibility = ["//visibility:private"],
     )

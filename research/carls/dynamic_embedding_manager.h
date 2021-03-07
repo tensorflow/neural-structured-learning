@@ -54,6 +54,9 @@ class DynamicEmbeddingManager {
   absl::Status UpdateValues(const tensorflow::Tensor& keys,
                             const tensorflow::Tensor& values);
 
+  // Returns DynamicEmbeddingConfig.
+  const DynamicEmbeddingConfig& config() { return config_; }
+
  private:
   absl::Status LookupInternal(const tensorflow::Tensor& keys, bool update,
                               LookupResponse* response);
