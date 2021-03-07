@@ -100,6 +100,20 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
         skip_gradient_update=skip_gradient)
     self.assertAllClose(embedding.numpy(), [[2, 4]])
 
+    # Allows keys' shape to be [N, 1] and values shape to be [N, D].
+    update_res = de_ops.dynamic_embedding_update([['first']],
+                                                 tf.constant([[4.0, 5.0]]),
+                                                 self._config, 'emb',
+                                                 kbs_address)
+    self.assertAllClose(update_res.numpy(), [[4, 5]])
+    embedding = de_ops.dynamic_embedding_lookup(
+        ['first'],
+        self._config,
+        'emb',
+        kbs_address,
+        skip_gradient_update=skip_gradient)
+    self.assertAllClose(embedding.numpy(), [[4, 5]])
+
   @parameterized.parameters({True, False})
   def testUpdate_2DInput(self, skip_gradient):
     init = self._config.knowledge_bank_config.initializer
@@ -128,18 +142,32 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(embedding.numpy(),
                         [[[2, 4], [4, 8]], [[8, 16], [0, 0]]])
 
+    # Allows keys' shape to be [N1, N2, 1] and values shape to be [N1, N2, D].
+    update_res = de_ops.dynamic_embedding_update(
+        [[['first'], ['second']], [['third'], ['']]],
+        tf.constant([[[3.0, 5.0], [5.0, 9.0]],
+                     [[9.0, 17.0], [17.0, 33.0]]]), self._config, 'emb')
+    self.assertAllClose(update_res.numpy(),
+                        [[[3, 5], [5, 9]], [[9, 17], [0, 0]]])
+    embedding = de_ops.dynamic_embedding_lookup(
+        [['first', 'second'], ['third', '']],
+        self._config,
+        'emb',
+        skip_gradient_update=skip_gradient)
+    self.assertAllClose(embedding.numpy(),
+                        [[[3, 5], [5, 9]], [[9, 17], [0, 0]]])
+
   def testWrongAddress(self):
     init = self._config.knowledge_bank_config.initializer
     init.default_embedding.value.append(1)
     init.default_embedding.value.append(2)
     with self.assertRaisesRegex(Exception,
                                 'Creating DynamicEmbeddingManager failed'):
-      de_ops.dynamic_embedding_lookup(
-          ['first', 'second', ''],
-          self._config,
-          'emb',
-          'wrongaddress',
-          timeout_ms=10)
+      de_ops.dynamic_embedding_lookup(['first', 'second', ''],
+                                      self._config,
+                                      'emb',
+                                      'wrongaddress',
+                                      timeout_ms=10)
 
 
 if __name__ == '__main__':

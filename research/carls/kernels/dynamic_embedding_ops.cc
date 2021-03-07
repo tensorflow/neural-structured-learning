@@ -116,8 +116,8 @@ class DynamicEmbeddingManagerResource : public ResourceBase {
                                   const std::string& kbs_address,
                                   absl::Duration timeout)
       : ResourceBase(),
-        manager_(DynamicEmbeddingManager::Create(config, var_name,
-                                                 kbs_address, timeout)) {}
+        manager_(DynamicEmbeddingManager::Create(config, var_name, kbs_address,
+                                                 timeout)) {}
   ~DynamicEmbeddingManagerResource() override = default;
 
   std::string DebugString() const override { return "DEM resource"; }
@@ -233,14 +233,26 @@ class DynamicEmbeddingUpdateOp : public OpKernel {
 
     const Tensor& keys_batch = context->input(0);
     const Tensor& values_batch = context->input(1);
-    OP_REQUIRES(context, values_batch.dims() == keys_batch.dims() + 1,
-                InvalidArgument("values' dimension != keys' dimension + 1."));
+
+    // Checks input dimensions.
+    // The rank of (keys, values) can either be (N, N + 1) or
+    // (N, N) when the last dimension of the keys is 1.
+    int keys_dim = keys_batch.dims();
+    if (values_batch.dims() == keys_batch.dims() &&
+        keys_batch.dim_size(keys_dim - 1) == 1) {
+      --keys_dim;
+    }
+    OP_REQUIRES(
+        context, values_batch.dims() == keys_dim + 1,
+        InvalidArgument(absl::StrCat(
+            "Incompatible input dimensions, got (dim(keys), dim(values)): (",
+            keys_batch.dims(), ", ", values_batch.dims(), ").")));
     OP_REQUIRES(
         context,
         values_batch.dim_size(values_batch.dims() - 1) == embedding_dimension,
-        InvalidArgument("values last dimension size must equal to "
+        InvalidArgument("values' last dimension size must equal to "
                         "embedding_dimension in config."));
-    for (int d = 0; d < keys_batch.dims(); ++d) {
+    for (int d = 0; d < values_batch.dims() - 1; ++d) {
       OP_REQUIRES(context, values_batch.dim_size(d) == keys_batch.dim_size(d),
                   InvalidArgument(
                       "Mismatch between the dimensions of keys and values."));
