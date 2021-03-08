@@ -102,9 +102,9 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
   std::vector<EmbeddingVectorProto> values;
   keys.reserve(request->values_size());
   values.reserve(request->values_size());
-  for (const auto& [key, value] : request->values()) {
-    keys.push_back(key);
-    values.push_back(value);
+  for (const auto& iter : request->values()) {
+    keys.push_back(iter.first);
+    values.push_back(iter.second);
   }
 
   absl::WriterMutexLock lock(&map_mu_);
