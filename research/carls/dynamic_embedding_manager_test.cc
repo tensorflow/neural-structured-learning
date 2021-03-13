@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
 #include "research/carls/kbs_server_helper.h"
 #include "research/carls/proto_helper.h"
 
@@ -91,7 +92,7 @@ TEST_F(DynamicEmbeddingManagerTest, Lookup_1DInput) {
   keys_value(0) = "first";
   keys_value(1) = "";
   Tensor output(tensorflow::DT_FLOAT, TensorShape({2, 2}));
-  ASSERT_OK(de_manager->Lookup(keys, /*update=*/true, &output));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/true, &output).ok());
   auto output_values = output.matrix<float>();
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < 2; ++j) {
@@ -115,7 +116,7 @@ TEST_F(DynamicEmbeddingManagerTest, Lookup_2DInput) {
   keys_value(1, 0) = "third";
   keys_value(1, 1) = "";
   Tensor output = Tensor(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
-  ASSERT_OK(de_manager->Lookup(keys, /*update=*/true, &output));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/true, &output).ok());
   auto output_values = output.tensor<float, 3>();
   for (int i = 0; i < 2; ++i) {
     for (int j = 0; j < 2; ++j) {
@@ -173,11 +174,11 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateValues_1DInput) {
   embed_value(1, 1) = -10;
   embed_value(2, 0) = -5;
   embed_value(2, 1) = 1;
-  ASSERT_OK(de_manager->UpdateValues(keys, embed));
+  ASSERT_TRUE(de_manager->UpdateValues(keys, embed).ok());
 
   // Check results.
   Tensor output = Tensor(tensorflow::DT_FLOAT, TensorShape({3, 2}));
-  ASSERT_OK(de_manager->Lookup(keys, /*update=*/false, &output));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/false, &output).ok());
   auto output_values = output.matrix<float>();
   EXPECT_FLOAT_EQ(-1, output_values(0, 0));
   EXPECT_FLOAT_EQ(3, output_values(0, 1));
@@ -211,11 +212,11 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateValues_2DInput) {
       }
     }
   }
-  ASSERT_OK(de_manager->UpdateValues(keys, embed));
+  ASSERT_TRUE(de_manager->UpdateValues(keys, embed).ok());
 
   // Check results.
   Tensor output = Tensor(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
-  ASSERT_OK(de_manager->Lookup(keys, /*update=*/false, &output));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/false, &output).ok());
   auto output_values = output.tensor<float, 3>();
   EXPECT_FLOAT_EQ(0, output_values(0, 0, 0));
   EXPECT_FLOAT_EQ(1, output_values(0, 0, 1));

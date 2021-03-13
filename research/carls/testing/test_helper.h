@@ -16,6 +16,7 @@ limitations under the License.
 #ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_TESTING_TEST_HELPER_H_
 #define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_TESTING_TEST_HELPER_H_
 
+#include <glog/logging.h>
 #include "google/protobuf/message.h" // proto import
 #include "google/protobuf/text_format.h" // proto import
 #include "gmock/gmock.h"

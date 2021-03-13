@@ -30,23 +30,19 @@ ABSL_FLAG(double, des_rpc_deadline_sec, 10,
           "Timeout for connecting to a DES server.");
 
 namespace carls {
-
 namespace {
 
 using ::tensorflow::tstring;
 
-
 #ifndef INTERNAL_DIE_IF_NULL
-#define INTERNAL_DIE_IF_NULL(val) \
-  DieIfNull(__FILE__, __LINE__, #val, (val))
+#define INTERNAL_DIE_IF_NULL(val) DieIfNull(__FILE__, __LINE__, #val, (val))
 #endif
 
-template <typename T> T DieIfNull(const char* file, int line,
-                                  const char* exprtext, T&& t) {
+template <typename T>
+T DieIfNull(const char* file, int line, const char* exprtext, T&& t) {
   CHECK(t != nullptr) << exprtext;
   return std::forward<T>(t);
 }
-
 
 }  // namespace
 
@@ -143,9 +139,8 @@ absl::Status DynamicEmbeddingManager::Lookup(const tensorflow::Tensor& keys,
       const auto& embedding_table = lookup_response.embedding_table();
       const auto lookup_iter = embedding_table.find(key);
       if (lookup_iter == embedding_table.end()) {
-        return absl::InternalError(
-            absl::StrCat(std::string(key),
-                         " is not in the Lookup result, unexpected."));
+        return absl::InternalError(absl::StrCat(
+            std::string(key), " is not in the Lookup result, unexpected."));
       }
       const auto& embedding = lookup_iter->second;
       for (int d = 0; d < embedding.value_size(); ++d) {
@@ -173,9 +168,8 @@ absl::Status DynamicEmbeddingManager::Lookup(const tensorflow::Tensor& keys,
       const auto& embedding_table = lookup_response.embedding_table();
       const auto lookup_iter = embedding_table.find(key);
       if (lookup_iter == embedding_table.end()) {
-        return absl::InternalError(
-            absl::StrCat(std::string(key),
-                         " is not in the Lookup result, unexpected."));
+        return absl::InternalError(absl::StrCat(
+            std::string(key), " is not in the Lookup result, unexpected."));
       }
       const auto& embedding = lookup_iter->second;
       for (int d = 0; d < embedding.value_size(); ++d) {

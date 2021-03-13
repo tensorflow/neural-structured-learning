@@ -18,9 +18,9 @@ limitations under the License.
 
 namespace carls {
 
-PYBIND11_MODULE(kbs_server_helper_pybind, m) {
+PYBIND11_MODULE(pywrap_kbs_server_helper_pybind, m) {
   m.doc() = R"pbdoc(
-    _pywrap_kbs_server_helper
+    pywrap_kbs_server_helper_pybind
     A module that returns KBS server helper
   )pbdoc";
 

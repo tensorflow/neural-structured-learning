@@ -13,6 +13,15 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "com_google_absl_py",
+    sha256 = "b3b94472335becdb3c8ef5132e84ec3d17f408526a84740a70b94c839b0894e6",
+    strip_prefix = "abseil-py-c99edd8e3dffe3667a9f086db86aa259927ac429",
+    urls = [
+        "https://github.com/abseil/abseil-py/archive/c99edd8e3dffe3667a9f086db86aa259927ac429.tar.gz",
+    ],
+)
+
 # Flags
 http_archive(
     name = "com_github_gflags_gflags",

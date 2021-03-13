@@ -18,12 +18,13 @@
 # Placeholder for py clif.
 # Placeholder for internal Python strict & test compatibility macro.
 # Placeholder for cc proto.
-load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+
 load(
     "//research/carls:bazel/build_rules.bzl",
     "carls_cc_grpc_library",
     "carls_cc_proto_library",
     "carls_py_proto_library",
+    "carls_pybind_extension",
 )
 
 package(
@@ -213,11 +214,13 @@ cc_test(
     ],
 )
 
-pybind_extension(
+carls_pybind_extension(
     name = "kbs_server_helper_pybind",
     srcs = ["kbs_server_helper_pybind.cc"],
+    module_name = "pywrap_kbs_server_helper_pybind",
     deps = [
         ":kbs_server_helper_lib",
+        "@pybind11",
     ],
 )
 
@@ -268,9 +271,6 @@ py_library(
     srcs = ["dynamic_embedding_ops.py"],
     srcs_version = "PY3",
     visibility = ["//visibility:public"],
-    #    data = [
-    #        "//research/carls/kernels:libgendynamic_embedding_ops_py_gen_op.so",
-    #        ],
     deps = [
         ":dynamic_embedding_config_py_pb2",
         "//research/carls/kernels:gen_dynamic_embedding_ops_py",
@@ -286,7 +286,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":dynamic_embedding_ops_py",
-        # package absl/testing:parameterized
+        "@com_google_absl_py//absl/testing:parameterized",
         "//research/carls/testing:test_util",
         # package tensorflow
     ],

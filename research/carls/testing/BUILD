@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,15 @@
 # limitations under the License.
 
 # Description:
-# Code for testing DynamicEmbedding related components.
+# Code for testing CARLS related components.
 
-# Placeholder for internal Python strict compatibility macro.
-# Placeholder for cc proto.
+load(
+    "//research/carls:bazel/build_rules.bzl",
+    "carls_cc_proto_library",
+)
 
 package(
-    default_visibility = [
-        ":internal",
-    ],
+    default_visibility = [":internal"],
     licenses = ["notice"],  # Apache 2.0
 )
 
@@ -32,43 +32,16 @@ package_group(
     ],
 )
 
-proto_library(
-    name = "test_proto2_proto",
+carls_cc_proto_library(
+    name = "test_proto2_cc_proto",
+    testonly = 1,
     srcs = ["test_proto2.proto"],
 )
 
-cc_proto_library(
-    name = "test_proto2_cc_proto",
-    testonly = 1,
-    deps = [":test_proto2_proto"],
-)
-
-proto_library(
-    name = "test_proto3_proto",
-    srcs = ["test_proto3.proto"],
-    deps = [
-        "@com_google_protobuf//:any_proto",
-    ],
-)
-
-cc_proto_library(
+carls_cc_proto_library(
     name = "test_proto3_cc_proto",
     testonly = 1,
-    deps = [":test_proto3_proto"],
-)
-
-py_library(
-    name = "test_util",
-    testonly = 1,
-    srcs = ["test_util.py"],
-    data = ["//research/carls:kbs_server_helper_pybind.so"],
-    srcs_version = "PY3",
-    deps = [
-        # package protobuf,
-        # package absl/flags
-        "//research/carls:dynamic_embedding_config_py_pb2",
-        # package tensorflow
-    ],
+    srcs = ["test_proto3.proto"],
 )
 
 cc_library(
@@ -76,7 +49,8 @@ cc_library(
     testonly = 1,
     hdrs = ["test_helper.h"],
     deps = [
-        "@com_google_googletest//:gtest  # gunit_for_library_testonly",
+        "@com_github_google_glog//:glog",
+        "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
     ],
 )
@@ -88,5 +62,18 @@ cc_test(
         ":test_helper",
         ":test_proto2_cc_proto",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+py_library(
+    name = "test_util",
+    testonly = 1,
+    srcs = ["test_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//research/carls:dynamic_embedding_config_py_pb2",
+        "//research/carls:kbs_server_helper_pybind",
+        "@com_google_absl_py//absl/flags",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )

@@ -15,7 +15,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import google_type_annotations
 from __future__ import print_function
 
 import typing
@@ -75,5 +74,5 @@ def start_kbs_server():
   # Starts a local KBS server.
   options = kbs_server_helper.KnowledgeBankServiceOptions(True, -1, 10)
   server = kbs_server_helper.KbsServerHelper(options)
-  FLAGS.kbs_address = "localhost:%d" % server.port()
+  # Placeholder for setting --kbs_address.
   return server
