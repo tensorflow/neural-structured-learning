@@ -38,7 +38,7 @@ tar -C ${DATA_DIR} -xvzf ${DATA_DIR}/cora.tgz
 
 # Pre-process cora dataset. The file 'preprocess_cora_dataset.py' is assumed to
 # be located in the current directory.
-python $(dirname "$0")/preprocess_cora_dataset.py \
+python3 $(dirname "$0")/preprocess_cora_dataset.py \
 --input_cora_content=${DATA_DIR}/cora/cora.content \
 --input_cora_graph=${DATA_DIR}/cora/cora.cites \
 --max_nbrs=5 \

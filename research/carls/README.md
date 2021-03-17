@@ -19,9 +19,27 @@ from source.
 
 ### Prerequisite
 
-Follow the instructions from
-[tensorflow.org](https://www.tensorflow.org/install/source#install_bazel) to
-install Bazel.
+*   Follow the instructions from
+    [tensorflow.org](https://www.tensorflow.org/install/source#install_bazel) to
+    install Bazel.
+
+*   Install TensorFlow
+
+    ```sh
+    $ pip3 install tensorflow
+    ```
+
+*   Install additional packages
+
+    ```sh
+    $ pip3 install -r neural_structured_learning/requirements.txt
+    ```
+
+*   Install neural-structured-learning
+
+    ```sh
+    $ pip3 install neural-structured-learning
+    ```
 
 ### Step One: Download the Neural Structured Leaning source code.
 
