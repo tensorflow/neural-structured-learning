@@ -19,15 +19,13 @@ from source.
 
 ### Prerequisite
 
+*   Create a virtual environment (optional) and install TensorFlow by following
+    the
+    [instructions](https://www.tensorflow.org/install/pip#2.-create-a-virtual-environment-recommended).
+
 *   Follow the instructions from
     [tensorflow.org](https://www.tensorflow.org/install/source#install_bazel) to
     install Bazel.
-
-*   Install TensorFlow
-
-    ```sh
-    $ pip3 install tensorflow
-    ```
 
 *   Install additional packages
 
