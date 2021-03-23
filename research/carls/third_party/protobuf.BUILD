@@ -4,7 +4,7 @@ PROTOC_VERSION=$$($(location @protobuf_protoc//:protoc_bin) --version \
 PROTOC_VERSION=$$(printf '%d%03d%03d' $${PROTOC_VERSION})
 TF_PROTO_VERSION=$$(grep '#define PROTOBUF_MIN_PROTOC_VERSION' \
   $(location tf_includes/google/protobuf/port_def.inc) | cut -d' ' -f3)
-if [ "$${PROTOC_VERSION}" -ne "$${TF_PROTO_VERSION}" ]; then
+if [ "$${PROTOC_VERSION}" -lt "$${TF_PROTO_VERSION}" ]; then
   echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!! 1>&2
   echo Your protoc version does not match the tensorflow proto header \
        required version: "$${PROTOC_VERSION}" vs. "$${TF_PROTO_VERSION}" 1>&2

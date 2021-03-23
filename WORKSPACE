@@ -32,6 +32,7 @@ http_archive(
         "https://github.com/gflags/gflags/archive/77592648e3f3be87d6c7123eb81cbad75f9aef5a.tar.gz",
     ],
 )
+
 # Logging
 http_archive(
     name = "com_github_google_glog",
@@ -53,16 +54,25 @@ http_archive(
 # curl -L "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" | sha256
 load("//research/carls:bazel/repo.bzl", "cc_tf_configure", "carls_protoc_deps")
 cc_tf_configure()
-PROTOC_VERSION = "3.9.0"
-PROTOC_SHA256 = "15e395b648a1a6dda8fd66868824a396e9d3e89bc2c8648e3b9ab9801bea5d55"
+
+# Load protobuf compiler, protobuf and gRPC.
+# They MUST be in sync with TensorFlow's corresponding versions defined in
+# TENSORFLOW_DIR/tensorflow/workspace2.bzl
+
+# Protobuf compiler.
+PROTOC_VERSION = "3.9.2"
+PROTOC_SHA256 = "0d9034a3b02bd77edf5ef926fb514819a0007f84252c5e6a6391ddfc4189b904"
 carls_protoc_deps(version = PROTOC_VERSION, sha256 = PROTOC_SHA256)
 
 # Protobuffer
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "8eb5ca331ab8ca0da2baea7fc0607d86c46c80845deca57109a5d637ccb93bb4",
-    strip_prefix = "protobuf-3.9.0",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.9.0.zip"],
+    sha256 = "cfcba2df10feec52a84208693937c17a4b5df7775e1635c1e3baffc487b24c9b",
+    strip_prefix = "protobuf-3.9.2",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/protobuf/archive/v3.9.2.zip",
+        "https://github.com/protocolbuffers/protobuf/archive/v3.9.2.zip",
+    ],
 )
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 protobuf_deps()
