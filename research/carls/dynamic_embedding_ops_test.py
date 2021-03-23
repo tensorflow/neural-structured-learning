@@ -18,6 +18,7 @@ from absl.testing import parameterized
 from research.carls import dynamic_embedding_ops as de_ops
 from research.carls.testing import test_util
 
+import numpy as np
 import tensorflow as tf
 
 
@@ -179,6 +180,58 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
                                       'wrongaddress',
                                       timeout_ms=10)
 
+  def testTrainingLogistic(self):
+    embedding_dimension = 5
+    self._config.embedding_dimension = embedding_dimension
+
+    # Set initial embedding to be all zero's.
+    init = self._config.knowledge_bank_config.initializer
+    for _ in range(embedding_dimension):
+      init.default_embedding.value.append(0)
+
+    # Create variables.
+    initializer = tf.ones_initializer()
+    w = tf.Variable(
+        initializer(shape=[embedding_dimension, 1], dtype=tf.float32))
+    b = tf.Variable(0.0)
+    trainable_variables = [w, b]
+
+    # Create an optimizer.
+    optimizer = tf.keras.optimizers.SGD(learning_rate=0.1)
+
+    # Conducts one step of gradient descent.
+    ids = np.array(['yes', 'no', 'good', 'bad'])
+    y = np.array([[1], [0], [1], [0]])
+    with tf.GradientTape() as tape:
+      embedding = de_ops.dynamic_embedding_lookup(
+          ids,
+          self._config,
+          'emb',
+          service_address=self._kbs_address,
+          skip_gradient_update=False)
+      logit = tf.linalg.matmul(embedding, w) + b
+      pred = 1 / (1 + tf.exp(-logit))
+      loss = y * tf.math.log(pred) + (1 - y) * tf.math.log(1 - pred)
+    grads = tape.gradient(loss, trainable_variables)
+    # Update the trainable variables w.r.t. the logistic loss
+    optimizer.apply_gradients(zip(grads, trainable_variables))
+
+    # Checks that the embeddings are updated.
+    new_embedding = de_ops.dynamic_embedding_lookup(
+        ids,
+        self._config,
+        'emb',
+        service_address=self._kbs_address,
+        skip_gradient_update=False)
+    distance = np.sum((new_embedding.numpy() - embedding.numpy())**2)
+    self.assertGreater(distance, 0)
+
+    # Checks that the new loss is smaller.
+    new_logit = tf.linalg.matmul(new_embedding, w) + b
+    new_pred = 1 / (1 + tf.exp(-new_logit))
+    new_loss = y * tf.math.log(new_pred) + (1 - y) * tf.math.log(1 - new_pred)
+    for old, new in zip(loss.numpy(), new_loss.numpy()):
+      self.assertLess(new[0], old[0])
 
 if __name__ == '__main__':
   tf.test.main()

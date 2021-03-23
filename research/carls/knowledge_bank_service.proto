@@ -44,6 +44,9 @@ message UpdateRequest {
 
   // A batch of keys and their new values to be updated.
   map<string, EmbeddingVectorProto> values = 2;
+
+  // A batch of keys and gradients to be updated.
+  map<string, EmbeddingVectorProto> gradients = 3;
 }
 
 message UpdateResponse {}

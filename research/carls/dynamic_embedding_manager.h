@@ -54,10 +54,19 @@ class DynamicEmbeddingManager {
   absl::Status UpdateValues(const tensorflow::Tensor& keys,
                             const tensorflow::Tensor& values);
 
+  // Update the gradients of the embeddings for given keys.
+  absl::Status UpdateGradients(const tensorflow::Tensor& keys,
+                               const tensorflow::Tensor& grads);
+
   // Returns DynamicEmbeddingConfig.
   const DynamicEmbeddingConfig& config() { return config_; }
 
  private:
+  // Check validity of input for both UpdateValues() and UpdateGradients().
+  absl::Status CheckInputForUpdate(const tensorflow::Tensor& keys,
+                                   const tensorflow::Tensor& values);
+
+  // Internal implementation of the Lookup() method.
   absl::Status LookupInternal(const tensorflow::Tensor& keys, bool update,
                               LookupResponse* response);
 

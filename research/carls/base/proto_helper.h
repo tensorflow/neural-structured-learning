@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_HELPER_H_
-#define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_HELPER_H_
+#ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_HELPER_H_
+#define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_HELPER_H_
 
 #include <string>
 
@@ -66,4 +66,4 @@ ProtoType ParseTextProtoOrDie(const std::string& proto_text) {
 
 }  // namespace carls
 
-#endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_HELPER_H_
+#endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_HELPER_H_

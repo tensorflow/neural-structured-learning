@@ -81,7 +81,7 @@ std::vector<absl::Status> KnowledgeBank::BatchUpdate(
     return statuses;
   }
   statuses.reserve(keys.size());
-  for (int i = 0; i < keys.size(); ++i) {
+  for (size_t i = 0; i < keys.size(); ++i) {
     statuses.emplace_back(Update(keys[i], values[i]));
   }
   return statuses;

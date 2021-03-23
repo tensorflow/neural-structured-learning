@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package carls;
 
+import "research/carls/gradient_descent/gradient_descent_config.proto";
 import "research/carls/knowledge_bank/knowledge_bank_config.proto";
 
 // Configurations for a DynamicEmbedding. This is used to decide which storage
@@ -11,4 +12,6 @@ message DynamicEmbeddingConfig {
   int32 embedding_dimension = 1;
 
   KnowledgeBankConfig knowledge_bank_config = 2;
+
+  GradientDescentConfig gradient_descent_config = 3;
 }

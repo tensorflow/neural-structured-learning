@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "grpcpp/create_channel.h"  // net
 // Placeholder for internal channel credential  // net
+#include "grpcpp/security/credentials.h"  // net
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -51,7 +52,7 @@ TEST_F(KbsServerHelperTest, StubConnection) {
   const std::string kbs_address = absl::StrCat("localhost:", helper.port());
 
   std::shared_ptr<grpc::ChannelCredentials> credentials =
-      grpc::Loas2Credentials(grpc::Loas2CredentialsOptions());
+      grpc::InsecureChannelCredentials();
   std::shared_ptr<grpc::Channel> channel =
       grpc::CreateChannel(kbs_address, credentials);
   ASSERT_TRUE(channel != nullptr);

@@ -30,13 +30,15 @@ package_group(
         "//research/...",
     ],
 )
+
 carls_cc_proto_library(
     name = "initializer_cc_proto",
-    srcs = ["initializer.proto",],
+    srcs = ["initializer.proto"],
     deps = [
         "//research/carls:embedding_cc_proto",
     ],
 )
+
 carls_py_proto_library(
     name = "initializer_py_pb2",
     srcs = ["initializer.proto"],
@@ -48,7 +50,7 @@ carls_py_proto_library(
 
 carls_cc_proto_library(
     name = "knowledge_bank_config_cc_proto",
-    srcs = ["knowledge_bank_config.proto",],
+    srcs = ["knowledge_bank_config.proto"],
     deps = [
         ":initializer_cc_proto",
         "//research/carls:embedding_cc_proto",
@@ -73,12 +75,12 @@ cc_library(
     hdrs = ["initializer_helper.h"],
     deps = [
         ":initializer_cc_proto",
+        "//research/carls:embedding_cc_proto",
         "@com_github_google_glog//:glog",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
-        "//research/carls:embedding_cc_proto",
     ],
 )
 
@@ -87,11 +89,11 @@ cc_test(
     srcs = ["initializer_helper_test.cc"],
     deps = [
         ":initializer_helper",
-         "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
+        "//research/carls:embedding_cc_proto",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
-        "//research/carls:embedding_cc_proto",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -102,10 +104,10 @@ cc_library(
     deps = [
         ":initializer_helper",
         ":knowledge_bank_config_cc_proto",
+        "//research/carls:embedding_cc_proto",
+        "//research/carls/base:proto_factory",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/strings",
-        "//research/carls:embedding_cc_proto",
-        "//research/carls:proto_factory",
     ],
 )
 
@@ -116,10 +118,10 @@ cc_test(
         ":initializer_cc_proto",
         ":initializer_helper",
         ":knowledge_bank",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -143,9 +145,9 @@ cc_test(
         ":initializer_cc_proto",
         ":initializer_helper",
         ":knowledge_bank",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )

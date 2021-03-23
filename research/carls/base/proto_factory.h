@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_FACTORY_H_
-#define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_FACTORY_H_
+#ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_FACTORY_H_
+#define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_FACTORY_H_
 
 #include "google/protobuf/descriptor.h" // proto import
 #include "google/protobuf/message.h" // proto import
@@ -25,7 +25,7 @@ limitations under the License.
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
-#include "research/carls/proto_helper.h"
+#include "research/carls/base/proto_helper.h"
 
 namespace carls {
 
@@ -154,4 +154,4 @@ absl::node_hash_map<std::string, typename FactoryBase<ProtoType, ClassType,
 
 }  // namespace carls
 
-#endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_PROTO_FACTORY_H_
+#endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_PROTO_FACTORY_H_

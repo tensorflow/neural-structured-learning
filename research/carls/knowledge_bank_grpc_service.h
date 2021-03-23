@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "grpcpp/support/status.h"  // net
 #include "absl/synchronization/mutex.h"
+#include "research/carls/gradient_descent/gradient_descent_optimizer.h"
 #include "research/carls/knowledge_bank/knowledge_bank.h"
 #include "research/carls/knowledge_bank_service.grpc.pb.h"
 
@@ -58,11 +59,14 @@ class KnowledgeBankGrpcServiceImpl final
  private:
   grpc::Status StartSessionIfNecessary(const std::string& session_handle);
 
-  // Protects map creation and deletion.
+  // Protects maps lookup and update.
   absl::Mutex map_mu_;
 
   // Maps from session_handle to EmbeddingStore.
   absl::node_hash_map<std::string, std::unique_ptr<KnowledgeBank>> es_map_;
+  // Maps from session_handle to GradientDescentOptimizer.
+  absl::node_hash_map<std::string, std::unique_ptr<GradientDescentOptimizer>>
+      gd_map_;
 };
 
 }  // namespace carls

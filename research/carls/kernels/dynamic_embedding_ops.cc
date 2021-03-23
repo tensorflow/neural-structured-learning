@@ -84,7 +84,7 @@ An operation that returns the embedding of a given set of keys.
 keys: A string Tensor of shape [batch_size] or [batch_size, max_sequence_length]
       where an empty string would be mapped to an all zero embedding.
 grad_placeholder: A dummy Tensor so that the gradients can be passed in.
-handle: a handle to DynamicEmbeddingManagerResource.
+handle: A handle to DynamicEmbeddingManagerResource.
 values: A Tensor of shape [batch_size, embedding_dimension] if the
         input Tensor is 1D, or a Tensor of shape
         [batch_size, max_sequence_length, embedding_dimension] if the
@@ -95,7 +95,7 @@ REGISTER_OP("DynamicEmbeddingUpdate")
     .Input("keys: string")
     .Input("values: float")
     .Input("handle: resource")
-    .Output("success: float")
+    .Output("results: float")
     .Doc(R"doc(
 An operation that updates the embeddings of a given set of keys in the dynamic
 embedding service.
@@ -104,7 +104,35 @@ keys: A string `Tensor` of shape [batch] or [batch_size,
       max_sequence_length].
 values: A `Tensor` of shape [batch_size, embedding_dimension] or
         [batch_size, max_sequence_length, embedding_dimension].
-handle: a handle to DynamicEmbeddingManagerResource.
+handle: A handle to DynamicEmbeddingManagerResource.
+results: A `Tensor` of the same shape as `values` representing the updated
+         embeddings of keys (same as `values` for non-empty keys and all-zero
+         embeddings for empty keys).
+)doc");
+
+REGISTER_OP("DynamicEmbeddingLookupGrad")
+    .Input("keys: string")
+    .Input("gradients: float")
+    .Input("handle: resource")
+    .Output("keys_gradients: float")
+    .Output("dummy_variable_gradients: float")
+    .Output("resource_gradients: float")
+    .Doc(R"doc(
+An operation that updates the gradients of the given `keys` by calling the
+knowledge bank service and returns the fake gradients for the
+DynamicEmbeddingLookup op.
+
+keys: A string `Tensor` of shape [batch] or [batch_size,
+      max_sequence_length].
+gradients: A `Tensor` of shape [batch_size, embedding_dimension] or
+        [batch_size, max_sequence_length, embedding_dimension].
+handle: A handle to DynamicEmbeddingManagerResource.
+keys_gradients: A float `Tensor` representing the fake gradient of the keys
+                input.
+dummy_variable_gradients: A float `Tensor` representing the fake gradient of the
+                          dummy variable input.
+resource_gradients: A float `Tensor` representing the fake gradient of the
+                    resource input.
 )doc");
 
 // Uses a ResourceOpKernel to manage the DynamicEmbeddingManager object, which
@@ -281,5 +309,47 @@ class DynamicEmbeddingUpdateOp : public OpKernel {
 REGISTER_KERNEL_BUILDER(
     Name("DynamicEmbeddingUpdate").Device(tensorflow::DEVICE_CPU),
     DynamicEmbeddingUpdateOp);
+
+class DynamicEmbeddingLookupGradOp : public OpKernel {
+ public:
+  explicit DynamicEmbeddingLookupGradOp(OpKernelConstruction* context)
+      : OpKernel(context) {}
+
+  void Compute(OpKernelContext* context) override {
+    DynamicEmbeddingManagerResource* resource;
+    OP_REQUIRES_OK(context, LookupResource(context, HandleFromInput(context, 2),
+                                           &resource));
+    OP_REQUIRES(context, resource->manager() != nullptr,
+                FailedPrecondition("Creating DynamicEmbeddingManager failed."));
+
+    const Tensor& keys_batch = context->input(0);
+    const Tensor& grad_input = context->input(1);
+
+    auto status = resource->manager()->UpdateGradients(keys_batch, grad_input);
+    OP_REQUIRES(context, status.ok(),
+                FailedPrecondition(std::string(status.message())));
+
+    // Gradient for the keys input.
+    Tensor* output_tensor = nullptr;
+    OP_REQUIRES_OK(
+        context, context->allocate_output(0, TensorShape({1}), &output_tensor));
+    auto output = output_tensor->scalar<float>();
+    output() = 0.0;
+
+    // Gradient for the dummy input, required by the TF framework.
+    OP_REQUIRES_OK(
+        context, context->allocate_output(1, TensorShape({1}), &output_tensor));
+    output_tensor->scalar<float>()() = 0;
+
+    // Gradient for the resource, required by the TF framework.
+    OP_REQUIRES_OK(
+        context, context->allocate_output(2, TensorShape({1}), &output_tensor));
+    output_tensor->scalar<float>()() = 0;
+  }
+};
+
+REGISTER_KERNEL_BUILDER(
+    Name("DynamicEmbeddingLookupGrad").Device(tensorflow::DEVICE_CPU),
+    DynamicEmbeddingLookupGradOp);
 
 }  // namespace carls

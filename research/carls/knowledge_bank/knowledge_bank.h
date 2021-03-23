@@ -18,9 +18,9 @@ limitations under the License.
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
+#include "research/carls/base/proto_factory.h"
 #include "research/carls/embedding.pb.h"  // proto to pb
 #include "research/carls/knowledge_bank/knowledge_bank_config.pb.h"  // proto to pb
-#include "research/carls/proto_factory.h"
 
 namespace carls {
 

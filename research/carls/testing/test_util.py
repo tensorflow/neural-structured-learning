@@ -61,6 +61,10 @@ def default_de_config(embedding_dimension: int,
         [type.googleapis.com/carls.InProtoKnowledgeBankConfig] {}
       }
     }
+    gradient_descent_config {
+      learning_rate: 0.1
+      sgd {}
+    }
   """ % embedding_dimension, config)
   if initial_values:
     default_embed = config.knowledge_bank_config.initializer.default_embedding

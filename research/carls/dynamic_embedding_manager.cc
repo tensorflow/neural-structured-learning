@@ -24,6 +24,7 @@ limitations under the License.
 #include "absl/time/time.h"
 #include "grpc/impl/codegen/gpr_types.h"
 #include "grpcpp/impl/codegen/client_context.h"  // third_party
+#include "research/carls/base/status_helper.h"
 
 ABSL_FLAG(std::string, kbs_address, "", "Address to a KBS server.");
 ABSL_FLAG(double, des_rpc_deadline_sec, 10,
@@ -180,12 +181,11 @@ absl::Status DynamicEmbeddingManager::Lookup(const tensorflow::Tensor& keys,
   return absl::OkStatus();
 }
 
-absl::Status DynamicEmbeddingManager::UpdateValues(
+absl::Status DynamicEmbeddingManager::CheckInputForUpdate(
     const tensorflow::Tensor& keys, const tensorflow::Tensor& values) {
   if (keys.NumElements() == 0) {
     return absl::InvalidArgumentError("Input key is empty.");
   }
-  const auto key_values = keys.flat<tstring>();
   const int num_keys = keys.NumElements();
   const int emb_dim = values.dim_size(values.dims() - 1);
   const int num_values = values.NumElements() / emb_dim;
@@ -200,6 +200,18 @@ absl::Status DynamicEmbeddingManager::UpdateValues(
         absl::StrCat("Inconsistent embedding dimension, got ", emb_dim,
                      " expect ", config_.embedding_dimension()));
   }
+  return absl::OkStatus();
+}
+
+absl::Status DynamicEmbeddingManager::UpdateValues(
+    const tensorflow::Tensor& keys, const tensorflow::Tensor& values) {
+  auto status = CheckInputForUpdate(keys, values);
+  if (!status.ok()) {
+    return status;
+  }
+  const auto key_values = keys.flat<tstring>();
+  const int num_keys = keys.NumElements();
+  const int emb_dim = values.dim_size(values.dims() - 1);
 
   UpdateRequest update_request;
   update_request.set_session_handle(session_handle_);
@@ -223,15 +235,8 @@ absl::Status DynamicEmbeddingManager::UpdateValues(
   context.set_deadline(std::chrono::system_clock::now() +
                        absl::ToChronoSeconds(absl::Seconds(
                            absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
-  const auto update_status =
-      stub_->Update(&context, update_request, &update_response);
-  if (!update_status.ok()) {
-    // TODO(xzeng): write a util method for grpc to absl status conversion.
-    return absl::Status(
-        static_cast<absl::StatusCode>(update_status.error_code()),
-        update_status.error_message());
-  }
-  return absl::OkStatus();
+  return ToAbslStatus(
+      stub_->Update(&context, update_request, &update_response));
 }
 
 absl::Status DynamicEmbeddingManager::LookupInternal(
@@ -252,10 +257,47 @@ absl::Status DynamicEmbeddingManager::LookupInternal(
   context.set_deadline(std::chrono::system_clock::now() +
                        absl::ToChronoSeconds(absl::Seconds(
                            absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
-  auto status = stub_->Lookup(&context, request, response);
-  // TODO(xzeng): write a util method for grpc to absl status conversion.
-  return absl::Status(static_cast<absl::StatusCode>(status.error_code()),
-                      status.error_message());
+  return ToAbslStatus(stub_->Lookup(&context, request, response));
+}
+
+absl::Status DynamicEmbeddingManager::UpdateGradients(
+    const tensorflow::Tensor& keys, const tensorflow::Tensor& grads) {
+  auto status = CheckInputForUpdate(keys, grads);
+  if (!status.ok()) {
+    return status;
+  }
+  const auto key_values = keys.flat<tstring>();
+  const int num_keys = keys.NumElements();
+  const int emb_dim = grads.dim_size(grads.dims() - 1);
+
+  // Prepare update request.
+  UpdateRequest update_request;
+  update_request.set_session_handle(session_handle_);
+
+  auto grad_values = grads.flat_inner_dims<float>();  // (num_keys, dim_size)
+  for (int b = 0; b < num_keys; ++b) {
+    const std::string& key_value = key_values(b);
+    if (key_value.empty()) {
+      continue;
+    }
+    auto* emb = &(*update_request.mutable_gradients())[key_value];
+    // Initializes the embedding values if they are not set.
+    while (emb->value_size() < emb_dim) {
+      emb->add_value(0.0);
+    }
+    // If a key shows up in a batch multiple times, add their gradients up.
+    for (int i = 0; i < emb_dim; ++i) {
+      emb->set_value(i, emb->value(i) + grad_values(b, i));
+    }
+  }
+
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
+  UpdateResponse update_response;
+  return ToAbslStatus(
+      stub_->Update(&context, update_request, &update_response));
 }
 
 }  // namespace carls

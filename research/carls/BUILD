@@ -65,6 +65,7 @@ carls_cc_proto_library(
     name = "dynamic_embedding_config_cc_proto",
     srcs = ["dynamic_embedding_config.proto"],
     deps = [
+        "//research/carls/gradient_descent:gradient_descent_config_cc_proto",
         "//research/carls/knowledge_bank:knowledge_bank_config_cc_proto",
     ],
 )
@@ -74,6 +75,7 @@ carls_py_proto_library(
     srcs = ["dynamic_embedding_config.proto"],
     deps = [
         ":dynamic_embedding_config_cc_proto",
+        "//research/carls/gradient_descent:gradient_descent_config_py_pb2",
         "//research/carls/knowledge_bank:knowledge_bank_config_py_pb2",
     ],
 )
@@ -91,59 +93,6 @@ carls_cc_grpc_library(
     name = "knowledge_bank_service_cc_grpc_proto",
     srcs = ["knowledge_bank_service.proto"],
     deps = [":knowledge_bank_service_cc_proto"],
-)
-
-cc_library(
-    name = "proto_helper",
-    srcs = ["proto_helper.cc"],
-    hdrs = ["proto_helper.h"],
-    deps = [
-        "@com_github_google_glog//:glog",
-        "@com_google_absl//absl/strings",
-        "@com_google_protobuf//:cc_wkt_protos",
-        "@com_google_protobuf//:protobuf",
-    ],
-)
-
-cc_test(
-    name = "proto_helper_test",
-    srcs = ["proto_helper_test.cc"],
-    deps = [
-        ":proto_helper",
-        "//research/carls/testing:test_proto2_cc_proto",
-        "//research/carls/testing:test_proto3_cc_proto",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:cc_wkt_protos",
-    ],
-)
-
-cc_library(
-    name = "proto_factory",
-    hdrs = [
-        "proto_factory.h",
-    ],
-    deps = [
-        ":proto_helper",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:node_hash_map",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_protobuf//:protobuf",
-    ],
-)
-
-cc_test(
-    name = "proto_factory_test",
-    srcs = ["proto_factory_test.cc"],
-    deps = [
-        ":proto_factory",
-        "//research/carls/testing:test_proto3_cc_proto",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
-    ],
 )
 
 py_library(
@@ -173,6 +122,7 @@ cc_library(
     hdrs = ["knowledge_bank_grpc_service.h"],
     deps = [
         ":knowledge_bank_service_cc_grpc_proto",
+        "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
         "@com_github_grpc_grpc//:grpc++",
@@ -186,7 +136,8 @@ cc_test(
     srcs = ["knowledge_bank_grpc_service_test.cc"],
     deps = [
         ":knowledge_bank_grpc_service",
-        ":proto_helper",
+        "//research/carls/base:proto_helper",
+        "//research/carls/testing:test_helper",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_googletest//:gtest_main",
     ],
@@ -242,6 +193,7 @@ cc_library(
     deps = [
         ":dynamic_embedding_config_cc_proto",
         ":knowledge_bank_grpc_service",
+        "//research/carls/base:status_helper",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
         "@com_github_grpc_grpc//:gpr_codegen",
         "@com_github_grpc_grpc//:grpc++",
@@ -260,7 +212,7 @@ cc_test(
     deps = [
         ":dynamic_embedding_manager",
         ":kbs_server_helper_lib",
-        ":proto_helper",
+        "//research/carls/base:proto_helper",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_googletest//:gtest_main",
     ],

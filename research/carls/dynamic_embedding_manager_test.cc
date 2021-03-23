@@ -20,8 +20,8 @@ limitations under the License.
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_format.h"
+#include "research/carls/base/proto_helper.h"
 #include "research/carls/kbs_server_helper.h"
-#include "research/carls/proto_helper.h"
 
 namespace carls {
 
@@ -33,7 +33,8 @@ class DynamicEmbeddingManagerTest : public ::testing::Test {
  protected:
   DynamicEmbeddingManagerTest() {}
 
-  DynamicEmbeddingConfig BuildConfig(int dimension) {
+  DynamicEmbeddingConfig BuildConfig(const int dimension,
+                                     const float learning_rate = 0.1f) {
     return ParseTextProtoOrDie<DynamicEmbeddingConfig>(
         absl::StrFormat(R"(
         embedding_dimension: %d
@@ -43,8 +44,12 @@ class DynamicEmbeddingManagerTest : public ::testing::Test {
             [type.googleapis.com/carls.InProtoKnowledgeBankConfig] {}
           }
         }
+        gradient_descent_config {
+          learning_rate: %f
+          sgd {}
+        }
       )",
-                        dimension));
+                        dimension, learning_rate));
   }
 };
 
@@ -227,6 +232,89 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateValues_2DInput) {
   // For empty input, it returns all zeros.
   EXPECT_FLOAT_EQ(0, output_values(1, 1, 0));
   EXPECT_FLOAT_EQ(0, output_values(1, 1, 1));
+}
+
+TEST_F(DynamicEmbeddingManagerTest, UpdateGradients_1DInput) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  const std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/2);
+  auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  Tensor keys(tensorflow::DT_STRING, TensorShape({3}));
+  auto keys_value = keys.vec<tstring>();
+  keys_value(0) = "first";
+  keys_value(1) = "second";
+  keys_value(2) = "third";
+  // Initial update returns all zeros.
+  Tensor embed = Tensor(tensorflow::DT_FLOAT, TensorShape({3, 2}));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/true, &embed).ok());
+
+  // Updates the gradients using SGD.
+  Tensor grads(tensorflow::DT_FLOAT, TensorShape({3, 2}));
+  auto grads_values = grads.matrix<float>();
+  grads_values(0, 0) = 1;
+  grads_values(0, 1) = 2;
+  grads_values(1, 0) = 3;
+  grads_values(1, 1) = 4;
+  grads_values(2, 0) = 5;
+  grads_values(2, 1) = 6;
+  ASSERT_TRUE(de_manager->UpdateGradients(keys, grads).ok());
+
+  // Check results with learning rate set to 0.1.
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/false, &embed).ok());
+  auto embed_values = embed.matrix<float>();
+  EXPECT_FLOAT_EQ(-0.1, embed_values(0, 0));
+  EXPECT_FLOAT_EQ(-0.2, embed_values(0, 1));
+  EXPECT_FLOAT_EQ(-0.3, embed_values(1, 0));
+  EXPECT_FLOAT_EQ(-0.4, embed_values(1, 1));
+  EXPECT_FLOAT_EQ(-0.5, embed_values(2, 0));
+  EXPECT_FLOAT_EQ(-0.6, embed_values(2, 1));
+}
+
+TEST_F(DynamicEmbeddingManagerTest, UpdateGradients_2DInput) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/2);
+  auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  Tensor keys(tensorflow::DT_STRING, TensorShape({2, 2}));
+  auto keys_value = keys.matrix<tstring>();
+  keys_value(0, 0) = "first";
+  keys_value(0, 1) = "second";
+  keys_value(1, 0) = "third";
+  keys_value(1, 1) = "";
+  // Initial update returns all zeros.
+  Tensor embed(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/true, &embed).ok());
+
+  Tensor grads(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
+  auto grads_values = grads.tensor<float, 3>();
+  int val = 0;
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      for (int k = 0; k < 2; ++k) {
+        grads_values(i, j, k) = val++;
+      }
+    }
+  }
+  ASSERT_TRUE(de_manager->UpdateGradients(keys, grads).ok());
+
+  // Check results with learning rate set to 0.1.
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/false, &embed).ok());
+  auto embed_values = embed.tensor<float, 3>();
+  EXPECT_FLOAT_EQ(0, embed_values(0, 0, 0));
+  EXPECT_FLOAT_EQ(-0.1, embed_values(0, 0, 1));
+  EXPECT_FLOAT_EQ(-0.2, embed_values(0, 1, 0));
+  EXPECT_FLOAT_EQ(-0.3, embed_values(0, 1, 1));
+  EXPECT_FLOAT_EQ(-0.4, embed_values(1, 0, 0));
+  EXPECT_FLOAT_EQ(-0.5, embed_values(1, 0, 1));
+  // For empty input, it returns all zeros.
+  EXPECT_FLOAT_EQ(0, embed_values(1, 1, 0));
+  EXPECT_FLOAT_EQ(0, embed_values(1, 1, 1));
 }
 
 }  // namespace carls

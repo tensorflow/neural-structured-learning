@@ -20,7 +20,7 @@ from __future__ import print_function
 import typing
 
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from research.carls.kernels import gen_dynamic_embedding_ops
+from research.carls.kernels import gen_dynamic_embedding_ops as gen_de_op
 import tensorflow as tf
 
 
@@ -62,11 +62,10 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
   else:
     grad_placeholder = tf.Variable(0.0)
 
-  resource = gen_dynamic_embedding_ops.dynamic_embedding_manager_resource(
+  resource = gen_de_op.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  return gen_dynamic_embedding_ops.dynamic_embedding_lookup(
-      keys, grad_placeholder, resource)
+  return gen_de_op.dynamic_embedding_lookup(keys, grad_placeholder, resource)
 
 
 def dynamic_embedding_update(keys: tf.Tensor,
@@ -100,8 +99,25 @@ def dynamic_embedding_update(keys: tf.Tensor,
   if not var_name:
     raise TypeError("Must specify a valid var_name.")
 
-  resource = gen_dynamic_embedding_ops.dynamic_embedding_manager_resource(
+  resource = gen_de_op.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  return gen_dynamic_embedding_ops.dynamic_embedding_update(
-      keys, values, resource)
+  return gen_de_op.dynamic_embedding_update(keys, values, resource)
+
+
+@tf.RegisterGradient("DynamicEmbeddingLookup")
+def _dynamic_embedding_lookup_grad(op, grad):
+  """The gradient for DynamicEmbeddingLookup.
+
+  Args:
+    op: The gen_de_op.dynamic_embedding_lookup() op.
+    grad: The tensor representing the gradient w.r.t. the output of the
+      gen_de_op.dynamic_embedding_lookup() op.
+
+  Returns:
+    The gradients w.r.t. the input of the gen_de_op.dynamic_embedding_lookup()
+    op.
+  """
+  grad = tf.reshape(grad, [-1, grad.shape[-1]])
+  return gen_de_op.dynamic_embedding_lookup_grad(op.inputs[0], grad,
+                                                 op.inputs[2])

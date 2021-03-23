@@ -17,13 +17,13 @@ limitations under the License.
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "research/carls/proto_helper.h"
+#include "research/carls/base/proto_helper.h"
+#include "research/carls/testing/test_helper.h"
 
 namespace carls {
 namespace {
 
 using ::grpc::ServerContext;
-using ::testing::EqualsProto;
 
 }  // namespace
 
@@ -88,8 +88,9 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Lookup_EmptyInput) {
   StartSessionResponse start_response;
   start_request.set_name("emb1");
   *start_request.mutable_config() = de_config_;
-  ASSERT_OK(
-      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(
+      kbs_server_.StartSession(&context_, &start_request, &start_response)
+          .ok());
   ASSERT_TRUE(!start_response.session_handle().empty());
   const auto& session_handle = start_response.session_handle();
 
@@ -108,8 +109,9 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Lookup_ValidInput) {
   StartSessionResponse start_response;
   start_request.set_name("emb1");
   *start_request.mutable_config() = de_config_;
-  ASSERT_OK(
-      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(
+      kbs_server_.StartSession(&context_, &start_request, &start_response)
+          .ok());
   ASSERT_TRUE(!start_response.session_handle().empty());
   const auto& session_handle = start_response.session_handle();
 
@@ -120,7 +122,7 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Lookup_ValidInput) {
   request.set_update(true);
   request.add_key("key1");
   EXPECT_OK(kbs_server_.Lookup(&context_, &request, &response));
-  EXPECT_THAT(response, EqualsProto(R"(
+  EXPECT_THAT(response, EqualsProto<LookupResponse>(R"(
                 embedding_table {
                   key: "key1"
                   value { tag: "key1" value: 0 value: 0 weight: 1 }
@@ -129,35 +131,49 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Lookup_ValidInput) {
 
   // Multiple keys.
   request.add_key("key2");
-  ASSERT_OK(kbs_server_.Lookup(&context_, &request, &response));
-  EXPECT_THAT(response, EqualsProto(R"(
-                embedding_table {
-                  key: "key1"
-                  value { tag: "key1" value: 0 value: 0 weight: 2 }
-                }
-                embedding_table {
-                  key: "key2"
-                  value { tag: "key2" value: 0 value: 0 weight: 1 }
-                }
-              )"));
+  ASSERT_TRUE(kbs_server_.Lookup(&context_, &request, &response).ok());
+  LookupResponse expected_response = ParseTextProtoOrDie<LookupResponse>(R"(
+    embedding_table {
+      key: "key1"
+      value { tag: "key1" value: 0 value: 0 weight: 2 }
+    }
+    embedding_table {
+      key: "key2"
+      value { tag: "key2" value: 0 value: 0 weight: 1 }
+    }
+  )");
+  ASSERT_EQ(2, response.embedding_table().size());
+  ASSERT_TRUE(response.embedding_table().contains("key1"));
+  ASSERT_TRUE(response.embedding_table().contains("key2"));
+  EXPECT_THAT(response.embedding_table().at("key1"),
+              EqualsProto(expected_response.embedding_table().at("key1")));
+  EXPECT_THAT(response.embedding_table().at("key2"),
+              EqualsProto(expected_response.embedding_table().at("key2")));
 
   // No update, valid keys.
   request.set_update(false);
-  ASSERT_OK(kbs_server_.Lookup(&context_, &request, &response));
-  EXPECT_THAT(response, EqualsProto(R"(
-                embedding_table {
-                  key: "key1"
-                  value { tag: "key1" value: 0 value: 0 weight: 2 }
-                }
-                embedding_table {
-                  key: "key2"
-                  value { tag: "key2" value: 0 value: 0 weight: 1 }
-                }
-              )"));
+  ASSERT_TRUE(kbs_server_.Lookup(&context_, &request, &response).ok());
+  expected_response = ParseTextProtoOrDie<LookupResponse>(R"(
+    embedding_table {
+      key: "key1"
+      value { tag: "key1" value: 0 value: 0 weight: 2 }
+    }
+    embedding_table {
+      key: "key2"
+      value { tag: "key2" value: 0 value: 0 weight: 1 }
+    }
+  )");
+  ASSERT_EQ(2, response.embedding_table().size());
+  ASSERT_TRUE(response.embedding_table().contains("key1"));
+  ASSERT_TRUE(response.embedding_table().contains("key2"));
+  EXPECT_THAT(response.embedding_table().at("key1"),
+              EqualsProto(expected_response.embedding_table().at("key1")));
+  EXPECT_THAT(response.embedding_table().at("key2"),
+              EqualsProto(expected_response.embedding_table().at("key2")));
 
   // No update, invalid keys.
   request.add_key("oov");
-  ASSERT_OK(kbs_server_.Lookup(&context_, &request, &response));
+  ASSERT_TRUE(kbs_server_.Lookup(&context_, &request, &response).ok());
   // Only 2 results returned.
   EXPECT_EQ(2, response.embedding_table().size());
 }
@@ -175,17 +191,24 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Lookup_ColdStart) {
       )");
   request.set_session_handle(start_request.SerializeAsString());
   LookupResponse response;
-  ASSERT_OK(kbs_server_new.Lookup(&context_, &request, &response));
-  EXPECT_THAT(response, EqualsProto(R"(
-                embedding_table {
-                  key: "key1"
-                  value { tag: "key1" value: 0 value: 0 weight: 1 }
-                }
-                embedding_table {
-                  key: "key2"
-                  value { tag: "key2" value: 0 value: 0 weight: 1 }
-                }
-              )"));
+  ASSERT_TRUE(kbs_server_new.Lookup(&context_, &request, &response).ok());
+  LookupResponse expected_response = ParseTextProtoOrDie<LookupResponse>(R"(
+    embedding_table {
+      key: "key1"
+      value { tag: "key1" value: 0 value: 0 weight: 1 }
+    }
+    embedding_table {
+      key: "key2"
+      value { tag: "key2" value: 0 value: 0 weight: 1 }
+    }
+  )");
+  ASSERT_EQ(2, response.embedding_table().size());
+  ASSERT_TRUE(response.embedding_table().contains("key1"));
+  ASSERT_TRUE(response.embedding_table().contains("key2"));
+  EXPECT_THAT(response.embedding_table().at("key1"),
+              EqualsProto(expected_response.embedding_table().at("key1")));
+  EXPECT_THAT(response.embedding_table().at("key2"),
+              EqualsProto(expected_response.embedding_table().at("key2")));
 }
 
 TEST_F(KnowledgeBankGrpcServiceImplTest, Update_EmptyInput) {
@@ -194,8 +217,9 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Update_EmptyInput) {
   StartSessionResponse start_response;
   start_request.set_name("emb1");
   *start_request.mutable_config() = de_config_;
-  ASSERT_OK(
-      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(
+      kbs_server_.StartSession(&context_, &start_request, &start_response)
+          .ok());
   ASSERT_TRUE(!start_response.session_handle().empty());
   const auto& session_handle = start_response.session_handle();
 
@@ -211,14 +235,15 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Update_EmptyInput) {
   EXPECT_EQ("input is empty.", status.error_message());
 }
 
-TEST_F(KnowledgeBankGrpcServiceImplTest, Update_ValidInput) {
+TEST_F(KnowledgeBankGrpcServiceImplTest, UpdateEmbedding) {
   // Starts a valid session.
   StartSessionRequest start_request;
   StartSessionResponse start_response;
   start_request.set_name("emb1");
   *start_request.mutable_config() = de_config_;
-  ASSERT_OK(
-      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(
+      kbs_server_.StartSession(&context_, &start_request, &start_response)
+          .ok());
   ASSERT_TRUE(!start_response.session_handle().empty());
   const auto& session_handle = start_response.session_handle();
 
@@ -239,7 +264,7 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Update_ValidInput) {
   lookup_request.set_update(true);
   lookup_request.add_key("key1");
   EXPECT_OK(kbs_server_.Lookup(&context_, &lookup_request, &lookup_response));
-  EXPECT_THAT(lookup_response, EqualsProto(R"(
+  EXPECT_THAT(lookup_response, EqualsProto<LookupResponse>(R"(
                 embedding_table {
                   key: "key1"
                   value { value: 1 value: 2 weight: 1 }
@@ -256,17 +281,83 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Update_ValidInput) {
 
   // Check results.
   lookup_request.add_key("key2");
-  ASSERT_OK(kbs_server_.Lookup(&context_, &lookup_request, &lookup_response));
-  EXPECT_THAT(lookup_response, EqualsProto(R"(
+  ASSERT_TRUE(
+      kbs_server_.Lookup(&context_, &lookup_request, &lookup_response).ok());
+  LookupResponse expected_response = ParseTextProtoOrDie<LookupResponse>(R"(
+    embedding_table {
+      key: "key1"
+      value { value: 1 value: 2 weight: 2 }
+    }
+    embedding_table {
+      key: "key2"
+      value { value: 3 value: 4 weight: 1 }
+    }
+  )");
+  ASSERT_EQ(2, lookup_response.embedding_table().size());
+  ASSERT_TRUE(lookup_response.embedding_table().contains("key1"));
+  ASSERT_TRUE(lookup_response.embedding_table().contains("key2"));
+  EXPECT_THAT(lookup_response.embedding_table().at("key1"),
+              EqualsProto(expected_response.embedding_table().at("key1")));
+  EXPECT_THAT(lookup_response.embedding_table().at("key2"),
+              EqualsProto(expected_response.embedding_table().at("key2")));
+}
+
+TEST_F(KnowledgeBankGrpcServiceImplTest, UpdateGradient) {
+  // Starts a valid session.
+  StartSessionRequest start_request;
+  StartSessionResponse start_response;
+  start_request.set_name("emb1");
+  de_config_.mutable_gradient_descent_config()->set_learning_rate(0.1);
+  de_config_.mutable_gradient_descent_config()->mutable_sgd();
+  *start_request.mutable_config() = de_config_;
+  ASSERT_TRUE(
+      kbs_server_.StartSession(&context_, &start_request, &start_response)
+          .ok());
+  ASSERT_TRUE(!start_response.session_handle().empty());
+  const auto& session_handle = start_response.session_handle();
+
+  // Update the gradient of a non-existential key.
+  UpdateRequest update_request;
+  UpdateResponse update_response;
+  update_request.set_session_handle(session_handle);
+  (*update_request.mutable_gradients())["key1"] =
+      ParseTextProtoOrDie<EmbeddingVectorProto>(R"(
+        value: 0.1 value: 0.2
+      )");
+  auto status =
+      kbs_server_.Update(&context_, &update_request, &update_response);
+  ASSERT_FALSE(status.ok());
+  EXPECT_EQ("No valid keys for gradient update.", status.error_message());
+
+  // Add embedding into the store.
+  LookupRequest lookup_request;
+  LookupResponse lookup_response;
+  lookup_request.set_session_handle(session_handle);
+  lookup_request.set_update(true);
+  lookup_request.add_key("key1");
+  EXPECT_OK(kbs_server_.Lookup(&context_, &lookup_request, &lookup_response));
+  EXPECT_THAT(lookup_response, EqualsProto<LookupResponse>(R"(
                 embedding_table {
                   key: "key1"
-                  value { value: 1 value: 2 weight: 2 }
-                }
-                embedding_table {
-                  key: "key2"
-                  value { value: 3 value: 4 weight: 1 }
+                  value { tag: "key1" value: 0 value: 0 weight: 1 }
                 }
               )"));
+
+  // Now update the gradients.
+  status = kbs_server_.Update(&context_, &update_request, &update_response);
+  ASSERT_TRUE(status.ok());
+
+  // Check results.
+  ASSERT_TRUE(
+      kbs_server_.Lookup(&context_, &lookup_request, &lookup_response).ok());
+  ASSERT_EQ(1, lookup_response.embedding_table_size());
+  ASSERT_TRUE(lookup_response.embedding_table().contains("key1"));
+  const auto embed = lookup_response.embedding_table().at("key1");
+  EXPECT_EQ("key1", embed.tag());
+  ASSERT_EQ(2, embed.value_size());
+  EXPECT_FLOAT_EQ(-0.01, embed.value(0));
+  EXPECT_FLOAT_EQ(-0.02, embed.value(1));
+  EXPECT_FLOAT_EQ(2, embed.weight());
 }
 
 }  // namespace carls

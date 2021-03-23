@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "research/carls/proto_helper.h"
+#include "research/carls/base/proto_helper.h"
 
 #include "google/protobuf/any.pb.h"  // proto to pb
 #include "gtest/gtest.h"

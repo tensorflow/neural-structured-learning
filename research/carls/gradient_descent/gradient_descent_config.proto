@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package carls;
+
+// Config for gradient descent algorithms used in knowledge bank service.
+// Each time the server receives the gradients of the embedding data, it
+// applies the corresponding optimizer to update the embedding data.
+// Gradient update is conducted on the server side to facilitate asynchronous
+// update.
+message GradientDescentConfig {
+  // Learning rate is used by most algorithms.
+  float learning_rate = 1;
+
+  message SGD {}
+  message AdaGrad {
+    // Initial value for Adagrad accumulator. Recommended value is 0.1.
+    float init_accumulator_value = 1;
+  }
+
+  oneof optimizer {
+    SGD sgd = 2;
+    AdaGrad adagrad = 3;
+  }
+}
