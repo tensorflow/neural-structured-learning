@@ -22,4 +22,14 @@ absl::Status ToAbslStatus(const grpc::Status& status) {
                       status.error_message());
 }
 
+absl::Status ToAbslStatus(const tensorflow::Status& status) {
+  return absl::Status(static_cast<absl::StatusCode>(status.code()),
+                      status.error_message());
+}
+
+grpc::Status ToGrpcStatus(const absl::Status& status) {
+  return grpc::Status(static_cast<grpc::StatusCode>(status.code()),
+                      std::string(status.message()));
+}
+
 }  // namespace carls

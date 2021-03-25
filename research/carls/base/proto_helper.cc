@@ -18,7 +18,9 @@ limitations under the License.
 #include <vector>
 
 #include "google/protobuf/any.pb.h"  // proto to pb
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
+#include "research/carls/base/file_helper.h"
 
 namespace carls {
 namespace {
@@ -62,6 +64,82 @@ std::string GetExtensionType<Proto3AnyField>(const google::protobuf::Message& me
     }
   }
   return message.GetDescriptor()->full_name();  // No more extension.
+}
+
+absl::Status WriteBinaryProto(const std::string& filename,
+                              const google::protobuf::Message& proto,/*proto2*/
+                              bool can_overwrite) {
+  if (!proto.IsInitialized()) {
+    return absl::Status(
+        absl::StatusCode::kFailedPrecondition,
+        absl::StrCat("Cannot serialize proto, missing required field ",
+                     proto.InitializationErrorString()));
+  }
+  return WriteFileString(filename, proto.SerializeAsString(), can_overwrite);
+}
+
+absl::Status ReadBinaryProto(const std::string& filename,
+                             google::protobuf::Message* proto) {/*proto2*/
+  CHECK(proto != nullptr);
+  std::string data;
+  auto status = ReadFileString(filename, &data);
+  if (!status.ok()) {
+    return status;
+  }
+
+  if (!proto->ParsePartialFromString(data)) {
+    return absl::Status(
+        absl::StatusCode::kFailedPrecondition,
+        absl::StrCat("Could not parse file contents of ", filename,
+                     " as wire-format protobuf of type ",
+                     proto->GetTypeName()));
+  }
+  if (!proto->IsInitialized()) {
+    return absl::Status(absl::StatusCode::kFailedPrecondition,
+                        absl::StrCat("Could not parse file contents of ",
+                                     filename, ", result uninitialized: ",
+                                     proto->InitializationErrorString()));
+  }
+
+  return absl::OkStatus();
+}
+
+absl::Status WriteTextProto(const std::string& filename,
+                            const google::protobuf::Message& proto, bool can_overwrite) {/*proto2*/
+  std::string text_proto;
+  if (!proto.IsInitialized()) {
+    return absl::Status(
+        absl::StatusCode::kFailedPrecondition,
+        absl::StrCat("Cannot serialize proto, missing required field ",
+                     proto.InitializationErrorString()));
+  }
+  if (!google::protobuf::TextFormat::PrintToString(proto, &text_proto)) {/*proto2*/
+    return absl::Status(
+        absl::StatusCode::kFailedPrecondition,
+        absl::StrCat(
+            "Failed to convert proto to text for saving to ", filename,
+            " (this generally stems from massive protobufs that either "
+            "exhaust memory or overflow a 32-bit buffer somewhere)."));
+  }
+  return WriteFileString(filename, text_proto, can_overwrite);
+}
+
+absl::Status ReadTextProto(const std::string& filename,
+                           google::protobuf::Message* proto) {/*proto2*/
+  std::string text_proto;
+  auto status = ReadFileString(filename, &text_proto);
+  if (!status.ok()) {
+    return status;
+  }
+
+  google::protobuf::TextFormat::Parser parser;/*proto2*/
+  if (!parser.ParseFromString(text_proto, proto)) {
+    return absl::Status(
+        absl::StatusCode::kInternal,
+        absl::StrCat("Parsing text proto failed when reading file: ",
+                     filename));
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace carls

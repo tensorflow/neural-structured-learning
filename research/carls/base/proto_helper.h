@@ -22,6 +22,7 @@ limitations under the License.
 #include "google/protobuf/descriptor.h" // proto import
 #include "google/protobuf/message.h" // proto import
 #include "google/protobuf/text_format.h" // proto import
+#include "absl/status/status.h"
 
 namespace carls {
 
@@ -63,6 +64,21 @@ ProtoType ParseTextProtoOrDie(const std::string& proto_text) {
   CHECK(google::protobuf::TextFormat::ParseFromString(proto_text, &proto));/*proto2*/
   return proto;
 }
+
+// Writes a protocol buffer in its binary form to the given filename.
+absl::Status WriteBinaryProto(const std::string& filename,
+                              const google::protobuf::Message& proto, bool can_overwrite);/*proto2*/
+
+// Reads a protocol buffer from its binary form saved to given filename.
+absl::Status ReadBinaryProto(const std::string& filename,
+                             google::protobuf::Message* proto);/*proto2*/
+
+// Writes a protocol buffer in its text form to the given filename.
+absl::Status WriteTextProto(const std::string& filename,
+                            const google::protobuf::Message& proto, bool can_overwrite);/*proto2*/
+
+// Read a protocol buffer from its text form saved to the given filename.
+absl::Status ReadTextProto(const std::string& filename, google::protobuf::Message* proto);/*proto2*/
 
 }  // namespace carls
 

@@ -21,7 +21,7 @@ limitations under the License.
 #include <unistd.h>
 
 // Placeholder for internal server credential  // net
-#include "net/util/ports.h"
+// Placeholder for netutil
 #include "grpcpp/server_builder.h"  // third_party
 
 namespace carls {

@@ -29,7 +29,9 @@ cc_library(
     srcs = ["proto_helper.cc"],
     hdrs = ["proto_helper.h"],
     deps = [
+        ":file_helper",
         "@com_github_google_glog//:glog",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_protobuf//:cc_wkt_protos",
         "@com_google_protobuf//:protobuf",
@@ -40,6 +42,7 @@ cc_test(
     name = "proto_helper_test",
     srcs = ["proto_helper_test.cc"],
     deps = [
+        ":file_helper",
         ":proto_helper",
         "//research/carls/testing:test_proto2_cc_proto",
         "//research/carls/testing:test_proto3_cc_proto",
@@ -84,5 +87,28 @@ cc_library(
     deps = [
         "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/status",
+        "@tensorflow_includes//:includes",
+    ],
+)
+
+cc_library(
+    name = "file_helper",
+    srcs = ["file_helper.cc"],
+    hdrs = ["file_helper.h"],
+    deps = [
+        ":status_helper",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@tensorflow_includes//:includes",
+    ],
+)
+
+cc_test(
+    name = "file_helper_test",
+    srcs = ["file_helper_test.cc"],
+    deps = [
+        ":file_helper",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )

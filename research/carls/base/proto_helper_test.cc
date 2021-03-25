@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "google/protobuf/any.pb.h"  // proto to pb
 #include "gtest/gtest.h"
+#include "research/carls/base/file_helper.h"
 #include "research/carls/testing/test_proto2.pb.h"  // proto to pb
 #include "research/carls/testing/test_proto3.pb.h"  // proto to pb
 
@@ -54,6 +55,46 @@ TEST(ProtoHelperTest, ParseTextProtoOrDie) {
     name: "test proto"
   )");
   EXPECT_DEATH(ParseTextProtoOrDie<TestBaseProto2Def>("invalid: 'name'"), "");
+}
+
+TEST(ProtoHelperTest, WriteAndReadBinaryProto) {
+  TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"(
+    name: "test proto"
+  )");
+  std::string filepath =
+      JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/proto1.bin");
+  auto status = WriteBinaryProto(filepath, test_proto, /*can_overwrite=*/true);
+  EXPECT_TRUE(status.ok());
+
+  TestBaseProto2Def test_proto_result;
+  ASSERT_TRUE(ReadBinaryProto(filepath, &test_proto_result).ok());
+  EXPECT_EQ("test proto", test_proto_result.name());
+
+  // Test can_overwrite = false.
+  status = WriteBinaryProto(filepath, test_proto, /*can_overwrite=*/false);
+  EXPECT_FALSE(status.ok());
+}
+
+TEST(ProtoHelperTest, WriteAndReadTextProto) {
+  TestBaseProto2Def test_proto =
+      ParseTextProtoOrDie<TestBaseProto2Def>("name: 'test proto'");
+  std::string filepath =
+      JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/proto2.bin");
+  auto status = WriteTextProto(filepath, test_proto, /*can_overwrite=*/true);
+  EXPECT_TRUE(status.ok());
+
+  TestBaseProto2Def test_proto_result;
+  ASSERT_TRUE(ReadTextProto(filepath, &test_proto_result).ok());
+  EXPECT_EQ("test proto", test_proto_result.name());
+
+  // Test can_overwrite = false.
+  status = WriteTextProto(filepath, test_proto, /*can_overwrite=*/false);
+  EXPECT_FALSE(status.ok());
+
+  // Checks the content of the saved file.
+  std::string content;
+  ASSERT_TRUE(ReadFileString(filepath, &content).ok());
+  EXPECT_EQ("name: \"test proto\"\n", content);
 }
 
 }  // namespace carls

@@ -21,13 +21,32 @@ limitations under the License.
 
 namespace carls {
 
-TEST(ProtoFactoryTest, ToAbslStatus) {
+TEST(ProtoFactoryTest, ToAbslStatus_Grpc) {
   EXPECT_EQ(absl::OkStatus(), ToAbslStatus(grpc::Status::OK));
 
   auto grpc_status = grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Error.");
   auto absl_status = ToAbslStatus(grpc_status);
   EXPECT_EQ("Error.", absl_status.message());
   EXPECT_TRUE(absl::IsInvalidArgument(absl_status));
+}
+
+TEST(ProtoFactoryTest, ToAbslStatus_TensorFlow) {
+  EXPECT_EQ(absl::OkStatus(), ToAbslStatus(tensorflow::Status::OK()));
+
+  auto tf_status =
+      tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Error.");
+  auto absl_status = ToAbslStatus(tf_status);
+  EXPECT_EQ("Error.", absl_status.message());
+  EXPECT_TRUE(absl::IsInvalidArgument(absl_status));
+}
+
+TEST(ProtoFactoryTest, ToGrpcStatus) {
+  EXPECT_EQ(grpc::Status::OK, ToGrpcStatus(absl::OkStatus()));
+
+  auto absl_status = absl::InvalidArgumentError("Error.");
+  auto grpc_status = ToGrpcStatus(absl_status);
+  EXPECT_EQ("Error.", grpc_status.error_message());
+  EXPECT_EQ(grpc::StatusCode::INVALID_ARGUMENT, grpc_status.error_code());
 }
 
 }  // namespace carls

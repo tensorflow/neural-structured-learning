@@ -18,10 +18,18 @@ limitations under the License.
 
 #include "absl/status/status.h"
 #include "grpcpp/impl/codegen/client_context.h"  // third_party
+#include "tensorflow/core/platform/status.h"
 
 namespace carls {
 
+// Converts from grpc::Status to absl::Status.
 absl::Status ToAbslStatus(const grpc::Status& status);
+
+// Converts from tensorflow::Status to absl::Status.
+absl::Status ToAbslStatus(const tensorflow::Status& status);
+
+// Converts from absl::Status to grpc::Status.
+grpc::Status ToGrpcStatus(const absl::Status& status);
 
 }  // namespace carls
 
