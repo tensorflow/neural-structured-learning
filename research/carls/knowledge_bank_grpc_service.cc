@@ -20,6 +20,7 @@ limitations under the License.
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "research/carls/base/status_helper.h"
 
 namespace carls {
 namespace {
@@ -67,10 +68,10 @@ Status KnowledgeBankGrpcServiceImpl::Lookup(grpc::ServerContext* context,
   absl::ReaderMutexLock lock(&map_mu_);
   std::vector<absl::variant<EmbeddingVectorProto, std::string>> value_or_errors;
   if (request->update()) {
-    es_map_[request->session_handle()]->BatchLookupWithUpdate(keys,
+    kb_map_[request->session_handle()]->BatchLookupWithUpdate(keys,
                                                               &value_or_errors);
   } else {
-    es_map_[request->session_handle()]->BatchLookup(keys, &value_or_errors);
+    kb_map_[request->session_handle()]->BatchLookup(keys, &value_or_errors);
   }
   if (value_or_errors.size() != keys.size()) {
     return Status(StatusCode::INTERNAL,
@@ -112,7 +113,7 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
     }
 
     absl::WriterMutexLock lock(&map_mu_);
-    es_map_[request->session_handle()]->BatchUpdate(keys, values);
+    kb_map_[request->session_handle()]->BatchUpdate(keys, values);
   }
 
   if (!request->gradients().empty()) {
@@ -140,7 +141,7 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
     // Step One: find the embeddings of given keys.
     std::vector<absl::variant<EmbeddingVectorProto, std::string>>
         value_or_errors;
-    es_map_[request->session_handle()]->BatchLookup(keys, &value_or_errors);
+    kb_map_[request->session_handle()]->BatchLookup(keys, &value_or_errors);
 
     if (value_or_errors.size() != keys.size()) {
       return Status(StatusCode::INTERNAL,
@@ -169,15 +170,55 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
     }
 
     // Step Three: update the embeddings.
-    es_map_[request->session_handle()]->BatchUpdate(valid_keys,
+    kb_map_[request->session_handle()]->BatchUpdate(valid_keys,
                                                     updated_embeddings);
   }
   return Status::OK;
 }
 
+Status KnowledgeBankGrpcServiceImpl::Export(grpc::ServerContext* context,
+                                            const ExportRequest* request,
+                                            ExportResponse* response) {
+  if (request->session_handle().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "session_handle is empty.");
+  }
+  if (request->export_directory().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "export_directory is empty.");
+  }
+  const auto status = StartSessionIfNecessary(request->session_handle());
+  if (!status.ok()) {
+    return status;
+  }
+  StartSessionRequest start_request;
+  start_request.ParseFromString(request->session_handle());
+  absl::MutexLock lock(&map_mu_);
+  return ToGrpcStatus(kb_map_[request->session_handle()]->Export(
+      request->export_directory(), start_request.name(),
+      response->mutable_knowledge_bank_saved_path()));
+}
+
+Status KnowledgeBankGrpcServiceImpl::Import(grpc::ServerContext* context,
+                                            const ImportRequest* request,
+                                            ImportResponse* response) {
+  if (request->session_handle().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "session_handle is empty.");
+  }
+  if (request->knowledge_bank_saved_path().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT,
+                  "knowledge_bank_saved_path is empty.");
+  }
+  const auto status = StartSessionIfNecessary(request->session_handle());
+  if (!status.ok()) {
+    return status;
+  }
+  absl::MutexLock lock(&map_mu_);
+  return ToGrpcStatus(kb_map_[request->session_handle()]->Import(
+      request->knowledge_bank_saved_path()));
+}
+
 size_t KnowledgeBankGrpcServiceImpl::KnowledgeBankSize() {
   absl::ReaderMutexLock lock(&map_mu_);
-  return es_map_.size();
+  return kb_map_.size();
 }
 
 Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
@@ -185,7 +226,7 @@ Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
   StartSessionRequest request;
   request.ParseFromString(session_handle);
   absl::MutexLock lock(&map_mu_);
-  if (!es_map_.contains(session_handle)) {
+  if (!kb_map_.contains(session_handle)) {
     // Creates a new KnowledgeBank.
     auto knowledge_bank =
         KnowledgeBankFactory::Make(request.config().knowledge_bank_config(),
@@ -193,7 +234,7 @@ Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
     if (knowledge_bank == nullptr) {
       return Status(StatusCode::INTERNAL, "Creating KnowledgeBank failed.");
     }
-    es_map_[session_handle] = std::move(knowledge_bank);
+    kb_map_[session_handle] = std::move(knowledge_bank);
   }
   if (request.config().has_gradient_descent_config() &&
       !gd_map_.contains(session_handle)) {

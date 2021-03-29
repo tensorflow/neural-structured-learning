@@ -122,6 +122,7 @@ cc_library(
     hdrs = ["knowledge_bank_grpc_service.h"],
     deps = [
         ":knowledge_bank_service_cc_grpc_proto",
+        "//research/carls/base:status_helper",
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
@@ -136,9 +137,11 @@ cc_test(
     srcs = ["knowledge_bank_grpc_service_test.cc"],
     deps = [
         ":knowledge_bank_grpc_service",
+        "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",
         "//research/carls/testing:test_helper",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -51,6 +51,29 @@ message UpdateRequest {
 
 message UpdateResponse {}
 
+message ExportRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // Path to the export directory.
+  string export_directory = 2;
+}
+
+message ExportResponse {
+  // The saved path for knowledge bank.
+  string knowledge_bank_saved_path = 1;
+}
+
+message ImportRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // The saved path for knowledge bank.
+  string knowledge_bank_saved_path = 2;
+}
+
+message ImportResponse {}
+
 // KnowledgeBankService defines the service for handling embedding lookup,
 // updates and samples.
 service KnowledgeBankService {
@@ -62,4 +85,10 @@ service KnowledgeBankService {
 
   // Updates the embedding value for a given batch keys.
   rpc Update(UpdateRequest) returns (UpdateResponse);
+
+  // Exports current model to a given directory with timestamped subdir.
+  rpc Export(ExportRequest) returns (ExportResponse);
+
+  // Imports the state of DES for a given session_handle.
+  rpc Import(ImportRequest) returns (ImportResponse);
 }

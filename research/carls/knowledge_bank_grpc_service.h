@@ -53,6 +53,16 @@ class KnowledgeBankGrpcServiceImpl final
                       const UpdateRequest* request,
                       UpdateResponse* response) override;
 
+  // Implements the Export method of KnowledgeBankService.
+  grpc::Status Export(grpc::ServerContext* context,
+                      const ExportRequest* request,
+                      ExportResponse* response) override;
+
+  // Implements the Import method of KnowledgeBankService.
+  grpc::Status Import(grpc::ServerContext* context,
+                      const ImportRequest* request,
+                      ImportResponse* response) override;
+
   // Returns the number of KnowledgeBank already loaded into KBS.
   size_t KnowledgeBankSize();
 
@@ -62,8 +72,8 @@ class KnowledgeBankGrpcServiceImpl final
   // Protects maps lookup and update.
   absl::Mutex map_mu_;
 
-  // Maps from session_handle to EmbeddingStore.
-  absl::node_hash_map<std::string, std::unique_ptr<KnowledgeBank>> es_map_;
+  // Maps from session_handle to KnowledgeBank.
+  absl::node_hash_map<std::string, std::unique_ptr<KnowledgeBank>> kb_map_;
   // Maps from session_handle to GradientDescentOptimizer.
   absl::node_hash_map<std::string, std::unique_ptr<GradientDescentOptimizer>>
       gd_map_;
