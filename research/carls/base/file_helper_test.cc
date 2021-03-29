@@ -20,6 +20,8 @@ limitations under the License.
 
 namespace carls {
 
+using ::testing::TempDir;
+
 TEST(FileHelperTest, JoinPath) {
   EXPECT_EQ("/foo/bar", JoinPath("/foo", "bar"));
   EXPECT_EQ("/foo/bar", JoinPath("/foo/", "bar"));
@@ -30,7 +32,7 @@ TEST(FileHelperTest, JoinPath) {
 }
 
 TEST(FileHelperTest, WriteAndReadFileString) {
-  std::string filepath = JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/data");
+  std::string filepath = JoinPath(TempDir(), "/data");
 
   std::string data("saved data");
   ASSERT_TRUE(WriteFileString(filepath, data, /*can_overwrite=*/true).ok());
@@ -43,13 +45,12 @@ TEST(FileHelperTest, WriteAndReadFileString) {
   EXPECT_FALSE(WriteFileString(filepath, data, /*can_overwrite=*/false).ok());
 
   // Non-existent file.
-  filepath = JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/non_exist_data");
+  filepath = JoinPath(TempDir(), "/non_exist_data");
   EXPECT_FALSE(ReadFileString(filepath, &result).ok());
 }
 
 TEST(FileHelperTest, IsDirectory) {
-  std::string dirname =
-      JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/dir/subdir");
+  std::string dirname = JoinPath(TempDir(), "/dir/subdir");
   ASSERT_TRUE(RecursivelyCreateDir(dirname).ok());
   EXPECT_TRUE(IsDirectory(dirname).ok());
 }

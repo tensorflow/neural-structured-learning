@@ -85,9 +85,21 @@ cc_library(
     srcs = ["status_helper.cc"],
     hdrs = ["status_helper.h"],
     deps = [
+        "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/status",
         "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+)
+
+cc_test(
+    name = "status_helper_test",
+    srcs = ["status_helper_test.cc"],
+    deps = [
+        ":status_helper",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -99,7 +111,7 @@ cc_library(
         ":status_helper",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
-        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
     ],
 )
 

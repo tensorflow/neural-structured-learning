@@ -41,7 +41,7 @@ TEST(ProtoFactoryTest, ToAbslStatus_TensorFlow) {
 }
 
 TEST(ProtoFactoryTest, ToGrpcStatus) {
-  EXPECT_EQ(grpc::Status::OK, ToGrpcStatus(absl::OkStatus()));
+  EXPECT_TRUE(ToGrpcStatus(absl::OkStatus()).ok());
 
   auto absl_status = absl::InvalidArgumentError("Error.");
   auto grpc_status = ToGrpcStatus(absl_status);

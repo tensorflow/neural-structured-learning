@@ -23,6 +23,8 @@ limitations under the License.
 
 namespace carls {
 
+using ::testing::TempDir;
+
 TEST(ProtoHelperTest, GetProto2ExtensionType) {
   // Without extension.
   TestBaseProto2Def test_proto;
@@ -61,8 +63,7 @@ TEST(ProtoHelperTest, WriteAndReadBinaryProto) {
   TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"(
     name: "test proto"
   )");
-  std::string filepath =
-      JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/proto1.bin");
+  std::string filepath = JoinPath(TempDir(), "/proto1.bin");
   auto status = WriteBinaryProto(filepath, test_proto, /*can_overwrite=*/true);
   EXPECT_TRUE(status.ok());
 
@@ -78,8 +79,7 @@ TEST(ProtoHelperTest, WriteAndReadBinaryProto) {
 TEST(ProtoHelperTest, WriteAndReadTextProto) {
   TestBaseProto2Def test_proto =
       ParseTextProtoOrDie<TestBaseProto2Def>("name: 'test proto'");
-  std::string filepath =
-      JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "/proto2.bin");
+  std::string filepath = JoinPath(TempDir(), "/proto2.bin");
   auto status = WriteTextProto(filepath, test_proto, /*can_overwrite=*/true);
   EXPECT_TRUE(status.ok());
 
