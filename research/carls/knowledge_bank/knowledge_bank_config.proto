@@ -24,3 +24,13 @@ message InProtoKnowledgeBankConfig {
   }
   EmbeddingData embedding_data = 1;
 }
+
+// MetaData for restoring the state of a KnowledgeBank.
+message KnowledgeBankCheckpointMetaData {
+  // config from the base KnowledgeBank class.
+  KnowledgeBankConfig config = 1;
+
+  // This is used by the subclass implementation of KnowledgeBank to restore
+  // its state.
+  string checkpoint_saved_path = 2;
+}

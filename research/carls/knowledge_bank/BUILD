@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Description:
-# Codes related to KnowledgeBank component for CARLS.
+# Code related to KnowledgeBank component for CARLS.
 
 load("//research/carls:bazel/build_rules.bzl", "carls_cc_proto_library", "carls_py_proto_library")
 
@@ -90,8 +90,10 @@ cc_test(
     deps = [
         ":initializer_helper",
         "//research/carls:embedding_cc_proto",
+        "//research/carls/testing:test_helper",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -105,8 +107,11 @@ cc_library(
         ":initializer_helper",
         ":knowledge_bank_config_cc_proto",
         "//research/carls:embedding_cc_proto",
+        "//research/carls/base:file_helper",
         "//research/carls/base:proto_factory",
+        "//research/carls/base:proto_helper",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -118,6 +123,8 @@ cc_test(
         ":initializer_cc_proto",
         ":initializer_helper",
         ":knowledge_bank",
+        "//research/carls/base:file_helper",
+        "//research/carls/testing:test_helper",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest",
@@ -131,6 +138,8 @@ cc_library(
     deps = [
         ":initializer_helper",
         ":knowledge_bank",
+        "//research/carls/base:file_helper",
+        "//research/carls/base:proto_helper",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
     ],
@@ -143,10 +152,10 @@ cc_test(
     deps = [
         ":in_proto_knowledge_bank",
         ":initializer_cc_proto",
-        ":initializer_helper",
         ":knowledge_bank",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/status",
+        "//research/carls/base:file_helper",
+        "//research/carls/base:proto_helper",
+        "//research/carls/testing:test_helper",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],

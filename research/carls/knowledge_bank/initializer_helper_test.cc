@@ -19,53 +19,54 @@ limitations under the License.
 #include "gtest/gtest.h"
 #include "absl/random/random.h"
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
 #include "research/carls/embedding.pb.h"  // proto to pb
+#include "research/carls/testing/test_helper.h"
 
 namespace carls {
-
-using ::testing::EqualsProto;
-using ::testing::HasSubstr;
-using ::testing::status::StatusIs;
 
 TEST(InitializerHelperTest, ValidateInitializer) {
   EmbeddingInitializer initializer;
 
   // Empty initializer.
-  EXPECT_THAT(ValidateInitializer(/*embedding_dimension=*/1, initializer),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("Initializer is not supported: ")));
+  auto status = ValidateInitializer(/*embedding_dimension=*/1, initializer);
+  EXPECT_EQ(absl::StatusCode::kInvalidArgument, status.code());
+  EXPECT_TRUE(
+      absl::StrContains(status.message(), "Initializer is not supported: "));
 
   // Default initializer.
   initializer.mutable_default_embedding()->add_value(1.0);
-  EXPECT_THAT(
-      ValidateInitializer(/*embedding_dimension=*/2, initializer),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("Inconsistent dimension of default_embedding: ")));
+  status = ValidateInitializer(/*embedding_dimension=*/2, initializer);
+  EXPECT_EQ(absl::StatusCode::kInvalidArgument, status.code());
+  EXPECT_TRUE(absl::StrContains(
+      status.message(), "Inconsistent dimension of default_embedding: "));
   initializer.mutable_default_embedding()->add_value(1.0);
-  EXPECT_OK(ValidateInitializer(/*embedding_dimension=*/2, initializer));
+  EXPECT_TRUE(ValidateInitializer(/*embedding_dimension=*/2, initializer).ok());
 
   // Zero initializer.
   initializer.mutable_zero_initializer();
-  EXPECT_OK(ValidateInitializer(/*embedding_dimension=*/2, initializer));
+  EXPECT_TRUE(ValidateInitializer(/*embedding_dimension=*/2, initializer).ok());
 
   // Random uniform initializer.
   initializer.mutable_random_uniform_initializer()->set_low(1.0);
   initializer.mutable_random_uniform_initializer()->set_high(-1.0);
-  EXPECT_THAT(ValidateInitializer(/*embedding_dimension=*/2, initializer),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("Invalid (low, high) pair: ")));
+  status = ValidateInitializer(/*embedding_dimension=*/2, initializer);
+  EXPECT_EQ(absl::StatusCode::kInvalidArgument, status.code());
+  EXPECT_TRUE(
+      absl::StrContains(status.message(), "Invalid (low, high) pair: "));
   initializer.mutable_random_uniform_initializer()->set_low(-1.0);
   initializer.mutable_random_uniform_initializer()->set_high(1.0);
-  EXPECT_OK(ValidateInitializer(/*embedding_dimension=*/2, initializer));
+  EXPECT_TRUE(ValidateInitializer(/*embedding_dimension=*/2, initializer).ok());
 
   // Random normal initializer.
   initializer.mutable_random_normal_initializer()->set_mean(1.0);
   initializer.mutable_random_normal_initializer()->set_stddev(-1.0);
-  EXPECT_THAT(ValidateInitializer(/*embedding_dimension=*/2, initializer),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("stddev should be greater than 0.")));
+  status = ValidateInitializer(/*embedding_dimension=*/2, initializer);
+  EXPECT_EQ(absl::StatusCode::kInvalidArgument, status.code());
+  EXPECT_TRUE(
+      absl::StrContains(status.message(), "stddev should be greater than 0."));
   initializer.mutable_random_normal_initializer()->set_stddev(1.0);
-  EXPECT_OK(ValidateInitializer(/*embedding_dimension=*/2, initializer));
+  EXPECT_TRUE(ValidateInitializer(/*embedding_dimension=*/2, initializer).ok());
 }
 
 TEST(InitializerHelperTest, InitializeEmbedding) {
@@ -74,16 +75,16 @@ TEST(InitializerHelperTest, InitializeEmbedding) {
   // Default embedding.
   initializer.mutable_default_embedding()->add_value(1.0);
   initializer.mutable_default_embedding()->add_value(2.0);
-  EXPECT_THAT(InitializeEmbedding(2, initializer), EqualsProto(R"(
-                value: 1.0
-                value: 2.0
+  EXPECT_THAT(InitializeEmbedding(2, initializer),
+              EqualsProto<EmbeddingVectorProto>(R"(
+                value: 1.0 value: 2.0
               )"));
 
   // Zero initializer.
   initializer.mutable_zero_initializer();
-  EXPECT_THAT(InitializeEmbedding(2, initializer), EqualsProto(R"(
-                value: 0.0
-                value: 0.0
+  EXPECT_THAT(InitializeEmbedding(2, initializer),
+              EqualsProto<EmbeddingVectorProto>(R"(
+                value: 0.0 value: 0.0
               )"));
 
   // Random uniform initializer.
@@ -107,14 +108,14 @@ TEST(InitializerHelperTest, InitializeEmbeddingWithDeterministicSeed) {
   initializer.mutable_default_embedding()->add_value(1.0);
   initializer.mutable_default_embedding()->add_value(2.0);
   EXPECT_THAT(InitializeEmbeddingWithSeed(2, initializer, &eng, &mu),
-              EqualsProto(R"(
+              EqualsProto<EmbeddingVectorProto>(R"(
                 value: 1.0 value: 2.0
               )"));
 
   // Zero initializer.
   initializer.mutable_zero_initializer();
   EXPECT_THAT(InitializeEmbeddingWithSeed(2, initializer, &eng, &mu),
-              EqualsProto(R"(
+              EqualsProto<EmbeddingVectorProto>(R"(
                 value: 0.0 value: 0.0
               )"));
 
@@ -122,17 +123,18 @@ TEST(InitializerHelperTest, InitializeEmbeddingWithDeterministicSeed) {
   initializer.mutable_random_uniform_initializer()->set_low(-1.0);
   initializer.mutable_random_uniform_initializer()->set_high(1.0);
   EXPECT_THAT(InitializeEmbeddingWithSeed(2, initializer, &eng, &mu),
-              EqualsProto(R"(
-                value: -0.20330858 value: -0.6722764
+              EqualsProto<EmbeddingVectorProto>(R"(
+                value: -0.20330858
+                value: -0.6722764
               )"));
 
   // Random normal initializer.
   initializer.mutable_random_normal_initializer()->set_mean(1.0);
   initializer.mutable_random_normal_initializer()->set_stddev(1.0);
-  EXPECT_THAT(InitializeEmbeddingWithSeed(2, initializer, &eng, &mu),
-              EqualsProto(R"(
-                value: 1.8027948 value: 1.2439967
-              )"));
+  auto result = InitializeEmbeddingWithSeed(2, initializer, &eng, &mu);
+  // The order of the first two numbers may differ between oss and internal
+  // versions, so we only compare their sum.
+  EXPECT_FLOAT_EQ(1.8027948 + 1.2439967, result.value(0) + result.value(1));
 }
 
 }  // namespace carls

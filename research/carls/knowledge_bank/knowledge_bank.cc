@@ -15,9 +15,17 @@ limitations under the License.
 
 #include "research/carls/knowledge_bank/knowledge_bank.h"
 
+#include "absl/status/status.h"
+#include "research/carls/base/file_helper.h"
+#include "research/carls/base/proto_helper.h"
 #include "research/carls/knowledge_bank/initializer_helper.h"
 
 namespace carls {
+namespace {
+
+constexpr char kSavedMetadataFilename[] = "embedding_store_meta_data.pbtxt";
+
+}  // namespace
 
 KnowledgeBank::KnowledgeBank(const KnowledgeBankConfig& config,
                              const int embedding_dimension)
@@ -85,6 +93,56 @@ std::vector<absl::Status> KnowledgeBank::BatchUpdate(
     statuses.emplace_back(Update(keys[i], values[i]));
   }
   return statuses;
+}
+
+absl::Status KnowledgeBank::Export(const std::string& export_directory,
+                                   const std::string& subdir,
+                                   std::string* checkpoint) {
+  CHECK(checkpoint != nullptr);
+  if (!IsDirectory(export_directory).ok()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Nonexistent export_directory:", export_directory));
+  }
+  const std::string dirname = JoinPath(export_directory, subdir);
+  if (!IsDirectory(dirname).ok()) {
+    // This directory may have already been created by other tasks.
+    auto status = RecursivelyCreateDir(dirname);
+    if (!status.ok()) {
+      return absl::InternalError(absl::StrCat(
+          "RecursivelyCreateDir failed with error:", status.message()));
+    }
+  }
+  std::string exported_path;
+  auto status = ExportInternal(dirname, &exported_path);
+  if (!status.ok()) {
+    return status;
+  }
+
+  KnowledgeBankCheckpointMetaData meta_data;
+  *meta_data.mutable_config() = config_;
+  *meta_data.mutable_checkpoint_saved_path() = exported_path;
+  // Output Summary.
+  *checkpoint = JoinPath(dirname, kSavedMetadataFilename);
+  status = WriteTextProto(*checkpoint, meta_data, /*can_overwrite=*/true);
+  if (!status.ok()) {
+    return status;
+  }
+  return absl::OkStatus();
+}
+
+absl::Status KnowledgeBank::Import(const std::string& saved_path) {
+  KnowledgeBankCheckpointMetaData meta_data;
+  auto status = ReadTextProto(saved_path, &meta_data);
+  if (!status.ok()) {
+    return status;
+  }
+  if (!meta_data.checkpoint_saved_path().empty()) {
+    auto status = ImportInternal(meta_data.checkpoint_saved_path());
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace carls

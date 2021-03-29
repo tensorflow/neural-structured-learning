@@ -33,14 +33,14 @@ namespace carls {
 constexpr absl::string_view ExtensionName() { return "extension"; }
 
 // Macros for registering a base class with factory type.
-#define REGISTER_KNOWLEDGE_BANK_BASE_CLASS_0(base_proto_type, base_class_type, \
-                                             base_factory_type)                \
-  using base_factory_type =                                                    \
+#define REGISTER_CARLS_BASE_CLASS_0(base_proto_type, base_class_type, \
+                                    base_factory_type)                \
+  using base_factory_type =                                           \
       ::carls::FactoryBase<base_proto_type, base_class_type>
 
 // Macros for registering a newly derived factory.
-#define REGISTER_KNOWLEDGE_BANK_FACTORY_0(proto_type, factory_type,         \
-                                          base_proto_type, base_class_type) \
+#define REGISTER_CARLS_FACTORY_0(proto_type, factory_type, base_proto_type, \
+                                 base_class_type)                           \
   static bool g_##proto_type##_##base_proto_type##__object = [] {           \
     ::carls::FactoryBase<base_proto_type, base_class_type>::Register(       \
         proto_type::default_instance().GetDescriptor()->full_name(),        \
@@ -49,14 +49,14 @@ constexpr absl::string_view ExtensionName() { return "extension"; }
   }();
 
 // Macros for registering a base class with one additional param.
-#define REGISTER_KNOWLEDGE_BANK_BASE_CLASS_1(base_proto_type, base_class_type, \
-                                             base_factory_type, params1_type)  \
-  using base_factory_type =                                                    \
+#define REGISTER_CARLS_BASE_CLASS_1(base_proto_type, base_class_type, \
+                                    base_factory_type, params1_type)  \
+  using base_factory_type =                                           \
       ::carls::FactoryBase<base_proto_type, base_class_type, params1_type>
 
 // Macros for registering a newly derived factory with one addition param.
-#define REGISTER_KNOWLEDGE_BANK_FACTORY_1(                                    \
-    proto_type, factory_type, base_proto_type, base_class_type, params1_type) \
+#define REGISTER_CARLS_FACTORY_1(proto_type, factory_type, base_proto_type,   \
+                                 base_class_type, params1_type)               \
   static bool g_##proto_type##_##base_proto_type##__object = [] {             \
     ::carls::FactoryBase<base_proto_type, base_class_type, params1_type>::    \
         Register(proto_type::default_instance().GetDescriptor()->full_name(), \

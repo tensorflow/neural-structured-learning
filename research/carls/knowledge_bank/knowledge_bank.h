@@ -17,6 +17,7 @@ limitations under the License.
 #define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_KNOWLEDGE_BANK_KNOWLEDGE_BANK_H_
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "research/carls/base/proto_factory.h"
 #include "research/carls/embedding.pb.h"  // proto to pb
@@ -24,10 +25,10 @@ limitations under the License.
 
 namespace carls {
 
-// Macro for registering an embedding store implementation.
-#define REGISTER_KNOWLEDGE_BANK_FACTORY(proto_type, factory_type) \
-  REGISTER_KNOWLEDGE_BANK_FACTORY_1(proto_type, factory_type,     \
-                                    KnowledgeBankConfig, KnowledgeBank, int)
+// Macro for registering a knowledge bank implementation.
+#define REGISTER_KNOWLEDGE_BANK_FACTORY(proto_type, factory_type)         \
+  REGISTER_CARLS_FACTORY_1(proto_type, factory_type, KnowledgeBankConfig, \
+                           KnowledgeBank, int)
 
 // Base class for an KnowledgeBank.
 class KnowledgeBank {
@@ -71,22 +72,46 @@ class KnowledgeBank {
       const std::vector<absl::string_view>& keys,
       const std::vector<EmbeddingVectorProto>& values);
 
+  // Exports current data to a timestamped output directory with given subdir,
+  // e.g., %export_directory%/%subdir%
+  // The checkpoint contains the full file path of the saved binary proto of the
+  // KnowledgeBankConfig upon success.
+  absl::Status Export(const std::string& export_directory,
+                      const std::string& subdir, std::string* checkpoint);
+
+  // Restores the stage of the embedding from the given saved path.
+  absl::Status Import(const std::string& saved_path);
+
   // Returns embedding dimension.
   int embedding_dimension() { return embedding_dimension_; }
 
   // Returns KnowledgeBankConfig.
   const KnowledgeBankConfig& config() { return config_; }
 
+  // Returns the total number of keys in the knowledge store.
+  virtual size_t Size() const = 0;
+
+  // Returns the list of keys in the knowledge bank.
+  virtual std::vector<absl::string_view> Keys() const = 0;
+
  protected:
   KnowledgeBank(const KnowledgeBankConfig& config,
                 const int embedding_dimension);
+
+  // Internal implementation of the Export() method.
+  // The caller is expected to export the files to %output_dir%/%subdir%.
+  virtual absl::Status ExportInternal(const std::string& dir,
+                                      std::string* exported_path) = 0;
+
+  // Internal implementation of the Import() method.
+  virtual absl::Status ImportInternal(const std::string& saved_path) = 0;
 
   KnowledgeBankConfig config_;
   const int embedding_dimension_;
 };
 
-REGISTER_KNOWLEDGE_BANK_BASE_CLASS_1(KnowledgeBankConfig, KnowledgeBank,
-                                     KnowledgeBankFactory, int);
+REGISTER_CARLS_BASE_CLASS_1(KnowledgeBankConfig, KnowledgeBank,
+                            KnowledgeBankFactory, int);
 
 }  // namespace carls
 

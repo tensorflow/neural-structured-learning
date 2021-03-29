@@ -23,9 +23,9 @@ namespace carls {
 namespace {
 
 // Macro for registering an embedding store implementation.
-#define REGISTER_TEST_CLASS_FACTORY(proto_type, factory_type) \
-  REGISTER_KNOWLEDGE_BANK_FACTORY_0(proto_type, factory_type, \
-                                    TestBaseProto3Def, FakeEmbeddingStoreBase)
+#define REGISTER_TEST_CLASS_FACTORY(proto_type, factory_type)           \
+  REGISTER_CARLS_FACTORY_0(proto_type, factory_type, TestBaseProto3Def, \
+                           FakeEmbeddingStoreBase)
 
 class FakeEmbeddingStoreBase {
  public:
@@ -34,8 +34,8 @@ class FakeEmbeddingStoreBase {
   virtual int Lookup(int num) = 0;
 };
 
-REGISTER_KNOWLEDGE_BANK_BASE_CLASS_0(TestBaseProto3Def, FakeEmbeddingStoreBase,
-                                     EmbeddingStoreFactory);
+REGISTER_CARLS_BASE_CLASS_0(TestBaseProto3Def, FakeEmbeddingStoreBase,
+                            EmbeddingStoreFactory);
 
 class FakeEmbeddingStore : public FakeEmbeddingStoreBase {
  public:
