@@ -20,6 +20,7 @@ limitations under the License.
 #include "absl/strings/str_format.h"
 #include "research/carls/base/file_helper.h"
 #include "research/carls/base/proto_helper.h"
+#include "research/carls/embedding.pb.h"  // proto to pb
 #include "research/carls/testing/test_helper.h"
 
 namespace carls {
@@ -434,16 +435,15 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, ExportAndImport) {
   // Now checks the results is restored.
   ASSERT_TRUE(
       kbs_server_.Lookup(&context_, &lookup_request, &lookup_response).ok());
-  EXPECT_THAT(lookup_response, EqualsProto<LookupResponse>(R"pb(
-                embedding_table {
-                  key: "key1"
-                  value { tag: "key1" value: 0 value: 0 weight: 2 }
-                }
-                embedding_table {
-                  key: "key2"
-                  value { tag: "key2" value: 0 value: 0 weight: 2 }
-                }
-              )pb"));
+  ASSERT_EQ(2, lookup_response.embedding_table().size());
+  ASSERT_TRUE(lookup_response.embedding_table().contains("key1"));
+  ASSERT_TRUE(lookup_response.embedding_table().contains("key2"));
+  EXPECT_THAT(lookup_response.embedding_table().at("key1"),
+              EqualsProto<EmbeddingVectorProto>(
+                  "tag: 'key1' value: 0 value: 0 weight: 2"));
+  EXPECT_THAT(lookup_response.embedding_table().at("key2"),
+              EqualsProto<EmbeddingVectorProto>(
+                  "tag: 'key2' value: 0 value: 0 weight: 2"));
 }
 
 }  // namespace carls

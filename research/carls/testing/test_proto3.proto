@@ -8,4 +8,6 @@ message TestBaseProto3Def {
   google.protobuf.Any extension = 1000;
 }
 
-message TestExtendedProto3Def {}
+message TestExtendedProto3Def {
+  int32 num = 1;
+}

@@ -53,16 +53,16 @@ TEST(ProtoHelperTest, GetProto3AnyExtensionType) {
 }
 
 TEST(ProtoHelperTest, ParseTextProtoOrDie) {
-  TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"(
+  TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"pb(
     name: "test proto"
-  )");
+  )pb");
   EXPECT_DEATH(ParseTextProtoOrDie<TestBaseProto2Def>("invalid: 'name'"), "");
 }
 
 TEST(ProtoHelperTest, WriteAndReadBinaryProto) {
-  TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"(
+  TestBaseProto2Def test_proto = ParseTextProtoOrDie<TestBaseProto2Def>(R"pb(
     name: "test proto"
-  )");
+  )pb");
   std::string filepath = JoinPath(TempDir(), "/proto1.bin");
   auto status = WriteBinaryProto(filepath, test_proto, /*can_overwrite=*/true);
   EXPECT_TRUE(status.ok());
@@ -95,6 +95,17 @@ TEST(ProtoHelperTest, WriteAndReadTextProto) {
   std::string content;
   ASSERT_TRUE(ReadFileString(filepath, &content).ok());
   EXPECT_EQ("name: \"test proto\"\n", content);
+}
+
+TEST(ProtoHelperTest, GetExtensionProtoOrDie) {
+  TestBaseProto3Def test_proto;
+  TestExtendedProto3Def extension;
+  extension.set_num(100);
+  test_proto.mutable_extension()->PackFrom(extension);
+  auto result =
+      GetExtensionProtoOrDie<TestBaseProto3Def, TestExtendedProto3Def>(
+          test_proto);
+  EXPECT_EQ(100, result.num());
 }
 
 }  // namespace carls

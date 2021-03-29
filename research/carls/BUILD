@@ -136,6 +136,7 @@ cc_test(
     name = "knowledge_bank_grpc_service_test",
     srcs = ["knowledge_bank_grpc_service_test.cc"],
     deps = [
+        ":embedding_cc_proto",
         ":knowledge_bank_grpc_service",
         "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",

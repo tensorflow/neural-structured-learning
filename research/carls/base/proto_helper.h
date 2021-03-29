@@ -65,6 +65,15 @@ ProtoType ParseTextProtoOrDie(const std::string& proto_text) {
   return proto;
 }
 
+// Unpacks the `extension` field of given BaseProtoType into ExtendedProtoType.
+// This is only applicable for Proto3.
+template <typename BaseProtoType, typename ExtendedProtoType>
+ExtendedProtoType GetExtensionProtoOrDie(const BaseProtoType& base_proto) {
+  ExtendedProtoType extended_proto;
+  CHECK(base_proto.extension().UnpackTo(&extended_proto));
+  return extended_proto;
+}
+
 // Writes a protocol buffer in its binary form to the given filename.
 absl::Status WriteBinaryProto(const std::string& filename,
                               const google::protobuf::Message& proto, bool can_overwrite);/*proto2*/
