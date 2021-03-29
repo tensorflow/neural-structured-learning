@@ -20,6 +20,7 @@ limitations under the License.
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_format.h"
+#include "research/carls/base/file_helper.h"
 #include "research/carls/base/proto_helper.h"
 #include "research/carls/kbs_server_helper.h"
 
@@ -315,6 +316,56 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateGradients_2DInput) {
   // For empty input, it returns all zeros.
   EXPECT_FLOAT_EQ(0, embed_values(1, 1, 0));
   EXPECT_FLOAT_EQ(0, embed_values(1, 1, 1));
+}
+
+TEST_F(DynamicEmbeddingManagerTest, ImportAndExport) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/2);
+  auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  // Add a few keys.
+  Tensor keys(tensorflow::DT_STRING, TensorShape({3}));
+  auto keys_value = keys.vec<tstring>();
+  keys_value(0) = "first";
+  keys_value(1) = "second";
+  keys_value(2) = "third";
+  // Initial update returns all zeros.
+  Tensor embed = Tensor(tensorflow::DT_FLOAT, TensorShape({3, 2}));
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/true, &embed).ok());
+
+  // Export.
+  std::string exported_path;
+  ASSERT_TRUE(de_manager->Export(testing::TempDir(), &exported_path).ok());
+  EXPECT_EQ(JoinPath(testing::TempDir(), "emb/embedding_store_meta_data.pbtxt"),
+            exported_path);
+
+  // Update the embeddings of a few keys.
+  Tensor new_embed(tensorflow::DT_FLOAT, TensorShape({3, 2}));
+  auto new_embed_value = new_embed.matrix<float>();
+  new_embed_value(0, 0) = 1;
+  new_embed_value(0, 1) = 2;
+  new_embed_value(1, 0) = 3;
+  new_embed_value(1, 1) = 4;
+  new_embed_value(2, 0) = 5;
+  new_embed_value(2, 1) = 6;
+  ASSERT_TRUE(de_manager->UpdateValues(keys, new_embed).ok());
+
+  // Now restore to previous state.
+  ASSERT_TRUE(de_manager->Import(exported_path).ok());
+
+  // Checks the results.
+  ASSERT_TRUE(de_manager->Lookup(keys, /*update=*/false, &new_embed).ok());
+  auto embed_value = embed.matrix<float>();
+  new_embed_value = new_embed.matrix<float>();
+  EXPECT_EQ(embed_value(0, 0), new_embed_value(0, 0));
+  EXPECT_EQ(embed_value(0, 1), new_embed_value(0, 1));
+  EXPECT_EQ(embed_value(1, 0), new_embed_value(1, 0));
+  EXPECT_EQ(embed_value(1, 1), new_embed_value(1, 1));
+  EXPECT_EQ(embed_value(2, 0), new_embed_value(2, 0));
+  EXPECT_EQ(embed_value(2, 1), new_embed_value(2, 1));
 }
 
 }  // namespace carls

@@ -27,7 +27,7 @@ limitations under the License.
 #include "research/carls/base/status_helper.h"
 
 ABSL_FLAG(std::string, kbs_address, "", "Address to a KBS server.");
-ABSL_FLAG(double, des_rpc_deadline_sec, 10,
+ABSL_FLAG(double, kbs_rpc_deadline_sec, 10,
           "Timeout for connecting to a DES server.");
 
 namespace carls {
@@ -234,7 +234,7 @@ absl::Status DynamicEmbeddingManager::UpdateValues(
   grpc::ClientContext context;
   context.set_deadline(std::chrono::system_clock::now() +
                        absl::ToChronoSeconds(absl::Seconds(
-                           absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
   return ToAbslStatus(
       stub_->Update(&context, update_request, &update_response));
 }
@@ -256,7 +256,7 @@ absl::Status DynamicEmbeddingManager::LookupInternal(
   grpc::ClientContext context;
   context.set_deadline(std::chrono::system_clock::now() +
                        absl::ToChronoSeconds(absl::Seconds(
-                           absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
   return ToAbslStatus(stub_->Lookup(&context, request, response));
 }
 
@@ -294,10 +294,41 @@ absl::Status DynamicEmbeddingManager::UpdateGradients(
   grpc::ClientContext context;
   context.set_deadline(std::chrono::system_clock::now() +
                        absl::ToChronoSeconds(absl::Seconds(
-                           absl::GetFlag(FLAGS_des_rpc_deadline_sec))));
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
   UpdateResponse update_response;
   return ToAbslStatus(
       stub_->Update(&context, update_request, &update_response));
+}
+
+absl::Status DynamicEmbeddingManager::Export(const std::string& output_dir,
+                                             std::string* exported_path) {
+  CHECK(exported_path != nullptr);
+  ExportRequest request;
+  request.set_session_handle(session_handle_);
+  request.set_export_directory(output_dir);
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
+  ExportResponse response;
+  auto status = stub_->Export(&context, request, &response);
+  if (!status.ok()) {
+    return ToAbslStatus(status);
+  }
+  *exported_path = response.knowledge_bank_saved_path();
+  return absl::OkStatus();
+}
+
+absl::Status DynamicEmbeddingManager::Import(const std::string& saved_path) {
+  ImportRequest request;
+  request.set_session_handle(session_handle_);
+  request.set_knowledge_bank_saved_path(saved_path);
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
+  ImportResponse response;
+  return ToAbslStatus(stub_->Import(&context, request, &response));
 }
 
 }  // namespace carls

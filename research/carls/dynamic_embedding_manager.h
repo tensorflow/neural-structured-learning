@@ -61,6 +61,13 @@ class DynamicEmbeddingManager {
   // Returns DynamicEmbeddingConfig.
   const DynamicEmbeddingConfig& config() { return config_; }
 
+  // Calls the KnowledgeBankService::Export RPC.
+  absl::Status Export(const std::string& output_dir,
+                      std::string* exported_path);
+
+  // Calls the KnowledgeBankService::Import RPC.
+  absl::Status Import(const std::string& saved_path);
+
  private:
   // Check validity of input for both UpdateValues() and UpdateGradients().
   absl::Status CheckInputForUpdate(const tensorflow::Tensor& keys,

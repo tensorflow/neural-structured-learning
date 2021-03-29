@@ -216,6 +216,7 @@ cc_test(
     deps = [
         ":dynamic_embedding_manager",
         ":kbs_server_helper_lib",
+        "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_googletest//:gtest_main",
