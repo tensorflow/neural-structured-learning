@@ -173,7 +173,7 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
     init.default_embedding.value.append(1)
     init.default_embedding.value.append(2)
     with self.assertRaisesRegex(Exception,
-                                'Creating DynamicEmbeddingManager failed'):
+                                'DynamicEmbeddingManager is NULL.'):
       de_ops.dynamic_embedding_lookup(['first', 'second', ''],
                                       self._config,
                                       'emb',

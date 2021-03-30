@@ -30,18 +30,43 @@ package_group(
 )
 
 cc_library(
-    name = "dynamic_embedding_ops",
-    srcs = ["dynamic_embedding_ops.cc"],
+    name = "dynamic_embedding_manager_resource",
+    srcs = ["dynamic_embedding_manager_resource.cc"],
+    hdrs = ["dynamic_embedding_manager_resource.h"],
     deps = [
         "//research/carls:dynamic_embedding_config_cc_proto",
         "//research/carls:dynamic_embedding_manager",
-        "@tensorflow_includes//:includes",
         "@tensorflow_solib//:framework_lib",
+    ],
+    alwayslink = 1,
+)
+
+cc_test(
+    name = "dynamic_embedding_manager_resource_test",
+    srcs = ["dynamic_embedding_manager_resource_test.cc"],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:kbs_server_helper_lib",
+        "//research/carls/base:proto_helper",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "dynamic_embedding_ops",
+    srcs = ["dynamic_embedding_ops.cc"],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:dynamic_embedding_config_cc_proto",
+        "//research/carls:dynamic_embedding_manager",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
-        "@com_google_absl//absl/container:inlined_vector",
-        "@com_google_absl//absl/container:flat_hash_map",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
     ],
     alwayslink = 1,
 )
