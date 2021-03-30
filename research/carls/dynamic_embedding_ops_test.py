@@ -15,6 +15,7 @@
 
 import itertools
 from absl.testing import parameterized
+from research.carls import context
 from research.carls import dynamic_embedding_ops as de_ops
 from research.carls.testing import test_util
 
@@ -29,6 +30,7 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
     self._config = test_util.default_de_config(2)
     self._service_server = test_util.start_kbs_server()
     self._kbs_address = 'localhost:%d' % self._service_server.port()
+    context.clear_all_collection()
 
   def tearDown(self):
     self._service_server.Terminate()

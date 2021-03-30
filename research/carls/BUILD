@@ -15,10 +15,6 @@
 # Description:
 # Build rules for CARLS APIs in Neural Structured Learning.
 
-# Placeholder for py clif.
-# Placeholder for internal Python strict & test compatibility macro.
-# Placeholder for cc proto.
-
 load(
     "//research/carls:bazel/build_rules.bzl",
     "carls_cc_grpc_library",
@@ -48,6 +44,11 @@ py_library(
         ":graph_regularization",
         ":neighbor_cache_client",
     ],
+)
+
+cc_library(
+    name = "constants",
+    hdrs = ["constants.h"],
 )
 
 carls_cc_proto_library(
@@ -96,6 +97,31 @@ carls_cc_grpc_library(
 )
 
 py_library(
+    name = "context",
+    srcs = ["context.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":dynamic_embedding_config_py_pb2",
+        "@com_google_absl_py//absl:app",
+        "@com_google_absl_py//absl/logging",
+    ],
+)
+
+py_test(
+    name = "context_test",
+    size = "small",
+    srcs = ["context_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
     name = "neighbor_cache_client",
     srcs = ["neighbor_cache_client.py"],
     srcs_version = "PY3",
@@ -122,7 +148,6 @@ cc_library(
     hdrs = ["knowledge_bank_grpc_service.h"],
     deps = [
         ":knowledge_bank_service_cc_grpc_proto",
-        "//research/carls/base:status_helper",
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
@@ -136,13 +161,10 @@ cc_test(
     name = "knowledge_bank_grpc_service_test",
     srcs = ["knowledge_bank_grpc_service_test.cc"],
     deps = [
-        ":embedding_cc_proto",
         ":knowledge_bank_grpc_service",
-        "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",
         "//research/carls/testing:test_helper",
         "@com_github_grpc_grpc//:grpc++",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -216,7 +238,6 @@ cc_test(
     deps = [
         ":dynamic_embedding_manager",
         ":kbs_server_helper_lib",
-        "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_googletest//:gtest_main",
@@ -229,6 +250,7 @@ py_library(
     srcs_version = "PY3",
     visibility = ["//visibility:public"],
     deps = [
+        ":context",
         ":dynamic_embedding_config_py_pb2",
         "//research/carls/kernels:gen_dynamic_embedding_ops_py",
         # package tensorflow
@@ -242,6 +264,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":context",
         ":dynamic_embedding_ops_py",
         "@com_google_absl_py//absl/testing:parameterized",
         "//research/carls/testing:test_util",
@@ -268,8 +291,10 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":context",
         ":dynamic_embedding_neighbor_cache",
         "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
         # package tensorflow
     ],
 )

@@ -76,3 +76,25 @@ carls_gen_op_wrapper_py(
     out = "gen_dynamic_embedding_ops.py",
     kernel_lib = ":dynamic_embedding_ops",
 )
+
+cc_library(
+    name = "io_ops",
+    srcs = ["io_ops.cc"],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:constants",
+        "//research/carls:dynamic_embedding_config_cc_proto",
+        "//research/carls:dynamic_embedding_manager",
+        "//research/carls/base:file_helper",
+        "@com_google_absl//absl/strings:str_format",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+    alwayslink = 1,
+)
+
+carls_gen_op_wrapper_py(
+    name = "gen_io_ops_py",
+    out = "gen_io_ops.py",
+    kernel_lib = ":io_ops",
+)

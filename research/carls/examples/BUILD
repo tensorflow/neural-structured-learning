@@ -11,14 +11,12 @@ py_binary(
     python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
-        # package protobuf,
-        "//research/carls:kbs_server_helper_pybind",
-        # package absl/flags
         "//neural_structured_learning/keras:graph_regularization",
         "//research/carls:dynamic_embedding_config_py_pb2",
         "//research/carls:dynamic_embedding_neighbor_cache",
         "//research/carls:dynamic_embedding_ops_py",
         "//research/carls:graph_regularization",
-        # package tensorflow
+        "//research/carls:kbs_server_helper_pybind",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )

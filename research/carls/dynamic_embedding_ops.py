@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import typing
 
+from research.carls import context
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
 from research.carls.kernels import gen_dynamic_embedding_ops as gen_de_op
 import tensorflow as tf
@@ -62,6 +63,7 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
   else:
     grad_placeholder = tf.Variable(0.0)
 
+  context.add_to_collection(var_name, config)
   resource = gen_de_op.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
@@ -99,6 +101,7 @@ def dynamic_embedding_update(keys: tf.Tensor,
   if not var_name:
     raise TypeError("Must specify a valid var_name.")
 
+  context.add_to_collection(var_name, config)
   resource = gen_de_op.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 

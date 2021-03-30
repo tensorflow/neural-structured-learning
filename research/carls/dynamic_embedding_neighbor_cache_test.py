@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for neural_structured_learning.research.carls.dynamic_embedding_neighbor_cache."""
 
+from research.carls import context
 from research.carls import dynamic_embedding_neighbor_cache as de_nb_cache
 from research.carls.testing import test_util
 
@@ -25,6 +26,8 @@ class DynamicEmbeddingNeighborCacheTest(tf.test.TestCase):
     super(DynamicEmbeddingNeighborCacheTest, self).setUp()
     self._config = test_util.default_de_config(2)
     self._service_server = test_util.start_kbs_server()
+    self._kbs_address = 'localhost:%d' % self._service_server.port()
+    context.clear_all_collection()
 
   def tearDown(self):
     self._service_server.Terminate()
@@ -34,12 +37,14 @@ class DynamicEmbeddingNeighborCacheTest(tf.test.TestCase):
     init = self._config.knowledge_bank_config.initializer
     init.default_embedding.value.append(1)
     init.default_embedding.value.append(2)
-    cache = de_nb_cache.DynamicEmbeddingNeighborCache('nb_cache', self._config)
+    cache = de_nb_cache.DynamicEmbeddingNeighborCache(
+        'nb_cache', self._config, service_address=self._kbs_address)
     embedding = cache.lookup(['first', 'second', ''])
     self.assertAllClose(embedding.numpy(), [[1, 2], [1, 2], [0, 0]])
 
   def testUpdate(self):
-    cache = de_nb_cache.DynamicEmbeddingNeighborCache('nb_cache', self._config)
+    cache = de_nb_cache.DynamicEmbeddingNeighborCache(
+        'nb_cache', self._config, service_address=self._kbs_address)
     update_res = cache.update(['first', 'second', ''],
                               tf.constant([[2.0, 4.0], [4.0, 8.0], [8.0,
                                                                     16.0]]))
