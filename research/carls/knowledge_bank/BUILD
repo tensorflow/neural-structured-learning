@@ -125,7 +125,6 @@ cc_test(
         ":knowledge_bank",
         "//research/carls/base:file_helper",
         "//research/carls/testing:test_helper",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",

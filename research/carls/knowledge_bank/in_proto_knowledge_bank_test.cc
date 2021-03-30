@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "research/carls/base/file_helper.h"
@@ -47,9 +49,9 @@ TEST_F(InProtoKnowledgeBankTest, LookupAndUpdate) {
 
   EmbeddingVectorProto result;
   EXPECT_TRUE(store->Lookup("key1", &result).ok());
-  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"(
+  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 value: 1 value: 2
-              )"));
+              )pb"));
 
   EXPECT_FALSE(store->Lookup("key2", &result).ok());
 
@@ -59,30 +61,108 @@ TEST_F(InProtoKnowledgeBankTest, LookupAndUpdate) {
   EXPECT_EQ("key1", store->Keys()[0]);
 }
 
+TEST_F(InProtoKnowledgeBankTest, BatchLookupAndUpdate) {
+  auto store = CreateDefaultStore(2);
+
+  // Initialize a batch of keys and values.
+  const int batch_size = 100;
+  std::vector<std::string> str_keys;
+  str_keys.reserve(batch_size);
+  std::vector<EmbeddingVectorProto> values;
+  values.reserve(batch_size);
+  for (int i = 0; i < batch_size; ++i) {
+    str_keys.push_back(absl::StrCat("key", i));
+    EmbeddingVectorProto value;
+    value.add_value(i);
+    value.add_value(i + 1.0f);
+    values.push_back(std::move(value));
+  }
+  std::vector<absl::string_view> keys(str_keys.begin(), str_keys.end());
+
+  // Checks the BatchUpdate and BatchLookup.
+  auto statuses = store->BatchUpdate(keys, values);
+  for (const auto& status : statuses) {
+    ASSERT_TRUE(status.ok());
+  }
+
+  // Checks the BatchLookup results.
+  std::vector<absl::variant<EmbeddingVectorProto, std::string>> results;
+  store->BatchLookup(keys, &results);
+  ASSERT_EQ(batch_size, results.size());
+  int i = 0;
+  for (const auto& result : results) {
+    ASSERT_TRUE(absl::holds_alternative<EmbeddingVectorProto>(result));
+    auto proto = absl::get<EmbeddingVectorProto>(result);
+    EXPECT_FLOAT_EQ(i, proto.value(0));
+    EXPECT_FLOAT_EQ(++i, proto.value(1));
+  }
+
+  // Checks size and keys of embedding.
+  EXPECT_EQ(batch_size, store->Size());
+  ASSERT_EQ(batch_size, store->Keys().size());
+  for (int i = 0; i < batch_size; ++i) {
+    EXPECT_EQ(absl::StrCat("key", i), store->Keys()[i]);
+  }
+}
+
 TEST_F(InProtoKnowledgeBankTest, LookupWithUpdate) {
   auto store = CreateDefaultStore(2);
   EmbeddingVectorProto result;
   ASSERT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"(
+  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 tag: "key1"
                 value: 0
                 value: 0
                 weight: 1
-              )"));
+              )pb"));
 
   // Checks that weight is incremented by 1.
   ASSERT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"(
+  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 tag: "key1"
                 value: 0
                 value: 0
                 weight: 2
-              )"));
+              )pb"));
 
   // Checks size and keys of embedding.
   EXPECT_EQ(1, store->Size());
   ASSERT_EQ(1, store->Keys().size());
   EXPECT_EQ("key1", store->Keys()[0]);
+}
+
+TEST_F(InProtoKnowledgeBankTest, BatchLookupWithUpdate) {
+  auto store = CreateDefaultStore(2);
+
+  // Initialize a batch of keys.
+  const int batch_size = 100;
+  std::vector<std::string> str_keys;
+  str_keys.reserve(batch_size);
+  for (int i = 0; i < batch_size; ++i) {
+    str_keys.push_back(absl::StrCat("key", i));
+  }
+  std::vector<absl::string_view> keys(str_keys.begin(), str_keys.end());
+
+  // Checks the BatchLookupWithUpdate returns the zero initialized values.
+  std::vector<absl::variant<EmbeddingVectorProto, std::string>>
+          results;
+  store->BatchLookupWithUpdate(keys, &results);
+  int i = 0;
+  for (const auto& result : results) {
+    ASSERT_TRUE(absl::holds_alternative<EmbeddingVectorProto>(result));
+    auto proto = absl::get<EmbeddingVectorProto>(result);
+    EXPECT_EQ(absl::StrCat("key", i++), proto.tag());
+    EXPECT_FLOAT_EQ(0, proto.value(0));
+    EXPECT_FLOAT_EQ(0, proto.value(1));
+    EXPECT_FLOAT_EQ(1, proto.weight());
+  }
+
+  // Checks size and keys of embedding.
+  EXPECT_EQ(batch_size, store->Size());
+  ASSERT_EQ(batch_size, store->Keys().size());
+  for (int i = 0; i < batch_size; ++i) {
+    EXPECT_EQ(absl::StrCat("key", i), store->Keys()[i]);
+  }
 }
 
 TEST_F(InProtoKnowledgeBankTest, Export) {

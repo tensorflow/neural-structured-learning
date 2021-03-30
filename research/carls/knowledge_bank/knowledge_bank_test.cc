@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "research/carls/base/file_helper.h"
 #include "research/carls/knowledge_bank/initializer.pb.h"  // proto to pb
@@ -38,32 +37,35 @@ class FakeEmbedding : public KnowledgeBank {
   absl::Status Lookup(const absl::string_view key,
                       EmbeddingVectorProto* result) const override {
     CHECK(result != nullptr);
-    if (!data_table_.contains(key)) {
+    std::string str_key(key);
+    if (!data_table_.embedding_table().contains(str_key)) {
       return absl::InvalidArgumentError("Data not found");
     }
-    *result = data_table_.find(key)->second;
+    *result = data_table_.embedding_table().find(str_key)->second;
     return absl::OkStatus();
   }
 
   absl::Status LookupWithUpdate(const absl::string_view key,
                                 EmbeddingVectorProto* result) override {
     CHECK(result != nullptr);
-    if (!data_table_.contains(key)) {
-      data_table_[key] =
+    std::string str_key(key);
+    if (!data_table_.embedding_table().contains(str_key)) {
+      (*data_table_.mutable_embedding_table())[str_key] =
           InitializeEmbedding(embedding_dimension(), config().initializer());
-      keys_.push_back(data_table_.find(key)->first);
+      keys_.push_back(data_table_.embedding_table().find(str_key)->first);
     }
-    *result = data_table_.find(key)->second;
+    *result = data_table_.embedding_table().find(str_key)->second;
     return absl::OkStatus();
   }
 
   absl::Status Update(const absl::string_view key,
                       const EmbeddingVectorProto& value) override {
-    if (!data_table_.contains(key)) {
-      data_table_[key] = value;
-      keys_.push_back(data_table_.find(key)->first);
+    std::string str_key(key);
+    if (!data_table_.embedding_table().contains(str_key)) {
+      (*data_table_.mutable_embedding_table())[str_key] = value;
+      keys_.push_back(data_table_.embedding_table().find(str_key)->first);
     } else {
-      data_table_[key] = value;
+      data_table_.mutable_embedding_table()->at(str_key) = value;
     }
     return absl::OkStatus();
   }
@@ -78,12 +80,12 @@ class FakeEmbedding : public KnowledgeBank {
     return absl::OkStatus();
   }
 
-  size_t Size() const override { return data_table_.size(); }
+  size_t Size() const override { return data_table_.embedding_table_size(); }
 
   std::vector<absl::string_view> Keys() const { return keys_; }
 
  private:
-  absl::flat_hash_map<std::string, EmbeddingVectorProto> data_table_;
+  InProtoKnowledgeBankConfig::EmbeddingData data_table_;
   std::vector<absl::string_view> keys_;
 };
 
