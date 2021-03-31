@@ -124,3 +124,43 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "embedding_helper",
+    srcs = ["embedding_helper.cc"],
+    hdrs = ["embedding_helper.h"],
+    deps = [
+        "//research/carls:embedding_cc_proto",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@tensorflow_includes//:includes",
+    ],
+)
+
+cc_test(
+    name = "embedding_helper_test",
+    srcs = ["embedding_helper_test.cc"],
+    deps = [
+        ":embedding_helper",
+        ":proto_helper",
+        "//research/carls/testing:test_helper",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "top_n",
+    hdrs = ["top_n.h"],
+    deps = ["@com_github_google_glog//:glog"],
+)
+
+cc_test(
+    name = "top_n_test",
+    srcs = ["top_n_test.cc"],
+    deps = [
+        ":top_n",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@tensorflow_solib//:framework_lib",
+    ],
+)
