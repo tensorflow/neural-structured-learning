@@ -19,6 +19,7 @@ limitations under the License.
 #include <string>
 
 #include <glog/logging.h>
+#include "google/protobuf/any.pb.h"  // proto to pb
 #include "google/protobuf/descriptor.h" // proto import
 #include "google/protobuf/message.h" // proto import
 #include "google/protobuf/text_format.h" // proto import

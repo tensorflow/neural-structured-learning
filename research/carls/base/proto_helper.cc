@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <vector>
 
-#include "google/protobuf/any.pb.h"  // proto to pb
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
 #include "research/carls/base/file_helper.h"

@@ -54,6 +54,13 @@ template <typename FirstType, typename SecondType>
 bool ComputeCosineSimilarity(const FirstType& first, const SecondType& second,
                              float* result);
 
+// Computes the dot product between two vectors represented by different
+// types (Eigen::VectorXf/EmbeddingVectorProto).
+// Returns false when the inputs are invalid.
+template <typename FirstType, typename SecondType>
+bool ComputeDotProduct(const FirstType& first, const SecondType& second,
+                       float* result);
+
 }  // namespace carls
 
 #endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_EMBEDDING_HELPER_H_

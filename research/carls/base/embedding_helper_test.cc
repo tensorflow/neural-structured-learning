@@ -76,12 +76,12 @@ TEST(EmbeddingHelperTest, ToTensorFlowTensor) {
 }
 
 TEST(EmbeddingHelperTest, ComputeCosineSimilarity) {
-  auto proto_first = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+  const auto proto_first = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
     tag: "first"
     value: 0.5
     value: 1
   )pb");
-  auto proto_second = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+  const auto proto_second = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
     tag: "second"
     value: 1
     value: 0.5
@@ -89,7 +89,6 @@ TEST(EmbeddingHelperTest, ComputeCosineSimilarity) {
   Eigen::VectorXf vec_first = ToInMemoryEmbeddingVector(proto_first).vec;
   Eigen::VectorXf vec_second = ToInMemoryEmbeddingVector(proto_second).vec;
 
-  // result =
   float result = -1;
   // Proto to Proto
   ASSERT_TRUE(ComputeCosineSimilarity(proto_first, proto_second, &result));
@@ -103,6 +102,82 @@ TEST(EmbeddingHelperTest, ComputeCosineSimilarity) {
   // Vector to Vector
   ASSERT_TRUE(ComputeCosineSimilarity(vec_first, vec_second, &result));
   EXPECT_FLOAT_EQ(0.8, result);
+}
+
+TEST(EmbeddingHelperTest, ComputeCosineSimilarity_InvalidInput) {
+  const auto proto_first = ParseTextProtoOrDie<EmbeddingVectorProto>(
+      R"pb(
+        tag: "first" value: 0 value: 1 value: 2
+      )pb");
+  const auto proto_second = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    tag: "second"
+    value: 1
+    value: 2
+  )pb");
+  const auto proto_third = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    tag: "third"
+    value: 0
+    value: 0
+  )pb");
+  Eigen::VectorXf vec_first = ToInMemoryEmbeddingVector(proto_first).vec;
+  Eigen::VectorXf vec_second = ToInMemoryEmbeddingVector(proto_second).vec;
+
+  float result = 0;
+  // Inconsistent embedding dimensions.
+  EXPECT_FALSE(ComputeCosineSimilarity(proto_first, proto_second, &result));
+  // NULL input.
+  EXPECT_FALSE(ComputeCosineSimilarity(proto_first, proto_first, nullptr));
+  // All zeros input.
+  EXPECT_FALSE(ComputeCosineSimilarity(proto_second, proto_third, &result));
+}
+
+TEST(EmbeddingHelperTest, ComputeDotProduct) {
+  const auto proto_first = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    tag: "first"
+    value: 1
+    value: 2
+  )pb");
+  const auto proto_second = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    tag: "second"
+    value: 3
+    value: 4
+  )pb");
+  Eigen::VectorXf vec_first = ToInMemoryEmbeddingVector(proto_first).vec;
+  Eigen::VectorXf vec_second = ToInMemoryEmbeddingVector(proto_second).vec;
+
+  float result = -1;
+  // Proto to Proto
+  ASSERT_TRUE(ComputeDotProduct(proto_first, proto_second, &result));
+  EXPECT_FLOAT_EQ(11, result);
+  // Proto to Vector
+  ASSERT_TRUE(ComputeDotProduct(proto_first, vec_second, &result));
+  EXPECT_FLOAT_EQ(11, result);
+  // Vector to Proto
+  ASSERT_TRUE(ComputeDotProduct(vec_first, proto_second, &result));
+  EXPECT_FLOAT_EQ(11, result);
+  // Vector to Vector
+  ASSERT_TRUE(ComputeDotProduct(vec_first, vec_second, &result));
+  EXPECT_FLOAT_EQ(11, result);
+}
+
+TEST(EmbeddingHelperTest, ComputeDotProduct_InvalidInput) {
+  const auto proto_first = ParseTextProtoOrDie<EmbeddingVectorProto>(
+      R"pb(
+        tag: "first" value: 1 value: 2 value: 3
+      )pb");
+  const auto proto_second = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    tag: "second"
+    value: 4
+    value: 5
+  )pb");
+  Eigen::VectorXf vec_first = ToInMemoryEmbeddingVector(proto_first).vec;
+  Eigen::VectorXf vec_second = ToInMemoryEmbeddingVector(proto_second).vec;
+
+  float result = -1;
+  // Inconsistent embedding dimensions.
+  EXPECT_FALSE(ComputeDotProduct(proto_first, proto_second, &result));
+  // NULL input.
+  EXPECT_FALSE(ComputeDotProduct(proto_first, proto_first, nullptr));
 }
 
 }  // namespace carls

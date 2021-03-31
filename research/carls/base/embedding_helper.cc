@@ -95,4 +95,38 @@ bool ComputeCosineSimilarity(const EmbeddingVectorProto& first,
                                  result);
 }
 
+template <>
+bool ComputeDotProduct(const Eigen::VectorXf& first,
+                       const Eigen::VectorXf& second, float* result) {
+  if (result == nullptr) {
+    return false;
+  }
+  if (first.size() != second.size() || first.size() == 0) {
+    return false;
+  }
+  *result = first.dot(second);
+  return true;
+}
+
+template <>
+bool ComputeDotProduct(const EmbeddingVectorProto& first,
+                       const EmbeddingVectorProto& second, float* result) {
+  return ComputeDotProduct(ToInMemoryEmbeddingVector(first).vec,
+                           ToInMemoryEmbeddingVector(second).vec, result);
+}
+
+template <>
+bool ComputeDotProduct(const Eigen::VectorXf& first,
+                       const EmbeddingVectorProto& second, float* result) {
+  return ComputeDotProduct(first, ToInMemoryEmbeddingVector(second).vec,
+                           result);
+}
+
+template <>
+bool ComputeDotProduct(const EmbeddingVectorProto& first,
+                       const Eigen::VectorXf& second, float* result) {
+  return ComputeDotProduct(ToInMemoryEmbeddingVector(first).vec, second,
+                           result);
+}
+
 }  // namespace carls
