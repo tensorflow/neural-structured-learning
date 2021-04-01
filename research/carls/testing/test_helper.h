@@ -21,8 +21,15 @@ limitations under the License.
 #include "google/protobuf/text_format.h" // proto import
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 
 namespace carls {
+namespace internal {
+
+template <typename StatusType>
+std::string GetErrorMessage(const StatusType& status);
+
+}  // namespace internal
 
 // A simple implementation of a proto matcher comparing string representations.
 class ProtoStringMatcher {
@@ -56,6 +63,24 @@ inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
   CHECK(google::protobuf::TextFormat::ParseFromString(asciipb, &proto));/*proto2*/
   return ::testing::MakePolymorphicMatcher(ProtoStringMatcher(proto));
 }
+
+// Macros for testing the results of functions that return Status or
+// StatusOr<T> (for any type T).
+#undef EXPECT_OK
+#define EXPECT_OK(expression) EXPECT_TRUE(expression.ok())
+
+#define EXPECT_NOT_OK(expression) EXPECT_FALSE(expression.ok())
+
+#define EXPECT_ERROR(expression, err_msg) \
+  ASSERT_FALSE(expression.ok());          \
+  EXPECT_EQ(err_msg, internal::GetErrorMessage(expression));
+
+#undef ASSERT_OK
+#define ASSERT_OK(expression) ASSERT_TRUE(expression.ok())
+
+#define ASSERT_ERROR(expression, err_msg) \
+  ASSERT_FALSE(expression.ok());          \
+  ASSERT_EQ(err_msg, internal::GetErrorMessage(expression));
 
 }  // namespace carls
 
