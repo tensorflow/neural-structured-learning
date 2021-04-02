@@ -83,7 +83,7 @@ class KnowledgeBank {
   absl::Status Import(const std::string& saved_path);
 
   // Returns embedding dimension.
-  int embedding_dimension() { return embedding_dimension_; }
+  int embedding_dimension() const { return embedding_dimension_; }
 
   // Returns KnowledgeBankConfig.
   const KnowledgeBankConfig& config() { return config_; }

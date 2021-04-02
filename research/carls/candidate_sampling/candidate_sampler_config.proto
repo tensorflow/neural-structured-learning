@@ -1,0 +1,81 @@
+// This file defines candidate sampling related data formats.
+syntax = "proto3";
+
+package carls.candidate_sampling;
+
+import "google/protobuf/any.proto";
+import "research/carls/embedding.proto";
+
+// The base config for a candidate sampler.
+message CandidateSamplerConfig {
+  // Implementation is encoded in extension.
+  google.protobuf.Any extension = 1000;
+}
+
+// A sampler used in the sampled softmax/logistic layer.
+// See https://www.tensorflow.org/extras/candidate_sampling.pdf for more
+// details.
+message LogUniformSamplerConfig {
+  // If the sampled key should be unique or not.
+  bool unique = 1;
+}
+
+// Types of similarity between two embeddings.
+enum SimilarityType {
+  UNKNOWN = 0;
+  DOT_PRODUCT = 1;
+  COSINE = 2;
+}
+
+// A brute force implementation of top-k sampling, which traverses all existing
+// embeddings in a KnowledgeBank and compares with given input.
+message BruteForceTopkSamplerConfig {
+  // The type of distance used for top-k.
+  SimilarityType similarity_type = 1;
+}
+
+// Context information for one sample input.
+message SampleContext {
+  // List of positive samples. Usually used in negative sampling.
+  repeated string positive_key = 1;
+
+  // Activation used to compute the similarity. Usually used in top-k sampling.
+  EmbeddingVectorProto activation = 2;
+}
+
+// A single sample for negative sampling.
+// See https://www.tensorflow.org/extras/candidate_sampling.pdf for details.
+message NegativeSamplingResult {
+  // Key of the sampled result.
+  string key = 1;
+
+  // Embedding of the sampled result.
+  EmbeddingVectorProto embedding = 2;
+
+  // Indicates if this is a positive sample (from the given keys) or negative.
+  bool is_positive = 3;
+
+  // The sampling probability (or expected count) of Q(key).
+  // Usually used in computing sampled logistic/softmax loss.
+  float expected_count = 4;
+}
+
+// A single sample for top-k sampling.
+message TopkSamplingResult {
+  // Key of the sampled result.
+  string key = 1;
+
+  // Embedding of the sampled result.
+  EmbeddingVectorProto embedding = 2;
+
+  // Used in top k sample to indicate its similarity with the input.
+  float similarity = 3;
+}
+
+// A union of the results returned by various samplers.
+message SampledResult {
+  oneof sampled_result {
+    NegativeSamplingResult negative_sampling_result = 1;
+    TopkSamplingResult topk_sampling_result = 2;
+  }
+}
