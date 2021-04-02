@@ -64,22 +64,26 @@ inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
   return ::testing::MakePolymorphicMatcher(ProtoStringMatcher(proto));
 }
 
-// Macros for testing the results of functions that return Status or
-// StatusOr<T> (for any type T).
+// Macros for testing the results of functions that return Status.
 #undef EXPECT_OK
 #define EXPECT_OK(expression) EXPECT_TRUE(expression.ok())
 
 #define EXPECT_NOT_OK(expression) EXPECT_FALSE(expression.ok())
 
-#define EXPECT_ERROR(expression, err_msg) \
-  ASSERT_FALSE(expression.ok());          \
+// Checks the status returned by expression is not ok and the error message
+// matches given err_msg.
+#define EXPECT_ERROR_EQ(expression, err_msg) \
+  ASSERT_FALSE(expression.ok());             \
   EXPECT_EQ(err_msg, internal::GetErrorMessage(expression));
 
+// Asserts the status returned by expression is OK.
 #undef ASSERT_OK
 #define ASSERT_OK(expression) ASSERT_TRUE(expression.ok())
 
-#define ASSERT_ERROR(expression, err_msg) \
-  ASSERT_FALSE(expression.ok());          \
+// Asserts the status returned by expression is not ok and the error message
+// matches given err_msg.
+#define ASSERT_ERROR_EQ(expression, err_msg) \
+  ASSERT_FALSE(expression.ok());             \
   ASSERT_EQ(err_msg, internal::GetErrorMessage(expression));
 
 }  // namespace carls

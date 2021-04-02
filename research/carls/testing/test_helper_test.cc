@@ -41,31 +41,31 @@ TEST(TestHelperTest, EqualsProtoText) {
 TEST(TestHelperTest, AbslStatusChecks) {
   EXPECT_OK(absl::OkStatus());
   EXPECT_NOT_OK(absl::InternalError("First error."));
-  EXPECT_ERROR(absl::InternalError("First error."), "First error.");
+  EXPECT_ERROR_EQ(absl::InternalError("First error."), "First error.");
   ASSERT_OK(absl::OkStatus());
-  ASSERT_ERROR(absl::InternalError("Second error."), "Second error.");
+  ASSERT_ERROR_EQ(absl::InternalError("Second error."), "Second error.");
 }
 
 TEST(TestHelperTest, GrpcStatusChecks) {
   EXPECT_OK(grpc::Status::OK);
   EXPECT_OK(ToGrpcStatus(absl::OkStatus()));
   EXPECT_NOT_OK(ToGrpcStatus(absl::InternalError("First error.")));
-  EXPECT_ERROR(ToGrpcStatus(absl::InternalError("First error.")),
-               "First error.");
+  EXPECT_ERROR_EQ(ToGrpcStatus(absl::InternalError("First error.")),
+                  "First error.");
   ASSERT_OK(grpc::Status::OK);
-  ASSERT_ERROR(ToGrpcStatus(absl::InternalError("Second error.")),
-               "Second error.");
+  ASSERT_ERROR_EQ(ToGrpcStatus(absl::InternalError("Second error.")),
+                  "Second error.");
 }
 
 TEST(TestHelperTest, TensoFlowStatusChecks) {
   EXPECT_OK(tensorflow::Status::OK());
   EXPECT_NOT_OK(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."));
-  EXPECT_ERROR(
+  EXPECT_ERROR_EQ(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."),
       "First error.");
   ASSERT_OK(tensorflow::Status::OK());
-  ASSERT_ERROR(
+  ASSERT_ERROR_EQ(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Second error."),
       "Second error.");
 }

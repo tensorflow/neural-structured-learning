@@ -18,8 +18,18 @@ limitations under the License.
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
+#include "research/carls/testing/test_helper.h"
 
 namespace carls {
+namespace {
+
+absl::Status TestRetCheck(const absl::Status& status) {
+  RET_CHECK(status) << status.message();
+  return absl::OkStatus();
+}
+
+}  // namespace
 
 TEST(ProtoFactoryTest, ToAbslStatus_Grpc) {
   EXPECT_EQ(absl::OkStatus(), ToAbslStatus(grpc::Status::OK));
@@ -36,17 +46,26 @@ TEST(ProtoFactoryTest, ToAbslStatus_TensorFlow) {
   auto tf_status =
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Error.");
   auto absl_status = ToAbslStatus(tf_status);
-  EXPECT_EQ("Error.", absl_status.message());
+  EXPECT_ERROR_EQ(absl_status, "Error.");
   EXPECT_TRUE(absl::IsInvalidArgument(absl_status));
 }
 
 TEST(ProtoFactoryTest, ToGrpcStatus) {
-  EXPECT_TRUE(ToGrpcStatus(absl::OkStatus()).ok());
+  EXPECT_OK(ToGrpcStatus(absl::OkStatus()));
 
   auto absl_status = absl::InvalidArgumentError("Error.");
   auto grpc_status = ToGrpcStatus(absl_status);
-  EXPECT_EQ("Error.", grpc_status.error_message());
+  EXPECT_ERROR_EQ(grpc_status, "Error.");
   EXPECT_EQ(grpc::StatusCode::INVALID_ARGUMENT, grpc_status.error_code());
+}
+
+TEST(ProtoFactoryTest, RetCheck) {
+  auto status = TestRetCheck(absl::InvalidArgumentError("My Error message."));
+  EXPECT_TRUE(absl::StrContains(status.message(),
+                                "research/carls/base/status_helper_test.cc"));
+  EXPECT_TRUE(absl::StrContains(status.message(), "My Error message."));
+
+  EXPECT_OK(TestRetCheck(absl::OkStatus()));
 }
 
 }  // namespace carls

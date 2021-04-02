@@ -88,6 +88,7 @@ cc_library(
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@tensorflow_includes//:includes",
         "@tensorflow_solib//:framework_lib",
     ],
@@ -98,6 +99,8 @@ cc_test(
     srcs = ["status_helper_test.cc"],
     deps = [
         ":status_helper",
+        "//research/carls/testing:test_helper",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
