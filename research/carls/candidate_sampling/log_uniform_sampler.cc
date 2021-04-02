@@ -125,6 +125,12 @@ absl::Status LogUniformSampler::SampleUnique(
   absl::flat_hash_set<absl::string_view> pos_set(positive_keys.begin(),
                                                  positive_keys.end());
   const size_t range = all_keys.size();
+  if (num_sampled > range) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Not enough data in the KnolwedgeBank available for "
+                     "unique sampling. Total keys: ",
+                     range, ", num_sampled: ", num_sampled, "."));
+  }
   results->clear();
   results->reserve(num_sampled);
 
@@ -159,12 +165,6 @@ absl::Status LogUniformSampler::SampleUnique(
     return absl::OkStatus();
   }
 
-  if (num_sampled > range) {
-    return absl::InternalError(
-        "num_samples is larger than the total number of availabe candidates in "
-        "the knowledge bank. Potentially caused by the positive keys are not "
-        "saved to the knowledge bank.");
-  }
   // Case Three: positive_keys.size() < num_sampled < range, sample randomly.
   const float prob = static_cast<float>(num_sampled - pos_set.size()) /
                      static_cast<float>(range - pos_set.size());
