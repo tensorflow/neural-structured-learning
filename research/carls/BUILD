@@ -66,6 +66,7 @@ carls_cc_proto_library(
     name = "dynamic_embedding_config_cc_proto",
     srcs = ["dynamic_embedding_config.proto"],
     deps = [
+        "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
         "//research/carls/gradient_descent:gradient_descent_config_cc_proto",
         "//research/carls/knowledge_bank:knowledge_bank_config_cc_proto",
     ],
@@ -76,6 +77,7 @@ carls_py_proto_library(
     srcs = ["dynamic_embedding_config.proto"],
     deps = [
         ":dynamic_embedding_config_cc_proto",
+        "//research/carls/candidate_sampling:candidate_sampler_config_py_pb2",
         "//research/carls/gradient_descent:gradient_descent_config_py_pb2",
         "//research/carls/knowledge_bank:knowledge_bank_config_py_pb2",
     ],
@@ -87,6 +89,7 @@ carls_cc_proto_library(
     deps = [
         ":dynamic_embedding_config_cc_proto",
         ":embedding_cc_proto",
+        "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
     ],
 )
 
@@ -148,6 +151,9 @@ cc_library(
     hdrs = ["knowledge_bank_grpc_service.h"],
     deps = [
         ":knowledge_bank_service_cc_grpc_proto",
+        "//research/carls/candidate_sampling:brute_force_topk_sampler",
+        "//research/carls/candidate_sampling:candidate_sampler",
+        "//research/carls/candidate_sampling:log_uniform_sampler",
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",

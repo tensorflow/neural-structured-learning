@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "grpcpp/support/status.h"  // net
 #include "absl/synchronization/mutex.h"
+#include "research/carls/candidate_sampling/candidate_sampler.h"
 #include "research/carls/gradient_descent/gradient_descent_optimizer.h"
 #include "research/carls/knowledge_bank/knowledge_bank.h"
 #include "research/carls/knowledge_bank_service.grpc.pb.h"
@@ -53,6 +54,11 @@ class KnowledgeBankGrpcServiceImpl final
                       const UpdateRequest* request,
                       UpdateResponse* response) override;
 
+  // Implements the Sample method of KnowledgeBankService.
+  grpc::Status Sample(grpc::ServerContext* context,
+                      const SampleRequest* request,
+                      SampleResponse* response) override;
+
   // Implements the Export method of KnowledgeBankService.
   grpc::Status Export(grpc::ServerContext* context,
                       const ExportRequest* request,
@@ -77,6 +83,10 @@ class KnowledgeBankGrpcServiceImpl final
   // Maps from session_handle to GradientDescentOptimizer.
   absl::node_hash_map<std::string, std::unique_ptr<GradientDescentOptimizer>>
       gd_map_;
+  // Maps from session_handle to CandidateSampler.
+  absl::node_hash_map<std::string,
+                      std::unique_ptr<candidate_sampling::CandidateSampler>>
+      cs_map_;
 };
 
 }  // namespace carls

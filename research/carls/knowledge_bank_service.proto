@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package carls;
 
+import "research/carls/candidate_sampling/candidate_sampler_config.proto";
 import "research/carls/dynamic_embedding_config.proto";
 import "research/carls/embedding.proto";
 
@@ -51,6 +52,27 @@ message UpdateRequest {
 
 message UpdateResponse {}
 
+message SampleRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // A batch of sample contexts.
+  repeated candidate_sampling.SampleContext sample_context = 2;
+
+  // Number of returned samples per sample context.
+  int32 num_samples = 3;
+}
+
+message SampleResponse {
+  message Samples {
+    // Sampled results.
+    repeated candidate_sampling.SampledResult sampled_result = 1;
+  }
+
+  // A batch of results corresponding to the input sample context.
+  repeated Samples samples = 1;
+}
+
 message ExportRequest {
   // A handle to identify which session to use.
   bytes session_handle = 1;
@@ -73,7 +95,6 @@ message ImportRequest {
 }
 
 message ImportResponse {}
-
 // KnowledgeBankService defines the service for handling embedding lookup,
 // updates and samples.
 service KnowledgeBankService {
@@ -83,8 +104,11 @@ service KnowledgeBankService {
   // Lookups the embeddings from a given batch of keys.
   rpc Lookup(LookupRequest) returns (LookupResponse);
 
-  // Updates the embedding value for a given batch keys.
+  // Updates the embedding value for a given batch of keys.
   rpc Update(UpdateRequest) returns (UpdateResponse);
+
+  // Samples the embeddings value from given context.
+  rpc Sample(SampleRequest) returns (SampleResponse);
 
   // Exports current model to a given directory with timestamped subdir.
   rpc Export(ExportRequest) returns (ExportResponse);

@@ -176,6 +176,37 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
   return Status::OK;
 }
 
+grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
+                                                  const SampleRequest* request,
+                                                  SampleResponse* response) {
+  if (request->session_handle().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "session_handle is empty.");
+  }
+  if (request->sample_context().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "No sample context.");
+  }
+  const auto status = StartSessionIfNecessary(request->session_handle());
+  if (!status.ok()) {
+    return status;
+  }
+  absl::MutexLock lock(&map_mu_);
+  const auto& knowledge_bank = *kb_map_[request->session_handle()];
+
+  for (const auto& sample_context : request->sample_context()) {
+    std::vector<candidate_sampling::SampledResult> results;
+    auto status = cs_map_[request->session_handle()]->Sample(
+        knowledge_bank, sample_context, request->num_samples(), &results);
+    if (!status.ok()) {
+      return ToGrpcStatus(status);
+    }
+    auto* samples = response->add_samples();
+    for (auto& result : results) {
+      *samples->add_sampled_result() = std::move(result);
+    }
+  }
+  return Status::OK;
+}
+
 Status KnowledgeBankGrpcServiceImpl::Export(grpc::ServerContext* context,
                                             const ExportRequest* request,
                                             ExportResponse* response) {
@@ -246,6 +277,15 @@ Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
                     "Creating GradientDescentOptimizer failed.");
     }
     gd_map_[session_handle] = std::move(optimizer);
+  }
+  if (request.config().has_candidate_sampler_config() &&
+      !cs_map_.contains(session_handle)) {
+    auto sampler = candidate_sampling::SamplerFactory::Make(
+        request.config().candidate_sampler_config());
+    if (sampler == nullptr) {
+      return Status(StatusCode::INTERNAL, "Creating CandidateSampler failed.");
+    }
+    cs_map_[session_handle] = std::move(sampler);
   }
   return Status::OK;
 }

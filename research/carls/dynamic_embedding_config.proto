@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package carls;
 
+import "research/carls/candidate_sampling/candidate_sampler_config.proto";
 import "research/carls/gradient_descent/gradient_descent_config.proto";
 import "research/carls/knowledge_bank/knowledge_bank_config.proto";
 
@@ -14,4 +15,6 @@ message DynamicEmbeddingConfig {
   KnowledgeBankConfig knowledge_bank_config = 2;
 
   GradientDescentConfig gradient_descent_config = 3;
+
+  candidate_sampling.CandidateSamplerConfig candidate_sampler_config = 4;
 }
