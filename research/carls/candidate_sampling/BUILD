@@ -18,17 +18,8 @@
 load("//research/carls:bazel/build_rules.bzl", "carls_cc_proto_library", "carls_py_proto_library")
 
 package(
-    default_visibility = [
-        ":internal",
-    ],
+    default_visibility = ["//research/carls:internal"],
     licenses = ["notice"],  # Apache 2.0
-)
-
-package_group(
-    name = "internal",
-    packages = [
-        "//research/...",
-    ],
 )
 
 carls_cc_proto_library(

@@ -18,15 +18,8 @@
 load("//research/carls:bazel/build_rules.bzl", "carls_gen_op_wrapper_py")
 
 package(
-    default_visibility = [":internal"],
+    default_visibility = ["//research/carls:internal"],
     licenses = ["notice"],  # Apache 2.0
-)
-
-package_group(
-    name = "internal",
-    packages = [
-        "//research/...",
-    ],
 )
 
 cc_library(
