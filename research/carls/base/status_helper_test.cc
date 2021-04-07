@@ -25,7 +25,7 @@ namespace carls {
 namespace {
 
 absl::Status TestRetCheck(const absl::Status& status) {
-  RET_CHECK(status) << status.message();
+  RET_CHECK_OK(status) << status.message();
   return absl::OkStatus();
 }
 
@@ -59,13 +59,26 @@ TEST(ProtoFactoryTest, ToGrpcStatus) {
   EXPECT_EQ(grpc::StatusCode::INVALID_ARGUMENT, grpc_status.error_code());
 }
 
-TEST(ProtoFactoryTest, RetCheck) {
+TEST(ProtoFactoryTest, RetCheckOk) {
   auto status = TestRetCheck(absl::InvalidArgumentError("My Error message."));
   EXPECT_TRUE(absl::StrContains(status.message(),
                                 "research/carls/base/status_helper_test.cc"));
   EXPECT_TRUE(absl::StrContains(status.message(), "My Error message."));
 
   EXPECT_OK(TestRetCheck(absl::OkStatus()));
+}
+
+TEST(ProtoFactoryTest, RetCheckTrue) {
+  auto lambda = [](bool condition) -> absl::Status {
+    RET_CHECK_TRUE(condition) << "My Errors.";
+    return absl::OkStatus();
+  };
+  auto status = lambda(false);
+  EXPECT_TRUE(absl::StrContains(status.message(),
+                                "research/carls/base/status_helper_test.cc"));
+  EXPECT_TRUE(absl::StrContains(status.message(), "My Errors."));
+
+  EXPECT_OK(lambda(true));
 }
 
 }  // namespace carls

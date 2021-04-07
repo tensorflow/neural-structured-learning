@@ -88,10 +88,16 @@ class MakeErrorStream {
     return *this;
   }
 
-  // Adds RET_CHECK failure text to error message.
-  MakeErrorStreamWithOutput& add_ret_check_failure(const char* condition) {
-    return *this << "RET_CHECK failure (" << impl_->file_ << ":" << impl_->line_
-                 << ") " << condition << " ";
+  // Adds RET_CHECK_OK failure text to error message.
+  MakeErrorStreamWithOutput& add_ret_check_ok_failure(const char* condition) {
+    return *this << "RET_CHECK_OK failure (" << impl_->file_ << ":"
+                 << impl_->line_ << ") " << condition << " ";
+  }
+
+  // Adds RET_CHECK_TRUE failure text to error message.
+  MakeErrorStreamWithOutput& add_ret_check_true_failure() {
+    return *this << "RET_CHECK_TRUE failure (" << impl_->file_ << ":"
+                 << impl_->line_ << ") ";
   }
 
  private:
@@ -175,15 +181,23 @@ absl::Status ToAbslStatus(const tensorflow::Status& status);
 // Converts from absl::Status to grpc::Status.
 grpc::Status ToGrpcStatus(const absl::Status& status);
 
-// Checks if given condition returns Ok status, if not, returns an error status
+// Checks if given condition returns Ok status. If not, returns an error status
 // and stack trace.
-#undef RET_CHECK
-#define RET_CHECK(condition)                                           \
+#undef RET_CHECK_OK
+#define RET_CHECK_OK(condition)                                        \
   while (TF_PREDICT_FALSE(!(condition.ok())))                          \
   return carls::internal::MakeErrorStream(__FILE__, __LINE__,          \
                                           absl::StatusCode::kInternal) \
       .with_log_stack_trace()                                          \
-      .add_ret_check_failure(#condition)
+      .add_ret_check_ok_failure(#condition)
+
+// Checks if given condition returns true. If not, returns the stack trace.
+#define RET_CHECK_TRUE(condition)                                      \
+  while (TF_PREDICT_FALSE(!(condition)))                                 \
+  return carls::internal::MakeErrorStream(__FILE__, __LINE__,          \
+                                          absl::StatusCode::kInternal) \
+      .with_log_stack_trace()                                          \
+      .add_ret_check_true_failure()
 
 }  // namespace carls
 
