@@ -39,6 +39,27 @@ carls_py_proto_library(
     ],
 )
 
+py_library(
+    name = "candidate_sampler_config_builder_py",
+    srcs = ["candidate_sampler_config_builder.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":candidate_sampler_config_py_pb2",
+    ],
+)
+
+py_test(
+    name = "candidate_sampler_config_builder_test",
+    size = "small",
+    srcs = ["candidate_sampler_config_builder_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":candidate_sampler_config_builder_py",
+        ":candidate_sampler_config_py_pb2",
+    ],
+)
+
 cc_library(
     name = "candidate_sampler",
     srcs = ["candidate_sampler.cc"],
