@@ -131,6 +131,7 @@ cc_library(
         "//research/carls/base:file_helper",
         "//research/carls/base:proto_helper",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
     alwayslink = 1,

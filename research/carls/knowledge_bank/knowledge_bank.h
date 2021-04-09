@@ -94,6 +94,11 @@ class KnowledgeBank {
   // Returns the list of keys in the knowledge bank.
   virtual std::vector<absl::string_view> Keys() const = 0;
 
+  // Check if a given key is already in the knowledge bank or not.
+  // This is used for probing the bank without affecting weights of the
+  // embedding.
+  virtual bool Contains(absl::string_view key) const = 0;
+
  protected:
   KnowledgeBank(const KnowledgeBankConfig& config,
                 const int embedding_dimension);

@@ -84,6 +84,10 @@ class FakeEmbedding : public KnowledgeBank {
 
   std::vector<absl::string_view> Keys() const { return keys_; }
 
+  bool Contains(absl::string_view key) const {
+    return data_table_.embedding_table().contains(std::string(key));
+  }
+
  private:
   InProtoKnowledgeBankConfig::EmbeddingData data_table_;
   std::vector<absl::string_view> keys_;
@@ -114,6 +118,11 @@ TEST_F(KnowledgeBankTest, Basic) {
   auto store = CreateDefaultStore(10);
 
   EXPECT_EQ(10, store->embedding_dimension());
+
+  EmbeddingVectorProto embed;
+  ASSERT_OK(store->LookupWithUpdate("key1", &embed));
+  EXPECT_TRUE(store->Contains("key1"));
+  EXPECT_FALSE(store->Contains("key2"));
 }
 
 TEST_F(KnowledgeBankTest, LookupAndUpdate) {
@@ -121,13 +130,13 @@ TEST_F(KnowledgeBankTest, LookupAndUpdate) {
   EmbeddingInitializer initializer;
   initializer.mutable_zero_initializer();
   EmbeddingVectorProto value = InitializeEmbedding(2, initializer);
-  EXPECT_TRUE(store->Update("key1", value).ok());
+  EXPECT_OK(store->Update("key1", value));
 
   EmbeddingVectorProto result;
-  EXPECT_TRUE(store->Lookup("key1", &result).ok());
-  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"(
+  EXPECT_OK(store->Lookup("key1", &result));
+  EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 value: 0 value: 0
-              )"));
+              )pb"));
   EXPECT_EQ(1, store->Size());
   ASSERT_EQ(1, store->Keys().size());
   EXPECT_EQ("key1", store->Keys()[0]);
@@ -150,9 +159,9 @@ TEST_F(KnowledgeBankTest, BatchLookupAndUpdate) {
     ASSERT_TRUE(
         absl::holds_alternative<EmbeddingVectorProto>(value_or_errors[i]));
     EXPECT_THAT(absl::get<EmbeddingVectorProto>(value_or_errors[i]),
-                EqualsProto<EmbeddingVectorProto>(R"(
+                EqualsProto<EmbeddingVectorProto>(R"pb(
                   value: 0 value: 0
-                )"));
+                )pb"));
   }
   ASSERT_TRUE(absl::holds_alternative<std::string>(value_or_errors[2]));
   EXPECT_EQ("Data not found", absl::get<std::string>(value_or_errors[2]));
@@ -172,9 +181,9 @@ TEST_F(KnowledgeBankTest, BatchLookupWithUpdate) {
     ASSERT_TRUE(
         absl::holds_alternative<EmbeddingVectorProto>(value_or_errors[i]));
     EXPECT_THAT(absl::get<EmbeddingVectorProto>(value_or_errors[i]),
-                EqualsProto<EmbeddingVectorProto>(R"(
+                EqualsProto<EmbeddingVectorProto>(R"pb(
                   value: 0 value: 0
-                )"));
+                )pb"));
   }
   EXPECT_EQ(3, store->Size());
   ASSERT_EQ(3, store->Keys().size());
@@ -188,12 +197,12 @@ TEST_F(KnowledgeBankTest, Export) {
 
   // Export to a new dir.
   std::string exported_path;
-  ASSERT_TRUE(store->Export(TempDir(), "", &exported_path).ok());
+  ASSERT_OK(store->Export(TempDir(), "", &exported_path));
   EXPECT_EQ(JoinPath(TempDir(), "embedding_store_meta_data.pbtxt"),
             exported_path);
 
   // Export to the same dir again, it overwrites existing checkpoint.
-  ASSERT_TRUE(store->Export(TempDir(), "", &exported_path).ok());
+  ASSERT_OK(store->Export(TempDir(), "", &exported_path));
 }
 
 TEST_F(KnowledgeBankTest, Import) {
@@ -201,23 +210,23 @@ TEST_F(KnowledgeBankTest, Import) {
 
   // Some updates.
   EmbeddingVectorProto result;
-  EXPECT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key3", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
+  EXPECT_OK(store->LookupWithUpdate("key1", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
+  EXPECT_OK(store->LookupWithUpdate("key3", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
 
   // Now saves a checkpoint.
   std::string exported_path;
-  ASSERT_TRUE(store->Export(TempDir(), "", &exported_path).ok());
+  ASSERT_OK(store->Export(TempDir(), "", &exported_path));
 
   // Some updates.
-  EXPECT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key4", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key5", &result).ok());
+  EXPECT_OK(store->LookupWithUpdate("key1", &result));
+  EXPECT_OK(store->LookupWithUpdate("key4", &result));
+  EXPECT_OK(store->LookupWithUpdate("key5", &result));
 
   // Import previous state.
-  ASSERT_TRUE(store->Import(exported_path).ok());
+  ASSERT_OK(store->Import(exported_path));
 }
 
 }  // namespace carls

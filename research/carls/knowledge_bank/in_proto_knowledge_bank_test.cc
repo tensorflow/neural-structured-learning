@@ -45,20 +45,22 @@ TEST_F(InProtoKnowledgeBankTest, LookupAndUpdate) {
   EmbeddingVectorProto value;
   value.add_value(1.0f);
   value.add_value(2.0f);
-  EXPECT_TRUE(store->Update("key1", value).ok());
+  EXPECT_OK(store->Update("key1", value));
 
   EmbeddingVectorProto result;
-  EXPECT_TRUE(store->Lookup("key1", &result).ok());
+  EXPECT_OK(store->Lookup("key1", &result));
   EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 value: 1 value: 2
               )pb"));
 
-  EXPECT_FALSE(store->Lookup("key2", &result).ok());
+  EXPECT_NOT_OK(store->Lookup("key2", &result));
 
   // Checks size and keys of embedding.
   EXPECT_EQ(1, store->Size());
   ASSERT_EQ(1, store->Keys().size());
   EXPECT_EQ("key1", store->Keys()[0]);
+  EXPECT_TRUE(store->Contains("key1"));
+  EXPECT_FALSE(store->Contains("key2"));
 }
 
 TEST_F(InProtoKnowledgeBankTest, BatchLookupAndUpdate) {
@@ -82,7 +84,7 @@ TEST_F(InProtoKnowledgeBankTest, BatchLookupAndUpdate) {
   // Checks the BatchUpdate and BatchLookup.
   auto statuses = store->BatchUpdate(keys, values);
   for (const auto& status : statuses) {
-    ASSERT_TRUE(status.ok());
+    ASSERT_OK(status);
   }
 
   // Checks the BatchLookup results.
@@ -103,12 +105,14 @@ TEST_F(InProtoKnowledgeBankTest, BatchLookupAndUpdate) {
   for (int i = 0; i < batch_size; ++i) {
     EXPECT_EQ(absl::StrCat("key", i), store->Keys()[i]);
   }
+  EXPECT_TRUE(store->Contains("key99"));
+  EXPECT_FALSE(store->Contains("key199"));
 }
 
 TEST_F(InProtoKnowledgeBankTest, LookupWithUpdate) {
   auto store = CreateDefaultStore(2);
   EmbeddingVectorProto result;
-  ASSERT_TRUE(store->LookupWithUpdate("key1", &result).ok());
+  ASSERT_OK(store->LookupWithUpdate("key1", &result));
   EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 tag: "key1"
                 value: 0
@@ -117,7 +121,7 @@ TEST_F(InProtoKnowledgeBankTest, LookupWithUpdate) {
               )pb"));
 
   // Checks that weight is incremented by 1.
-  ASSERT_TRUE(store->LookupWithUpdate("key1", &result).ok());
+  ASSERT_OK(store->LookupWithUpdate("key1", &result));
   EXPECT_THAT(result, EqualsProto<EmbeddingVectorProto>(R"pb(
                 tag: "key1"
                 value: 0
@@ -129,6 +133,7 @@ TEST_F(InProtoKnowledgeBankTest, LookupWithUpdate) {
   EXPECT_EQ(1, store->Size());
   ASSERT_EQ(1, store->Keys().size());
   EXPECT_EQ("key1", store->Keys()[0]);
+  EXPECT_TRUE(store->Contains("key1"));
 }
 
 TEST_F(InProtoKnowledgeBankTest, BatchLookupWithUpdate) {
@@ -144,8 +149,7 @@ TEST_F(InProtoKnowledgeBankTest, BatchLookupWithUpdate) {
   std::vector<absl::string_view> keys(str_keys.begin(), str_keys.end());
 
   // Checks the BatchLookupWithUpdate returns the zero initialized values.
-  std::vector<absl::variant<EmbeddingVectorProto, std::string>>
-          results;
+  std::vector<absl::variant<EmbeddingVectorProto, std::string>> results;
   store->BatchLookupWithUpdate(keys, &results);
   int i = 0;
   for (const auto& result : results) {
@@ -170,12 +174,12 @@ TEST_F(InProtoKnowledgeBankTest, Export) {
 
   // Even the time changes, the length should always be the same.
   std::string exported_path;
-  ASSERT_TRUE(store->Export(TempDir(), "", &exported_path).ok());
+  ASSERT_OK(store->Export(TempDir(), "", &exported_path));
   EXPECT_EQ(JoinPath(TempDir(), "embedding_store_meta_data.pbtxt"),
             exported_path);
 
   KnowledgeBankCheckpointMetaData meta_data;
-  ASSERT_TRUE(ReadTextProto(exported_path, &meta_data).ok());
+  ASSERT_OK(ReadTextProto(exported_path, &meta_data));
   EXPECT_EQ(JoinPath(TempDir(), "in_proto_embedding_data.pbbin"),
             meta_data.checkpoint_saved_path());
 }
@@ -185,20 +189,20 @@ TEST_F(InProtoKnowledgeBankTest, Import) {
 
   // Some updates.
   EmbeddingVectorProto result;
-  EXPECT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key3", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key2", &result).ok());
+  EXPECT_OK(store->LookupWithUpdate("key1", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
+  EXPECT_OK(store->LookupWithUpdate("key3", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
+  EXPECT_OK(store->LookupWithUpdate("key2", &result));
 
   // Now saves a checkpoint.
   std::string exported_path;
-  ASSERT_TRUE(store->Export(TempDir(), "", &exported_path).ok());
+  ASSERT_OK(store->Export(TempDir(), "", &exported_path));
 
   // Some updates.
-  EXPECT_TRUE(store->LookupWithUpdate("key1", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key4", &result).ok());
-  EXPECT_TRUE(store->LookupWithUpdate("key5", &result).ok());
+  EXPECT_OK(store->LookupWithUpdate("key1", &result));
+  EXPECT_OK(store->LookupWithUpdate("key4", &result));
+  EXPECT_OK(store->LookupWithUpdate("key5", &result));
 
   // Checks size and keys of embedding.
   EXPECT_EQ(5, store->Size());
@@ -210,7 +214,7 @@ TEST_F(InProtoKnowledgeBankTest, Import) {
   EXPECT_EQ("key5", store->Keys()[4]);
 
   // Import previous state.
-  ASSERT_TRUE(store->Import(exported_path).ok());
+  ASSERT_OK(store->Import(exported_path));
 
   // Checks size and keys of embedding again.
   EXPECT_EQ(3, store->Size());

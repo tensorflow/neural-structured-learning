@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "research/carls/candidate_sampling/candidate_sampler.h"
 #include "research/carls/embedding.pb.h"  // proto to pb
 #include "research/carls/knowledge_bank/initializer.pb.h"  // proto to pb
@@ -79,6 +80,8 @@ class FakeEmbedding : public KnowledgeBank {
   size_t Size() const override { return data_table_.embedding_table_size(); }
 
   std::vector<absl::string_view> Keys() const { return keys_; }
+
+  bool Contains(absl::string_view key) const { return true; }
 
  private:
   InProtoKnowledgeBankConfig::EmbeddingData data_table_;
@@ -193,9 +196,8 @@ TEST_F(BruteForceTopkSamplerTest, DotProtudctSimilarity) {
   context.mutable_activation()->add_value(2);
 
   std::vector<SampledResult> results;
-  ASSERT_TRUE(
-      sampler->Sample(*knowledge_bank, context, /*num_samples=*/1, &results)
-          .ok());
+  ASSERT_OK(
+      sampler->Sample(*knowledge_bank, context, /*num_samples=*/1, &results));
   ASSERT_EQ(1, results.size());
   EXPECT_THAT(results[0], EqualsProto<SampledResult>(R"pb(
                 topk_sampling_result {

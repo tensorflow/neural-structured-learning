@@ -112,6 +112,7 @@ cc_test(
         "//research/carls/knowledge_bank:initializer_cc_proto",
         "//research/carls/knowledge_bank:initializer_helper",
         "//research/carls/testing:test_helper",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

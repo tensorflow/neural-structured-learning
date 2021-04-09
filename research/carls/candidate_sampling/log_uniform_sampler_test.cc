@@ -69,6 +69,9 @@ class FakeKnowledgeBank : public KnowledgeBank {
     return absl::OkStatus();
   }
 
+  // Never called.
+  bool Contains(absl::string_view key) const { return true; }
+
  private:
   std::vector<std::string> str_keys_;
   std::vector<absl::string_view> keys_;
@@ -101,10 +104,8 @@ TEST_F(LogUniformSamplerTest, SampingWithReplacement) {
   std::vector<SampledResult> results;
 
   // Same number of positives and num_samples = num_total_keys.
-  ASSERT_TRUE(sampler
-                  ->Sample(FakeKnowledgeBank(/*num_keys=*/2), context,
-                           /*num_samples=*/2, &results)
-                  .ok());
+  ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/2), context,
+                            /*num_samples=*/2, &results));
   ASSERT_EQ(2, results.size());
   EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
   EXPECT_TRUE(results[1].negative_sampling_result().is_positive());

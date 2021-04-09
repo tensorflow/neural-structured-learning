@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "research/carls/base/file_helper.h"
 #include "research/carls/base/proto_helper.h"
@@ -59,6 +60,13 @@ class InProtoKnowledgeBank : public KnowledgeBank {
 
   // Implementation of the Keys interface.
   std::vector<absl::string_view> Keys() const override;
+
+  // Implementation of the Contains interface.
+  bool Contains(absl::string_view key) const {
+    absl::ReaderMutexLock l(&mu_);
+    return in_proto_config_.embedding_data().embedding_table().contains(
+        std::string(key));
+  }
 
   mutable absl::Mutex mu_;
   InProtoKnowledgeBankConfig in_proto_config_ ABSL_GUARDED_BY(mu_);
