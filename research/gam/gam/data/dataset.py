@@ -259,6 +259,12 @@ class GraphDataset(Dataset):
       self.tgt = tgt
       self.weight = weight
 
+    def copy(self, src=None, tgt=None, weight=None):
+      src = src if src is not None else self.src
+      tgt = tgt if tgt is not None else self.tgt
+      weight = weight if weight is not None else self.weight
+      return GraphDataset.Edge(src, tgt, weight)
+
   def __init__(self,
                name,
                features,

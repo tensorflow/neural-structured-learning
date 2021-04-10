@@ -689,9 +689,11 @@ class TrainerClassificationGCN(Trainer):
       edges = data.get_edges(
           src_labeled=True, tgt_labeled=True, label_must_match=True)
     elif labeling == 'lu':
-      edges = (
-          data.get_edges(src_labeled=True, tgt_labeled=False) +
-          data.get_edges(src_labeled=False, tgt_labeled=True))
+      edges_lu = data.get_edges(src_labeled=True, tgt_labeled=False)
+      edges_ul = data.get_edges(src_labeled=False, tgt_labeled=True)
+      # Reverse the edges of UL to be LU.
+      edges_ul = [e.copy(src=e.tgt, tgt=e.src) for e in edges_ul]
+      edges = edges_lu + edges_ul
     elif labeling == 'uu':
       edges = data.get_edges(src_labeled=False, tgt_labeled=False)
     else:
