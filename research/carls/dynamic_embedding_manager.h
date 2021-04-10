@@ -61,6 +61,44 @@ class DynamicEmbeddingManager {
   // Returns DynamicEmbeddingConfig.
   const DynamicEmbeddingConfig& config() { return config_; }
 
+  // Samples negative keys from given positive keys and compute the dot products
+  // between the embeddings of the positive/negative keys and the input
+  // activations.
+  //
+  // If update = true, new embeddings are dynamically allocated for new
+  // positive keys, which is often used in training.
+  //
+  // Note that for a logit layer with activation x in the last layer, one needs
+  // to append an extra 1 to the input activations to obtain wx + b, where [w,
+  // b] is the embedding of a particular output key.
+  //
+  // The `output_labels` indicates if the corresponding `output_keys` is a
+  // positive or negative sample, and the `output_expected_counts` represents
+  // the sampling probability. Please refer to
+  // carls.candidate_sampling.NegativeSamplingResult for details.
+  //
+  // `output_mask` indicates whether `positive_keys` of an entry in the input
+  // batch are all invalid (empty).
+  //
+  // `output_embedding` returns the embeddings of the sampled keys. It should
+  // be allocated as [batch_size, num_samples, embed_dim]. This is needed for
+  // computing the gradients w.r.t. the input_activations.
+  absl::Status NegativeSamplingWithLogits(
+      const tensorflow::Tensor& positive_keys,
+      const tensorflow::Tensor& input_activations, int num_samples, bool update,
+      tensorflow::Tensor* output_keys, tensorflow::Tensor* output_logits,
+      tensorflow::Tensor* output_labels,
+      tensorflow::Tensor* output_expected_counts,
+      tensorflow::Tensor* output_masks, tensorflow::Tensor* output_embeddings);
+
+  // Return top k closest embeddings to each of the input activations.
+  // Note that for a logit layer with activation x, one need to append an extra
+  // 1 to the input activations to obtain wx + b, where [w, b] is the embedding
+  // of a particular output key.
+  absl::Status TopK(const tensorflow::Tensor& input_activations, int k,
+                    tensorflow::Tensor* output_keys,
+                    tensorflow::Tensor* output_logits);
+
   // Calls the KnowledgeBankService::Export RPC.
   absl::Status Export(const std::string& output_dir,
                       std::string* exported_path);

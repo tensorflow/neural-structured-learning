@@ -456,6 +456,7 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
       )pb");
   ASSERT_OK(kbs_server_.Update(&context_, &update_request, &update_response));
 
+  // Sample without update, all available keys {"key1", "key2", "key3"}
   SampleRequest sample_request;
   SampleResponse sample_response;
   sample_request.set_session_handle(session_handle);
@@ -463,13 +464,15 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
   sample_request.add_sample_context()->add_positive_key("key1");
   ASSERT_OK(kbs_server_.Sample(&context_, &sample_request, &sample_response));
   ASSERT_EQ(1, sample_response.samples_size());
+  auto comparator = [](const SampledResult& lhs,
+                       const SampledResult& rhs) -> bool {
+    return lhs.negative_sampling_result().key() <
+           rhs.negative_sampling_result().key();
+  };
   std::sort(
       sample_response.mutable_samples(0)->mutable_sampled_result()->begin(),
       sample_response.mutable_samples(0)->mutable_sampled_result()->end(),
-      [](const SampledResult& lhs, const SampledResult& rhs) -> bool {
-        return lhs.negative_sampling_result().key() <
-               rhs.negative_sampling_result().key();
-      });
+      comparator);
   EXPECT_THAT(sample_response, EqualsProto<SampleResponse>(R"pb(
                 samples {
                   sampled_result {
@@ -491,6 +494,55 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
                     negative_sampling_result {
                       key: "key3"
                       embedding { value: 5 value: 6 }
+                      expected_count: 1
+                    }
+                  }
+                }
+              )pb"));
+
+  // Sample with update, "key4" is added to the knowledge bank.
+  sample_request.mutable_sample_context(0)->add_positive_key("key4");
+  sample_request.set_num_samples(4);
+  sample_request.set_update(true);
+  sample_response.Clear();
+  ASSERT_OK(kbs_server_.Sample(&context_, &sample_request, &sample_response));
+  ASSERT_EQ(1, sample_response.samples_size());
+  std::sort(
+      sample_response.mutable_samples(0)->mutable_sampled_result()->begin(),
+      sample_response.mutable_samples(0)->mutable_sampled_result()->end(),
+      comparator);
+  // "key1", "key2" and "key3" are updated through Update() so their weights are
+  // zero. "key4" is updated through LookupWithUpdate() so its weight/frequency
+  // is 1.
+  EXPECT_THAT(sample_response, EqualsProto<SampleResponse>(R"pb(
+                samples {
+                  sampled_result {
+                    negative_sampling_result {
+                      key: "key1"
+                      embedding { value: 1 value: 2 }
+                      is_positive: true
+                      expected_count: 1
+                    }
+                  }
+                  sampled_result {
+                    negative_sampling_result {
+                      key: "key2"
+                      embedding { value: 3 value: 4}
+                      expected_count: 1
+                    }
+                  }
+                  sampled_result {
+                    negative_sampling_result {
+                      key: "key3"
+                      embedding { value: 5 value: 6 }
+                      expected_count: 1
+                    }
+                  }
+                  sampled_result {
+                    negative_sampling_result {
+                      key: "key4"
+                      embedding { tag: "key4" value: 0 value: 0 weight: 1 }
+                      is_positive: true
                       expected_count: 1
                     }
                   }

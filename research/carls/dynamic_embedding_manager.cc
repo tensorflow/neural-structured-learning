@@ -33,6 +33,7 @@ ABSL_FLAG(double, kbs_rpc_deadline_sec, 10,
 namespace carls {
 namespace {
 
+using ::tensorflow::Tensor;
 using ::tensorflow::tstring;
 
 #ifndef INTERNAL_DIE_IF_NULL
@@ -106,9 +107,8 @@ DynamicEmbeddingManager::DynamicEmbeddingManager(
       config_(config),
       session_handle_(session_handle) {}
 
-absl::Status DynamicEmbeddingManager::Lookup(const tensorflow::Tensor& keys,
-                                             bool update,
-                                             tensorflow::Tensor* output) {
+absl::Status DynamicEmbeddingManager::Lookup(const Tensor& keys, bool update,
+                                             Tensor* output) {
   CHECK(output != nullptr);
   if (!(keys.dims() == 1 || keys.dims() == 2)) {
     return absl::InvalidArgumentError(absl::StrCat(
@@ -182,7 +182,7 @@ absl::Status DynamicEmbeddingManager::Lookup(const tensorflow::Tensor& keys,
 }
 
 absl::Status DynamicEmbeddingManager::CheckInputForUpdate(
-    const tensorflow::Tensor& keys, const tensorflow::Tensor& values) {
+    const Tensor& keys, const Tensor& values) {
   if (keys.NumElements() == 0) {
     return absl::InvalidArgumentError("Input key is empty.");
   }
@@ -203,8 +203,8 @@ absl::Status DynamicEmbeddingManager::CheckInputForUpdate(
   return absl::OkStatus();
 }
 
-absl::Status DynamicEmbeddingManager::UpdateValues(
-    const tensorflow::Tensor& keys, const tensorflow::Tensor& values) {
+absl::Status DynamicEmbeddingManager::UpdateValues(const Tensor& keys,
+                                                   const Tensor& values) {
   auto status = CheckInputForUpdate(keys, values);
   if (!status.ok()) {
     return status;
@@ -260,8 +260,8 @@ absl::Status DynamicEmbeddingManager::LookupInternal(
   return ToAbslStatus(stub_->Lookup(&context, request, response));
 }
 
-absl::Status DynamicEmbeddingManager::UpdateGradients(
-    const tensorflow::Tensor& keys, const tensorflow::Tensor& grads) {
+absl::Status DynamicEmbeddingManager::UpdateGradients(const Tensor& keys,
+                                                      const Tensor& grads) {
   auto status = CheckInputForUpdate(keys, grads);
   if (!status.ok()) {
     return status;
@@ -298,6 +298,152 @@ absl::Status DynamicEmbeddingManager::UpdateGradients(
   UpdateResponse update_response;
   return ToAbslStatus(
       stub_->Update(&context, update_request, &update_response));
+}
+
+absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
+    const Tensor& positive_keys, const Tensor& input_activations,
+    const int num_samples, const bool update, Tensor* output_keys,
+    Tensor* output_logits, Tensor* output_labels,
+    Tensor* output_expected_counts, Tensor* output_masks,
+    Tensor* output_embeddings) {
+  RET_CHECK_TRUE(config_.embedding_dimension() > 0)
+      << "Invalid embedding dimension:" << config_.embedding_dimension();
+  RET_CHECK_TRUE(num_samples > 0);
+
+  // Shape of input: [d1, d2, ..., inner_dim].
+  const int dims = input_activations.dims();
+  const int inner_dim = input_activations.dim_size(dims - 1);
+  RET_CHECK_TRUE(inner_dim == config_.embedding_dimension());
+  const int batch_size =
+      input_activations.NumElements() / config_.embedding_dimension();
+
+  // Processes positive keys.
+  SampleRequest sample_request;
+  sample_request.set_session_handle(session_handle_);
+  sample_request.set_num_samples(num_samples);
+  sample_request.set_update(update);
+  const auto pos_key_values = positive_keys.flat_inner_dims<tstring>();
+  for (int b = 0; b < batch_size; ++b) {
+    auto* sample_context = sample_request.add_sample_context();
+    for (int i = 0; i < positive_keys.dim_size(1); ++i) {
+      if (!pos_key_values(b, i).empty()) {
+        sample_context->add_positive_key(std::string(pos_key_values(b, i)));
+      }
+    }
+  }
+
+  // Calls the Sample RPC.
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
+  SampleResponse sample_response;
+  RET_CHECK_OK(stub_->Sample(&context, sample_request, &sample_response));
+  RET_CHECK_TRUE(sample_response.samples_size() == batch_size);
+
+  // Process sampled results.
+  auto output_keys_values = output_keys->flat_inner_dims<tstring>();
+  auto logits_values = output_logits->flat_inner_dims<float>();
+  auto label_values = output_labels->flat_inner_dims<float>();
+  auto expected_count_values = output_expected_counts->flat_inner_dims<float>();
+  auto mask_values = output_masks->flat<float>();
+  auto embedding_values = output_embeddings->flat_inner_dims<float, 3>();
+  auto input_values = input_activations.flat_inner_dims<float>();
+  for (int b = 0; b < batch_size; ++b) {
+    // Use auto& such that we can directly move some contents of samples into
+    // the output for efficiency.
+    auto& samples = *sample_response.mutable_samples(b);
+
+    // If no sample result is returned, set the default values for output
+    // tensors.
+    if (samples.sampled_result().empty()) {
+      mask_values(b) = 0.0f;
+      for (int i = 0; i < num_samples; ++i) {
+        logits_values(b, i) = 0.0f;
+        output_keys_values(b, i) = "";
+        label_values(b, i) = 0;
+        expected_count_values(b, i) = 1;
+        for (int d = 0; d < config_.embedding_dimension(); ++d) {
+          embedding_values(b, i, d) = 0.0f;
+        }
+      }
+      continue;
+    }
+    mask_values(b) = 1.0f;
+
+    // Processes the output tensors.
+    RET_CHECK_TRUE(samples.sampled_result_size() == num_samples);
+    RET_CHECK_TRUE(samples.sampled_result(0).has_negative_sampling_result());
+    for (int i = 0; i < samples.sampled_result_size(); ++i) {
+      auto& result = *samples.mutable_sampled_result(i)
+                          ->mutable_negative_sampling_result();
+      const auto& embedding = result.embedding();
+      logits_values(b, i) = 0.0;
+      label_values(b, i) = result.is_positive() ? 1.0 : 0.0;
+      expected_count_values(b, i) = result.expected_count();
+      output_keys_values(b, i) = std::move(result.key());
+      float logit_value = 0;  // Computes the dot product.
+      for (int d = 0; d < config_.embedding_dimension(); ++d) {
+        embedding_values(b, i, d) = embedding.value(d);
+        // Computes the logits_values based on returned embedding values and
+        // input activations.
+        logit_value += input_values(b, d) * embedding.value(d);
+      }
+      logits_values(b, i) = logit_value;
+    }
+  }
+
+  return absl::OkStatus();
+}
+
+absl::Status DynamicEmbeddingManager::TopK(
+    const tensorflow::Tensor& input_activations, const int k,
+    tensorflow::Tensor* output_keys, tensorflow::Tensor* output_logits) {
+  RET_CHECK_TRUE(config_.embedding_dimension() > 0)
+      << "Invalid embedding dimension:" << config_.embedding_dimension();
+  RET_CHECK_TRUE(k > 0);
+
+  // Shape of input: batch_size x hidden_size.
+  const int dims = input_activations.dims();
+  const int inner_dim = input_activations.dim_size(dims - 1);
+  RET_CHECK_TRUE(inner_dim == config_.embedding_dimension());
+  const int batch_size =
+      input_activations.NumElements() / config_.embedding_dimension();
+
+  // Processes SampleRequest.
+  SampleRequest sample_request;
+  sample_request.set_session_handle(session_handle_);
+  sample_request.set_num_samples(k);
+  auto activation_value = input_activations.flat_inner_dims<float>();
+  for (int b = 0; b < batch_size; ++b) {
+    auto* sample_context = sample_request.add_sample_context();
+    for (int i = 0; i < config_.embedding_dimension(); ++i) {
+      sample_context->mutable_activation()->add_value(activation_value(b, i));
+    }
+  }
+
+  // Calls the Sample RPC.
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
+  SampleResponse sample_response;
+  RET_CHECK_OK(stub_->Sample(&context, sample_request, &sample_response));
+  RET_CHECK_TRUE(sample_response.samples_size() == batch_size);
+
+  // Process topk results.
+  auto output_keys_values = output_keys->flat_inner_dims<tstring>();
+  auto logits_values = output_logits->flat_inner_dims<float>();
+  for (int b = 0; b < batch_size; ++b) {
+    const auto& samples = sample_response.samples(b);
+    RET_CHECK_TRUE(samples.sampled_result_size() == k);
+    for (int i = 0; i < k; ++i) {
+      auto& result = samples.sampled_result(i).topk_sampling_result();
+      logits_values(b, i) = result.similarity();
+      output_keys_values(b, i) = std::move(result.key());
+    }
+  }
+  return absl::OkStatus();
 }
 
 absl::Status DynamicEmbeddingManager::Export(const std::string& output_dir,

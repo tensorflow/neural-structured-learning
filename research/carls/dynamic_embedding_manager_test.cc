@@ -22,7 +22,10 @@ limitations under the License.
 #include "absl/strings/str_format.h"
 #include "research/carls/base/file_helper.h"
 #include "research/carls/base/proto_helper.h"
+#include "research/carls/candidate_sampling/candidate_sampler_config.pb.h"  // proto to pb
 #include "research/carls/kbs_server_helper.h"
+#include "research/carls/testing/test_helper.h"
+#include "tensorflow/core/framework/types.pb.h"  // proto to pb
 
 namespace carls {
 
@@ -316,6 +319,232 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateGradients_2DInput) {
   // For empty input, it returns all zeros.
   EXPECT_FLOAT_EQ(0, embed_values(1, 1, 0));
   EXPECT_FLOAT_EQ(0, embed_values(1, 1, 1));
+}
+
+TEST_F(DynamicEmbeddingManagerTest, NegativeSamplingWithLogits) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/3);
+  candidate_sampling::LogUniformSamplerConfig log_uniform_sampler;
+  log_uniform_sampler.set_unique(true);
+  auto* sampler_config = config.mutable_candidate_sampler_config();
+  sampler_config->mutable_extension()->PackFrom(log_uniform_sampler);
+  auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  // A batch of size two, one with positive keys {"key1", "key2"}, another with
+  // {"key3"}.
+  Tensor positive_keys(tensorflow::DT_STRING, TensorShape({2, 2}));
+  auto pos_keys_value = positive_keys.matrix<tstring>();
+  pos_keys_value(0, 0) = "key1";
+  pos_keys_value(0, 1) = "key2";
+  pos_keys_value(1, 0) = "key3";
+  pos_keys_value(1, 1) = "";
+  // Initial update returns all zeros.
+  Tensor embed(tensorflow::DT_FLOAT, TensorShape({2, 2, 3}));
+  auto embed_value = embed.tensor<float, 3>();
+  // Embedding for "key1"
+  embed_value(0, 0, 0) = 1;
+  embed_value(0, 0, 1) = 1;
+  embed_value(0, 0, 2) = 1;
+  // Embedding for "key2"
+  embed_value(0, 1, 0) = 2;
+  embed_value(0, 1, 1) = 2;
+  embed_value(0, 1, 2) = 2;
+  // Embedding for "key3"
+  embed_value(1, 0, 0) = 3;
+  embed_value(1, 0, 1) = 3;
+  embed_value(1, 0, 2) = 3;
+  ASSERT_OK(de_manager->UpdateValues(positive_keys, embed));
+
+  // Sets input activation.
+  Tensor input(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  auto input_value = input.matrix<float>();
+  input_value(0, 0) = 1;
+  input_value(0, 1) = 2;
+  input_value(0, 2) = 1;
+  input_value(1, 0) = 3;
+  input_value(1, 1) = 4;
+  input_value(1, 2) = 1;
+
+  Tensor output_keys(tensorflow::DT_STRING, TensorShape({2, 3}));
+  Tensor output_logits(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  Tensor output_label(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  Tensor output_expected_count(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  Tensor output_mask(tensorflow::DT_FLOAT, TensorShape({2}));
+  Tensor output_embed(tensorflow::DT_FLOAT, TensorShape({2, 3, 3}));
+  ASSERT_OK(de_manager->NegativeSamplingWithLogits(
+      positive_keys, input, /*num_samples=*/3, /*update=*/true, &output_keys,
+      &output_logits, &output_label, &output_expected_count, &output_mask,
+      &output_embed));
+
+  // Now checks the results. For both entries, they should return
+  // {"key1", "key2", "key3"} since they are the only available keys.
+  auto keys_value = output_keys.matrix<tstring>();
+  std::set<std::string> keys1;
+  std::set<std::string> keys2;
+  for (int i = 0; i < 3; ++i) {
+    keys1.insert(keys_value(0, i));
+    keys2.insert(keys_value(1, i));
+  }
+  for (const auto& key : std::vector<std::string>{"key1", "key2", "key3"}) {
+    EXPECT_TRUE(keys1.find(key) != keys1.end());
+    EXPECT_TRUE(keys2.find(key) != keys2.end());
+  }
+
+  // Checks label output. Entry one should return 1 negative keys and entry two
+  // should return 2 negative keys.
+  auto labels_value = output_label.matrix<float>();
+  for (int i = 0; i < 3; ++i) {
+    // Entry one.
+    if (keys_value(0, i) == "key1" || keys_value(0, i) == "key2") {
+      EXPECT_FLOAT_EQ(1, labels_value(0, i));
+    } else {
+      EXPECT_FLOAT_EQ(0, labels_value(0, i));
+    }
+    // Entry two.
+    if (keys_value(1, i) == "key3") {
+      EXPECT_FLOAT_EQ(1, labels_value(1, i));
+    } else {
+      EXPECT_FLOAT_EQ(0, labels_value(1, i));
+    }
+  }
+
+  // Checks logits output ([w, b] * [x, 1]).
+  // Entry one:
+  // - "key1": [1, 1, 1] * [1, 2, 1] = 4
+  // - "key2": [2, 2, 2] * [1, 2, 1] = 8
+  // - "key3": [3, 3, 3] * [1, 2, 1] = 12
+  // Entry two:
+  // - "key1": [1, 1, 1] * [3, 4, 1] = 8
+  // - "key2": [2, 2, 2] * [3, 4, 1] = 12
+  // - "key3": [3, 3, 3] * [3, 4, 1] = 24
+  auto logits_value = output_logits.matrix<float>();
+  for (int i = 0; i < 3; ++i) {
+    // Entry one.
+    if (keys_value(0, i) == "key1") {
+      EXPECT_FLOAT_EQ(4, logits_value(0, i));
+    } else if (keys_value(0, i) == "key2") {
+      EXPECT_FLOAT_EQ(8, logits_value(0, i));
+    } else {  // "key3"
+      EXPECT_FLOAT_EQ(12, logits_value(0, i));
+    }
+    // Entry two.
+    if (keys_value(1, i) == "key1") {
+      EXPECT_FLOAT_EQ(8, logits_value(1, i));
+    } else if (keys_value(1, i) == "key2") {
+      EXPECT_FLOAT_EQ(16, logits_value(1, i));
+    } else {  // "key3"
+      EXPECT_FLOAT_EQ(24, logits_value(1, i));
+    }
+  }
+
+  // Checks output_expected_count. Should be all one's in this case.
+  auto prob_value = output_expected_count.matrix<float>();
+  for (int b = 0; b < 2; ++b) {
+    for (int i = 0; i < 3; ++i) {
+      EXPECT_FLOAT_EQ(1, prob_value(b, i));
+    }
+  }
+
+  // Checks output_mask. Should also be all one's.
+  auto mask_value = output_mask.vec<float>();
+  EXPECT_FLOAT_EQ(1, mask_value(0));
+  EXPECT_FLOAT_EQ(1, mask_value(1));
+
+  // Checks output_embed.
+  auto output_embed_value = output_embed.tensor<float, 3>();
+  for (int b = 0; b < 2; ++b) {
+    for (int i = 0; i < 3; ++i) {
+      float expected_value = 0;
+      if (keys_value(b, i) == "key1") {
+        expected_value = 1;
+      } else if (keys_value(b, i) == "key2") {
+        expected_value = 2;
+      } else {  // "key3"
+        expected_value = 3;
+      }
+      for (int d = 0; d < 3; ++d) {
+        EXPECT_FLOAT_EQ(expected_value, output_embed_value(b, i, d));
+      }
+    }
+  }
+}
+
+TEST_F(DynamicEmbeddingManagerTest, Topk) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/3);
+  candidate_sampling::BruteForceTopkSamplerConfig topk_sampler;
+  topk_sampler.set_similarity_type(candidate_sampling::DOT_PRODUCT);
+  auto* sampler_config = config.mutable_candidate_sampler_config();
+  sampler_config->mutable_extension()->PackFrom(topk_sampler);
+  auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  // Add a few keys into the server.
+  Tensor keys(tensorflow::DT_STRING, TensorShape({3}));
+  auto keys_value = keys.vec<tstring>();
+  keys_value(0) = "key1";
+  keys_value(1) = "key2";
+  keys_value(2) = "key3";
+  // Initial update returns all zeros.
+  Tensor embed(tensorflow::DT_FLOAT, TensorShape({3, 3}));
+  auto embed_value = embed.matrix<float>();
+  // Embedding for "key1"
+  embed_value(0, 0) = 1;
+  embed_value(0, 1) = 1;
+  embed_value(0, 2) = 1;
+  // Embedding for "key2"
+  embed_value(1, 0) = 2;
+  embed_value(1, 1) = 2;
+  embed_value(1, 2) = 2;
+  // Embedding for "key3"
+  embed_value(2, 0) = 3;
+  embed_value(2, 1) = 3;
+  embed_value(2, 2) = 3;
+  ASSERT_OK(de_manager->UpdateValues(keys, embed));
+
+  // Sets input activations: [[1, 2, 1], [-1, -2, 1]].
+  Tensor input(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  auto input_value = input.matrix<float>();
+  input_value(0, 0) = 1;
+  input_value(0, 1) = 2;
+  input_value(0, 2) = 1;
+  input_value(1, 0) = -1;
+  input_value(1, 1) = -2;
+  input_value(1, 2) = 1;
+
+  Tensor output_keys(tensorflow::DT_STRING, TensorShape({2, 3}));
+  Tensor output_logits(tensorflow::DT_FLOAT, TensorShape({2, 3}));
+  ASSERT_OK(de_manager->TopK(input, /*k=*/3, &output_keys, &output_logits));
+
+  // Checks topk output ([w, b] * [x, 1]).
+  // Entry one: "key3" > "key2" > "key1"
+  // - "key1": [1, 1, 1] * [1, 2, 1] = 4
+  // - "key2": [2, 2, 2] * [1, 2, 1] = 8
+  // - "key3": [3, 3, 3] * [1, 2, 1] = 12
+  // Entry two: "key1" > "key2" > "key3"
+  // - "key1": [1, 1, 1] * [-1, -2, 1] = -2
+  // - "key2": [2, 2, 2] * [-1, -2, 1] = -4
+  // - "key3": [3, 3, 3] * [-1, -2, 1] = -6
+  auto topk_keys_value = output_keys.matrix<tstring>();
+  EXPECT_EQ("key3", topk_keys_value(0, 0));
+  EXPECT_EQ("key2", topk_keys_value(0, 1));
+  EXPECT_EQ("key1", topk_keys_value(0, 2));
+  EXPECT_EQ("key1", topk_keys_value(1, 0));
+  EXPECT_EQ("key2", topk_keys_value(1, 1));
+  EXPECT_EQ("key3", topk_keys_value(1, 2));
+
+  auto logits_value = output_logits.matrix<float>();
+  EXPECT_FLOAT_EQ(12, logits_value(0, 0));
+  EXPECT_FLOAT_EQ(8, logits_value(0, 1));
+  EXPECT_FLOAT_EQ(4, logits_value(0, 2));
+  EXPECT_FLOAT_EQ(-2, logits_value(1, 0));
+  EXPECT_FLOAT_EQ(-4, logits_value(1, 1));
+  EXPECT_FLOAT_EQ(-6, logits_value(1, 2));
 }
 
 TEST_F(DynamicEmbeddingManagerTest, ImportAndExport) {

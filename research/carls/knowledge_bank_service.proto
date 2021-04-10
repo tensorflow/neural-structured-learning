@@ -61,6 +61,10 @@ message SampleRequest {
 
   // Number of returned samples per sample context.
   int32 num_samples = 3;
+
+  // If true, allocate new embeddings for positive keys that are not in the
+  // knowledge bank.
+  bool update = 4;
 }
 
 message SampleResponse {
@@ -95,6 +99,7 @@ message ImportRequest {
 }
 
 message ImportResponse {}
+
 // KnowledgeBankService defines the service for handling embedding lookup,
 // updates and samples.
 service KnowledgeBankService {

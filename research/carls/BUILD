@@ -158,6 +158,7 @@ cc_library(
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
         "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
@@ -245,8 +246,11 @@ cc_test(
         ":dynamic_embedding_manager",
         ":kbs_server_helper_lib",
         "//research/carls/base:proto_helper",
+        "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
+        "//research/carls/testing:test_helper",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_googletest//:gtest_main",
+        "@tensorflow_solib//:framework_lib",
     ],
 )
 

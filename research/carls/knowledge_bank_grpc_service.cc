@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <cstddef>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
@@ -190,7 +191,23 @@ grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
     return status;
   }
   absl::MutexLock lock(&map_mu_);
-  const auto& knowledge_bank = *kb_map_[request->session_handle()];
+  auto& knowledge_bank = *kb_map_[request->session_handle()];
+  // Add new keys into the knowledge bank if necessary.
+  if (request->update()) {
+    absl::flat_hash_set<absl::string_view> keys;
+    for (const auto& context : request->sample_context()) {
+      for (const auto& key : context.positive_key()) {
+        if (!knowledge_bank.Contains(key)) {
+          keys.insert(key);
+        }
+      }
+    }
+    if (!keys.empty()) {
+      std::vector<absl::variant<EmbeddingVectorProto, std::string>> results;
+      std::vector<absl::string_view> positive_keys(keys.begin(), keys.end());
+      knowledge_bank.BatchLookupWithUpdate(positive_keys, &results);
+    }
+  }
 
   for (const auto& sample_context : request->sample_context()) {
     std::vector<candidate_sampling::SampledResult> results;
