@@ -871,7 +871,7 @@ class TrainerClassificationGCN(Trainer):
 
   def predict(self, session, indices, is_train):
     """Make predictions for the provided sample indices."""
-    if not indices:
+    if len(indices) == 0:
       return np.zeros((0, self.data.num_classes), dtype=np.float32)
     feed_dict = {
         self.input_indices: indices,
