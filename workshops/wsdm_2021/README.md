@@ -1,5 +1,8 @@
 # Neural Structured Learning: Training Neural Networks with Structured Signals
 
+**UPDATE**: Here is the [video recording](https://vimeo.com/521446166) of our
+tutorial at WSDM 2021.
+
 Hands-on tutorial at
 [WSDM 2021](https://www.wsdm-conference.org/2021/tutorials.php/).
 
