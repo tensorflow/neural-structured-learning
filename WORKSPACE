@@ -2,6 +2,10 @@ workspace(name = "org_tensorflow_neural_structured_learning")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# farmhash
+load("//research/carls/third_party/farmhash:workspace.bzl", farmhash = "repo")
+farmhash()
+
 # absl
 http_archive(
     name = "com_google_absl",

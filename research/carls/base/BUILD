@@ -160,3 +160,28 @@ cc_test(
         "@tensorflow_solib//:framework_lib",
     ],
 )
+
+cc_library(
+    name = "async_node_hash_map",
+    hdrs = ["async_node_hash_map.h"],
+    deps = [
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/container:raw_hash_set",
+        "@com_google_absl//absl/synchronization",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+)
+
+cc_test(
+    name = "async_node_hash_map_test",
+    srcs = ["async_node_hash_map_test.cc"],
+    deps = [
+        ":async_node_hash_map",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@farmhash_archive//:farmhash",
+    ],
+)
