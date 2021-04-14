@@ -253,11 +253,18 @@ class GraphDataset(Dataset):
   """Data container for SSL datasets."""
 
   class Edge(object):
+    """Graph Edge."""
 
     def __init__(self, src, tgt, weight=None):
       self.src = src
       self.tgt = tgt
       self.weight = weight
+
+    def copy(self, src=None, tgt=None, weight=None):
+      src = src if src is not None else self.src
+      tgt = tgt if tgt is not None else self.tgt
+      weight = weight if weight is not None else self.weight
+      return GraphDataset.Edge(src, tgt, weight)
 
   def __init__(self,
                name,
@@ -879,9 +886,8 @@ class CotrainDataset(object):
     indices_type = (
         np.uint32
         if self.dataset.num_samples < np.iinfo(np.uint32).max else np.uint64)
-    if os.path.exists(file_indices_train) \
-        and os.path.exists(file_indices_unlabeled) \
-        and os.path.exists(file_labels_train):
+    if os.path.exists(file_indices_train) and os.path.exists(
+        file_indices_unlabeled) and os.path.exists(file_labels_train):
       with open(file_indices_train, 'r') as f:
         indices_train = np.genfromtxt(f, delimiter=',', dtype=indices_type)
       with open(file_indices_unlabeled, 'r') as f:
