@@ -326,10 +326,12 @@ TEST_F(DynamicEmbeddingManagerTest, NegativeSamplingWithLogits) {
   KbsServerHelper helper(options);
   std::string address = absl::StrCat("localhost:", helper.port());
   DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/3);
-  candidate_sampling::LogUniformSamplerConfig log_uniform_sampler;
-  log_uniform_sampler.set_unique(true);
+  candidate_sampling::NegativeSamplerConfig negative_sampler;
+  negative_sampler.set_unique(true);
+  negative_sampler.set_sampler(
+      candidate_sampling::NegativeSamplerConfig::LOG_UNIFORM);
   auto* sampler_config = config.mutable_candidate_sampler_config();
-  sampler_config->mutable_extension()->PackFrom(log_uniform_sampler);
+  sampler_config->mutable_extension()->PackFrom(negative_sampler);
   auto de_manager = DynamicEmbeddingManager::Create(config, "emb", address);
   ASSERT_TRUE(de_manager != nullptr);
 

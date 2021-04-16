@@ -28,7 +28,7 @@ namespace carls {
 namespace {
 
 using candidate_sampling::BruteForceTopkSamplerConfig;
-using candidate_sampling::LogUniformSamplerConfig;
+using candidate_sampling::NegativeSamplerConfig;
 using candidate_sampling::SampledResult;
 using ::grpc::ServerContext;
 
@@ -428,8 +428,9 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
   StartSessionRequest start_request;
   StartSessionResponse start_response;
   start_request.set_name("emb1");
-  LogUniformSamplerConfig neg_sample_config;
+  NegativeSamplerConfig neg_sample_config;
   neg_sample_config.set_unique(true);
+  neg_sample_config.set_sampler(NegativeSamplerConfig::LOG_UNIFORM);
   de_config_.mutable_candidate_sampler_config()->mutable_extension()->PackFrom(
       neg_sample_config);
   *start_request.mutable_config() = de_config_;
@@ -527,7 +528,7 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
                   sampled_result {
                     negative_sampling_result {
                       key: "key2"
-                      embedding { value: 3 value: 4}
+                      embedding { value: 3 value: 4 }
                       expected_count: 1
                     }
                   }

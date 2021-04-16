@@ -153,7 +153,7 @@ cc_library(
         ":knowledge_bank_service_cc_grpc_proto",
         "//research/carls/candidate_sampling:brute_force_topk_sampler",
         "//research/carls/candidate_sampling:candidate_sampler",
-        "//research/carls/candidate_sampling:log_uniform_sampler",
+        "//research/carls/candidate_sampling:negative_sampler",
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",

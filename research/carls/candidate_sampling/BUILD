@@ -84,8 +84,8 @@ cc_test(
 )
 
 cc_library(
-    name = "log_uniform_sampler",
-    srcs = ["log_uniform_sampler.cc"],
+    name = "negative_sampler",
+    srcs = ["negative_sampler.cc"],
     deps = [
         ":candidate_sampler",
         "//research/carls/base:proto_helper",
@@ -98,8 +98,8 @@ cc_library(
 )
 
 cc_test(
-    name = "log_uniform_sampler_test",
-    srcs = ["log_uniform_sampler_test.cc"],
+    name = "negative_sampler_test",
+    srcs = ["negative_sampler_test.cc"],
     deps = [
         ":candidate_sampler",
         ":log_uniform_sampler",

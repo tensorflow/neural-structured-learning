@@ -18,8 +18,29 @@ import typing
 from research.carls.candidate_sampling import candidate_sampler_config_pb2 as cs_config_pb2
 
 
-def log_uniform_sampler(unique: bool) -> cs_config_pb2.LogUniformSamplerConfig:
-  return cs_config_pb2.LogUniformSamplerConfig(unique=unique)
+def negative_sampler(unique: bool,
+                     algorithm) -> cs_config_pb2.NegativeSamplerConfig:
+  """Builds a NegativeSamplerConfig from given input.
+
+  Args:
+    unique: a bool indicating if the samples should be unique.
+    algorithm: the sampler algorithm defined by NegativeSamplerConfig.Sampler.
+
+  Returns:
+    A NegativeSamplerConfig proto.
+  """
+  if isinstance(algorithm, typing.Text):
+    algorithm = cs_config_pb2.NegativeSamplerConfig.Sampler.Value(algorithm)
+  if isinstance(algorithm, int):
+    if algorithm not in [
+        cs_config_pb2.NegativeSamplerConfig.UNIFORM,
+        cs_config_pb2.NegativeSamplerConfig.LOG_UNIFORM
+    ]:
+      raise ValueError('Invalid sampler type.')
+  else:
+    raise ValueError('Invalid input: %r' % algorithm)
+
+  return cs_config_pb2.NegativeSamplerConfig(unique=unique, sampler=algorithm)
 
 
 def brute_force_topk_sampler(
@@ -53,7 +74,7 @@ def build_candidate_sampler_config(
   """Builds a CandidateSamplerConfig from given sampler.
 
   Args:
-    sampler: an instance of LogUniformSamplerConfig or
+    sampler: an instance of NegativeSamplerConfig or
       BruteForceTopkSamplerConfig.
 
   Returns:
@@ -62,10 +83,10 @@ def build_candidate_sampler_config(
   Raises:
     ValueError if `sampler` is not valid.
   """
-  if not (isinstance(sampler, cs_config_pb2.LogUniformSamplerConfig) or
+  if not (isinstance(sampler, cs_config_pb2.NegativeSamplerConfig) or
           isinstance(sampler, cs_config_pb2.BruteForceTopkSamplerConfig)):
     raise ValueError(
-        'sampler must be one of LogUniformSamplerConfig or BruteForceTopkSamplerConfig'
+        'sampler must be one of NegativeSamplerConfig or BruteForceTopkSamplerConfig'
     )
 
   sampler_config = cs_config_pb2.CandidateSamplerConfig()

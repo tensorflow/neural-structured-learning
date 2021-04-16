@@ -25,18 +25,27 @@ limitations under the License.
 
 namespace carls {
 namespace candidate_sampling {
+namespace {
 
 using tensorflow::random::SimplePhilox;
 
+// Numerically stable version of (1 - (1-p)^num_tries):
+// -expm1(num_tries * log1p(-p));
+float StableExpectedCount(const int num_tries, const float prob) {
+  return -std::expm1(static_cast<float>(num_tries) * std::log1p(-prob));
+}
+
+}  // namespace
+
 // Sample the candidates based on log uniform distribution.
-class LogUniformSampler : public CandidateSampler {
+class NegativeSampler : public CandidateSampler {
  public:
-  LogUniformSampler(const CandidateSamplerConfig& config)
+  NegativeSampler(const CandidateSamplerConfig& config)
       : CandidateSampler(config),
         simple_philox_(&random_),
-        log_uniform_config_(
-            GetExtensionProtoOrDie<CandidateSamplerConfig,
-                                   LogUniformSamplerConfig>(config)) {}
+        sampler_config_(GetExtensionProtoOrDie<CandidateSamplerConfig,
+                                               NegativeSamplerConfig>(config)) {
+  }
 
  private:
   absl::Status SampleInternal(
@@ -51,7 +60,13 @@ class LogUniformSampler : public CandidateSampler {
                             std::vector<SampledResult>* results) const;
 
   // Allows duplicates in the sampling.
-  absl::Status SampleWithReplacement(
+  absl::Status UniformSampleWithReplacement(
+      const KnowledgeBank& knowledge_bank,
+      std::vector<absl::string_view> positive_keys,
+      const std::vector<absl::string_view>& all_keys, const int num_sampled,
+      std::vector<SampledResult>* results) const;
+
+  absl::Status LogUniformSampleWithReplacement(
       const KnowledgeBank& knowledge_bank,
       std::vector<absl::string_view> positive_keys,
       const std::vector<absl::string_view>& all_keys, const int num_sampled,
@@ -89,17 +104,26 @@ class LogUniformSampler : public CandidateSampler {
   mutable absl::Mutex mu_;
   tensorflow::random::PhiloxRandom random_;
   mutable tensorflow::random::SimplePhilox simple_philox_ ABSL_GUARDED_BY(mu_);
-  LogUniformSamplerConfig log_uniform_config_;
+  NegativeSamplerConfig sampler_config_;
 };
 
-REGISTER_SAMPLER_FACTORY(LogUniformSamplerConfig,
-                         [](const CandidateSamplerConfig& config)
-                             -> std::unique_ptr<CandidateSampler> {
-                           return std::unique_ptr<CandidateSampler>(
-                               new LogUniformSampler(config));
-                         });
+REGISTER_SAMPLER_FACTORY(
+    NegativeSamplerConfig,
+    [](const CandidateSamplerConfig& config)
+        -> std::unique_ptr<CandidateSampler> {
+      NegativeSamplerConfig sampler_config;
+      if (!config.extension().UnpackTo(&sampler_config)) {
+        LOG(ERROR) << "Unpacking extension failed with input: "
+                   << config.DebugString();
+      }
+      if (sampler_config.sampler() == NegativeSamplerConfig::UNKNOWN) {
+        LOG(ERROR) << "Unkown sampler.";
+        return nullptr;
+      }
+      return std::unique_ptr<CandidateSampler>(new NegativeSampler(config));
+    });
 
-absl::Status LogUniformSampler::SampleInternal(
+absl::Status NegativeSampler::SampleInternal(
     const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
     int num_samples, std::vector<SampledResult>* results) const {
   if (sample_context.positive_key().empty()) {
@@ -109,15 +133,23 @@ absl::Status LogUniformSampler::SampleInternal(
       sample_context.positive_key().begin(),
       sample_context.positive_key().end());
   std::vector<absl::string_view> all_keys = knowledge_bank.Keys();
-  if (log_uniform_config_.unique()) {
+  // Unique sampler is the same for both UNIFORM and LOG_UNIFORM samplers.
+  if (sampler_config_.unique()) {
     return SampleUnique(knowledge_bank, positive_keys, all_keys, num_samples,
                         results);
   }
-  return SampleWithReplacement(knowledge_bank, positive_keys, all_keys,
-                               num_samples, results);
+  if (sampler_config_.sampler() == NegativeSamplerConfig::UNIFORM) {
+    return UniformSampleWithReplacement(knowledge_bank, positive_keys, all_keys,
+                                        num_samples, results);
+  } else if (sampler_config_.sampler() == NegativeSamplerConfig::LOG_UNIFORM) {
+    return LogUniformSampleWithReplacement(knowledge_bank, positive_keys,
+                                           all_keys, num_samples, results);
+  } else {
+    return absl::InternalError("Uknown sampler.");
+  }
 }
 
-absl::Status LogUniformSampler::SampleUnique(
+absl::Status NegativeSampler::SampleUnique(
     const KnowledgeBank& knowledge_bank,
     std::vector<absl::string_view> positive_keys,
     const std::vector<absl::string_view>& all_keys, const int num_sampled,
@@ -188,7 +220,7 @@ absl::Status LogUniformSampler::SampleUnique(
   return absl::OkStatus();
 }
 
-absl::Status LogUniformSampler::SampleWithReplacement(
+absl::Status NegativeSampler::LogUniformSampleWithReplacement(
     const KnowledgeBank& knowledge_bank,
     std::vector<absl::string_view> positive_keys,
     const std::vector<absl::string_view>& all_keys, const int num_sampled,
@@ -214,7 +246,42 @@ absl::Status LogUniformSampler::SampleWithReplacement(
     const float prob = (log((index + 2.0) / (index + 1.0))) / log_range;
     // numerically stable version of (1 - (1-p)^num_tries).
     const float expected_count =
-        -std::expm1((num_sampled - positive_keys.size()) * std::log1p(-prob));
+        StableExpectedCount(num_sampled - positive_keys.size(), prob);
+    results->push_back(BuildSampledResult(knowledge_bank, all_keys[index],
+                                          pos_set.contains(all_keys[index]),
+                                          expected_count));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status NegativeSampler::UniformSampleWithReplacement(
+    const KnowledgeBank& knowledge_bank,
+    std::vector<absl::string_view> positive_keys,
+    const std::vector<absl::string_view>& all_keys, const int num_sampled,
+    std::vector<SampledResult>* results) const {
+  absl::flat_hash_set<absl::string_view> pos_set(positive_keys.begin(),
+                                                 positive_keys.end());
+  const size_t range = all_keys.size();
+  const float inv_range = 1.0 / static_cast<float>(range);
+  results->clear();
+  results->reserve(num_sampled);
+  // This is the probability of an item is selected given the sampling
+  // strategy, i.e., uniformly sampling num_sampled - |pos_set| samples.
+  // Use numerically stable version of (1 - (1-p)^num_tries):
+  // -expm1(num_tries * log1p(-p));
+  const size_t num_pos_keys = positive_keys.size();
+  const float expected_count =
+      num_sampled > num_pos_keys
+          ? StableExpectedCount(num_sampled - num_pos_keys, inv_range)
+          : 1.0f;
+  for (int i = 0; i < num_sampled; ++i) {
+    if (i < positive_keys.size()) {
+      results->push_back(BuildSampledResult(knowledge_bank, positive_keys[i],
+                                            /*is_positive=*/true,
+                                            /*expected_count=*/1));
+      continue;
+    }
+    const int64_t index = Uniform(range);
     results->push_back(BuildSampledResult(knowledge_bank, all_keys[index],
                                           pos_set.contains(all_keys[index]),
                                           expected_count));

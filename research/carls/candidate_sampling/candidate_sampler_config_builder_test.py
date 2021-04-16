@@ -21,13 +21,45 @@ import tensorflow as tf
 
 class CandidateSamplerConfigBuilderTest(tf.test.TestCase):
 
-  def test_log_uniform_sampler(self):
-    self.assertProtoEquals("""
+  def test_negative_sampler(self):
+    self.assertProtoEquals(
+        """
       unique: true
-    """, cs_config_builder.log_uniform_sampler(True))
-    self.assertProtoEquals("""
+      sampler: UNIFORM
+    """,
+        cs_config_builder.negative_sampler(
+            True, cs_config_pb2.NegativeSamplerConfig.UNIFORM))
+    self.assertProtoEquals(
+        """
       unique: false
-    """, cs_config_builder.log_uniform_sampler(False))
+      sampler: UNIFORM
+    """,
+        cs_config_builder.negative_sampler(
+            False, cs_config_pb2.NegativeSamplerConfig.UNIFORM))
+    self.assertProtoEquals(
+        """
+      unique: true
+      sampler: LOG_UNIFORM
+    """,
+        cs_config_builder.negative_sampler(
+            True, cs_config_pb2.NegativeSamplerConfig.LOG_UNIFORM))
+    self.assertProtoEquals(
+        """
+      unique: false
+      sampler: LOG_UNIFORM
+    """,
+        cs_config_builder.negative_sampler(
+            False, cs_config_pb2.NegativeSamplerConfig.LOG_UNIFORM))
+    self.assertProtoEquals(
+        """
+      unique: false
+      sampler: UNIFORM
+    """, cs_config_builder.negative_sampler(False, 'UNIFORM'))
+    self.assertProtoEquals(
+        """
+      unique: true
+      sampler: LOG_UNIFORM
+    """, cs_config_builder.negative_sampler(True, 'LOG_UNIFORM'))
 
   def test_brute_force_topk_sampler_success(self):
     self.assertProtoEquals("""
@@ -71,13 +103,14 @@ class CandidateSamplerConfigBuilderTest(tf.test.TestCase):
     self.assertProtoEquals(
         """
         extension {
-          [type.googleapis.com/carls.candidate_sampling.LogUniformSamplerConfig] {
+          [type.googleapis.com/carls.candidate_sampling.NegativeSamplerConfig] {
             unique: true
+            sampler: UNIFORM
           }
         }
     """,
         cs_config_builder.build_candidate_sampler_config(
-            cs_config_builder.log_uniform_sampler(True)))
+            cs_config_builder.negative_sampler(True, 'UNIFORM')))
 
   def test_build_candidate_sampler_config_failed(self):
     with self.assertRaises(ValueError):

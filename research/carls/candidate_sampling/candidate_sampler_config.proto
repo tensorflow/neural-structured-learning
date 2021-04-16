@@ -15,9 +15,18 @@ message CandidateSamplerConfig {
 // A sampler used in the sampled softmax/logistic layer.
 // See https://www.tensorflow.org/extras/candidate_sampling.pdf for more
 // details.
-message LogUniformSamplerConfig {
+message NegativeSamplerConfig {
   // If the sampled key should be unique or not.
   bool unique = 1;
+
+  enum Sampler {
+    UNKNOWN = 0;
+    // Sample uniformly among both positive and negative data.
+    UNIFORM = 1;
+    // Sample log uniformly among both positive and negative data.
+    LOG_UNIFORM = 2;
+  }
+  Sampler sampler = 2;
 }
 
 // Types of similarity between two embeddings.
