@@ -115,6 +115,7 @@ Structured Learning:
 *   [A2N: Attending to Neighbors for Knowledge Graph Inference](research/a2n)
 *   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 *   [Neural Clustering Processes](research/neural_clustering)
+*   [CARLS: Cross-platform Asynchronous Representation Learning System](research/carls)
 
 ## Issues, Questions, and Feedback
 
