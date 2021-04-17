@@ -122,5 +122,8 @@ def _dynamic_embedding_lookup_grad(op, grad):
     op.
   """
   grad = tf.reshape(grad, [-1, grad.shape[-1]])
-  return gen_de_op.dynamic_embedding_lookup_grad(op.inputs[0], grad,
-                                                 op.inputs[2])
+  return gen_de_op.dynamic_embedding_lookup_grad(
+      op.inputs[0],  # keys
+      grad,
+      op.inputs[2]  # resource
+  )

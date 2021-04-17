@@ -61,9 +61,7 @@ class DynamicEmbeddingManager {
   // Returns DynamicEmbeddingConfig.
   const DynamicEmbeddingConfig& config() { return config_; }
 
-  // Samples negative keys from given positive keys and compute the dot products
-  // between the embeddings of the positive/negative keys and the input
-  // activations.
+  // Samples negative keys from given positive keys.
   //
   // If update = true, new embeddings are dynamically allocated for new
   // positive keys, which is often used in training.
@@ -81,15 +79,15 @@ class DynamicEmbeddingManager {
   // batch are all invalid (empty).
   //
   // `output_embedding` returns the embeddings of the sampled keys. It should
-  // be allocated as [batch_size, num_samples, embed_dim]. This is needed for
-  // computing the gradients w.r.t. the input_activations.
-  absl::Status NegativeSamplingWithLogits(
-      const tensorflow::Tensor& positive_keys,
-      const tensorflow::Tensor& input_activations, int num_samples, bool update,
-      tensorflow::Tensor* output_keys, tensorflow::Tensor* output_logits,
-      tensorflow::Tensor* output_labels,
-      tensorflow::Tensor* output_expected_counts,
-      tensorflow::Tensor* output_masks, tensorflow::Tensor* output_embeddings);
+  // be allocated as [batch_size, num_samples, embed_dim].
+  absl::Status NegativeSampling(const tensorflow::Tensor& positive_keys,
+                                const tensorflow::Tensor& input_activations,
+                                int num_samples, bool update,
+                                tensorflow::Tensor* output_keys,
+                                tensorflow::Tensor* output_labels,
+                                tensorflow::Tensor* output_expected_counts,
+                                tensorflow::Tensor* output_masks,
+                                tensorflow::Tensor* output_embeddings);
 
   // Return top k closest embeddings to each of the input activations.
   // Note that for a logit layer with activation x, one need to append an extra

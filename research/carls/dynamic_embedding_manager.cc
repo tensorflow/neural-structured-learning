@@ -183,9 +183,7 @@ absl::Status DynamicEmbeddingManager::Lookup(const Tensor& keys, bool update,
 
 absl::Status DynamicEmbeddingManager::CheckInputForUpdate(
     const Tensor& keys, const Tensor& values) {
-  if (keys.NumElements() == 0) {
-    return absl::InvalidArgumentError("Input key is empty.");
-  }
+  RET_CHECK_TRUE(keys.NumElements() > 0) << "Input key is empty.";
   const int num_keys = keys.NumElements();
   const int emb_dim = values.dim_size(values.dims() - 1);
   const int num_values = values.NumElements() / emb_dim;
@@ -205,10 +203,7 @@ absl::Status DynamicEmbeddingManager::CheckInputForUpdate(
 
 absl::Status DynamicEmbeddingManager::UpdateValues(const Tensor& keys,
                                                    const Tensor& values) {
-  auto status = CheckInputForUpdate(keys, values);
-  if (!status.ok()) {
-    return status;
-  }
+  RET_CHECK_OK(CheckInputForUpdate(keys, values));
   const auto key_values = keys.flat<tstring>();
   const int num_keys = keys.NumElements();
   const int emb_dim = values.dim_size(values.dims() - 1);
@@ -262,10 +257,7 @@ absl::Status DynamicEmbeddingManager::LookupInternal(
 
 absl::Status DynamicEmbeddingManager::UpdateGradients(const Tensor& keys,
                                                       const Tensor& grads) {
-  auto status = CheckInputForUpdate(keys, grads);
-  if (!status.ok()) {
-    return status;
-  }
+  RET_CHECK_OK(CheckInputForUpdate(keys, grads));
   const auto key_values = keys.flat<tstring>();
   const int num_keys = keys.NumElements();
   const int emb_dim = grads.dim_size(grads.dims() - 1);
@@ -300,11 +292,10 @@ absl::Status DynamicEmbeddingManager::UpdateGradients(const Tensor& keys,
       stub_->Update(&context, update_request, &update_response));
 }
 
-absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
+absl::Status DynamicEmbeddingManager::NegativeSampling(
     const Tensor& positive_keys, const Tensor& input_activations,
     const int num_samples, const bool update, Tensor* output_keys,
-    Tensor* output_logits, Tensor* output_labels,
-    Tensor* output_expected_counts, Tensor* output_masks,
+    Tensor* output_labels, Tensor* output_expected_counts, Tensor* output_masks,
     Tensor* output_embeddings) {
   RET_CHECK_TRUE(config_.embedding_dimension() > 0)
       << "Invalid embedding dimension:" << config_.embedding_dimension();
@@ -313,7 +304,8 @@ absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
   // Shape of input: [d1, d2, ..., inner_dim].
   const int dims = input_activations.dims();
   const int inner_dim = input_activations.dim_size(dims - 1);
-  RET_CHECK_TRUE(inner_dim == config_.embedding_dimension());
+  RET_CHECK_TRUE(inner_dim == config_.embedding_dimension())
+      << inner_dim << " v.s. " << config_.embedding_dimension();
   const int batch_size =
       input_activations.NumElements() / config_.embedding_dimension();
 
@@ -323,6 +315,8 @@ absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
   sample_request.set_num_samples(num_samples);
   sample_request.set_update(update);
   const auto pos_key_values = positive_keys.flat_inner_dims<tstring>();
+  RET_CHECK_TRUE(pos_key_values.dimension(0) == batch_size)
+      << pos_key_values.dimension(0) << " v.s. " << batch_size;
   for (int b = 0; b < batch_size; ++b) {
     auto* sample_context = sample_request.add_sample_context();
     for (int i = 0; i < positive_keys.dim_size(1); ++i) {
@@ -343,12 +337,10 @@ absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
 
   // Process sampled results.
   auto output_keys_values = output_keys->flat_inner_dims<tstring>();
-  auto logits_values = output_logits->flat_inner_dims<float>();
   auto label_values = output_labels->flat_inner_dims<float>();
   auto expected_count_values = output_expected_counts->flat_inner_dims<float>();
   auto mask_values = output_masks->flat<float>();
   auto embedding_values = output_embeddings->flat_inner_dims<float, 3>();
-  auto input_values = input_activations.flat_inner_dims<float>();
   for (int b = 0; b < batch_size; ++b) {
     // Use auto& such that we can directly move some contents of samples into
     // the output for efficiency.
@@ -359,7 +351,6 @@ absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
     if (samples.sampled_result().empty()) {
       mask_values(b) = 0.0f;
       for (int i = 0; i < num_samples; ++i) {
-        logits_values(b, i) = 0.0f;
         output_keys_values(b, i) = "";
         label_values(b, i) = 0;
         expected_count_values(b, i) = 1;
@@ -378,18 +369,12 @@ absl::Status DynamicEmbeddingManager::NegativeSamplingWithLogits(
       auto& result = *samples.mutable_sampled_result(i)
                           ->mutable_negative_sampling_result();
       const auto& embedding = result.embedding();
-      logits_values(b, i) = 0.0;
       label_values(b, i) = result.is_positive() ? 1.0 : 0.0;
       expected_count_values(b, i) = result.expected_count();
       output_keys_values(b, i) = std::move(result.key());
-      float logit_value = 0;  // Computes the dot product.
       for (int d = 0; d < config_.embedding_dimension(); ++d) {
         embedding_values(b, i, d) = embedding.value(d);
-        // Computes the logits_values based on returned embedding values and
-        // input activations.
-        logit_value += input_values(b, d) * embedding.value(d);
       }
-      logits_values(b, i) = logit_value;
     }
   }
 

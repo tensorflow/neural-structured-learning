@@ -22,6 +22,7 @@ limitations under the License.
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
 
 namespace carls {
 namespace internal {
@@ -75,6 +76,12 @@ inline ::testing::PolymorphicMatcher<ProtoStringMatcher> EqualsProto(
 #define EXPECT_ERROR_EQ(expression, err_msg) \
   ASSERT_FALSE(expression.ok());             \
   EXPECT_EQ(err_msg, internal::GetErrorMessage(expression));
+
+// Checks the status returned by expression is not ok and the error message
+// contains given err_msg.
+#define EXPECT_ERROR_CONTAIN(expr, err_msg) \
+  ASSERT_FALSE(expr.ok());                  \
+  EXPECT_TRUE(absl::StrContains(internal::GetErrorMessage(expr), err_msg));
 
 // Asserts the status returned by expression is OK.
 #undef ASSERT_OK

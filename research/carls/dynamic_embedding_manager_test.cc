@@ -147,19 +147,19 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateValues_InvalidInputs) {
   // Empty input.
   Tensor keys;
   Tensor values;
-  EXPECT_EQ("Input key is empty.",
-            de_manager->UpdateValues(keys, values).message());
+  EXPECT_ERROR_CONTAIN(de_manager->UpdateValues(keys, values),
+                       "CheckInputForUpdate(keys, values)");
 
   // Inconsistent key size and value size.
   keys = Tensor(tensorflow::DT_STRING, TensorShape({3}));
   values = Tensor(tensorflow::DT_STRING, TensorShape({2, 2}));
-  EXPECT_EQ("Inconsistent keys size and values size: 3 v.s. 2",
-            de_manager->UpdateValues(keys, values).message());
+  EXPECT_ERROR_CONTAIN(de_manager->UpdateValues(keys, values),
+                       "CheckInputForUpdate(keys, values)");
 
   // Inconsistent embedding dimension.
   values = Tensor(tensorflow::DT_STRING, TensorShape({3, 4}));
-  EXPECT_EQ("Inconsistent embedding dimension, got 4 expect 2",
-            de_manager->UpdateValues(keys, values).message());
+  EXPECT_ERROR_CONTAIN(de_manager->UpdateValues(keys, values),
+                       "CheckInputForUpdate(keys, values)");
 }
 
 TEST_F(DynamicEmbeddingManagerTest, UpdateValues_1DInput) {
@@ -321,7 +321,7 @@ TEST_F(DynamicEmbeddingManagerTest, UpdateGradients_2DInput) {
   EXPECT_FLOAT_EQ(0, embed_values(1, 1, 1));
 }
 
-TEST_F(DynamicEmbeddingManagerTest, NegativeSamplingWithLogits) {
+TEST_F(DynamicEmbeddingManagerTest, NegativeSampling) {
   KnowledgeBankServiceOptions options;
   KbsServerHelper helper(options);
   std::string address = absl::StrCat("localhost:", helper.port());
@@ -371,15 +371,13 @@ TEST_F(DynamicEmbeddingManagerTest, NegativeSamplingWithLogits) {
   input_value(1, 2) = 1;
 
   Tensor output_keys(tensorflow::DT_STRING, TensorShape({2, 3}));
-  Tensor output_logits(tensorflow::DT_FLOAT, TensorShape({2, 3}));
   Tensor output_label(tensorflow::DT_FLOAT, TensorShape({2, 3}));
   Tensor output_expected_count(tensorflow::DT_FLOAT, TensorShape({2, 3}));
   Tensor output_mask(tensorflow::DT_FLOAT, TensorShape({2}));
   Tensor output_embed(tensorflow::DT_FLOAT, TensorShape({2, 3, 3}));
-  ASSERT_OK(de_manager->NegativeSamplingWithLogits(
+  ASSERT_OK(de_manager->NegativeSampling(
       positive_keys, input, /*num_samples=*/3, /*update=*/true, &output_keys,
-      &output_logits, &output_label, &output_expected_count, &output_mask,
-      &output_embed));
+      &output_label, &output_expected_count, &output_mask, &output_embed));
 
   // Now checks the results. For both entries, they should return
   // {"key1", "key2", "key3"} since they are the only available keys.
@@ -410,35 +408,6 @@ TEST_F(DynamicEmbeddingManagerTest, NegativeSamplingWithLogits) {
       EXPECT_FLOAT_EQ(1, labels_value(1, i));
     } else {
       EXPECT_FLOAT_EQ(0, labels_value(1, i));
-    }
-  }
-
-  // Checks logits output ([w, b] * [x, 1]).
-  // Entry one:
-  // - "key1": [1, 1, 1] * [1, 2, 1] = 4
-  // - "key2": [2, 2, 2] * [1, 2, 1] = 8
-  // - "key3": [3, 3, 3] * [1, 2, 1] = 12
-  // Entry two:
-  // - "key1": [1, 1, 1] * [3, 4, 1] = 8
-  // - "key2": [2, 2, 2] * [3, 4, 1] = 12
-  // - "key3": [3, 3, 3] * [3, 4, 1] = 24
-  auto logits_value = output_logits.matrix<float>();
-  for (int i = 0; i < 3; ++i) {
-    // Entry one.
-    if (keys_value(0, i) == "key1") {
-      EXPECT_FLOAT_EQ(4, logits_value(0, i));
-    } else if (keys_value(0, i) == "key2") {
-      EXPECT_FLOAT_EQ(8, logits_value(0, i));
-    } else {  // "key3"
-      EXPECT_FLOAT_EQ(12, logits_value(0, i));
-    }
-    // Entry two.
-    if (keys_value(1, i) == "key1") {
-      EXPECT_FLOAT_EQ(8, logits_value(1, i));
-    } else if (keys_value(1, i) == "key2") {
-      EXPECT_FLOAT_EQ(16, logits_value(1, i));
-    } else {  // "key3"
-      EXPECT_FLOAT_EQ(24, logits_value(1, i));
     }
   }
 

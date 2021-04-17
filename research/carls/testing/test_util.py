@@ -22,18 +22,21 @@ from absl import flags
 
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
 from research.carls import kbs_server_helper_pybind as kbs_server_helper
+from research.carls.candidate_sampling import candidate_sampler_config_pb2 as cs_config_pb2
 from google.protobuf import text_format
 
 FLAGS = flags.FLAGS
 
 
 def default_de_config(embedding_dimension: int,
-                      initial_values: typing.List[float] = None):
+                      initial_values: typing.List[float] = None,
+                      cs_config: cs_config_pb2.CandidateSamplerConfig = None):
   """Creates a default DynamicEmbeddingConfig and starts a local DES server.
 
   Args:
     embedding_dimension: An positive int specifying embedding dimension.
     initial_values: A list of float with size embedding_dimension if specified.
+    cs_config: An instance of cs_config_pb2.CandidateSamplerConfig.
 
   Returns:
     A DynamicEmbeddingConfig.
@@ -70,6 +73,8 @@ def default_de_config(embedding_dimension: int,
     default_embed = config.knowledge_bank_config.initializer.default_embedding
     for v in initial_values:
       default_embed.value.append(v)
+  if cs_config:
+    config.candidate_sampler_config.CopyFrom(cs_config)
   return config
 
 

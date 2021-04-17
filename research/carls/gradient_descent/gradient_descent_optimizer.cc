@@ -86,11 +86,6 @@ std::vector<EmbeddingVectorProto> GradientDescentOptimizer::Apply(
   }
   std::vector<EmbeddingVectorProto> results(variables.size());
   for (size_t i = 0; i < variables.size(); ++i) {
-    if (variables[i].tag().empty()) {
-      *error_msg = absl::StrCat("Empty tag for ", i,
-                                "-th input: ", variables[i].DebugString());
-      return {};
-    }
     if (variables[i].value_size() != embedding_dimension_ ||
         gradients[i]->value_size() != embedding_dimension_) {
       *error_msg =

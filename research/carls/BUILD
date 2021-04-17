@@ -276,9 +276,38 @@ py_test(
     deps = [
         ":context",
         ":dynamic_embedding_ops_py",
-        "@com_google_absl_py//absl/testing:parameterized",
         "//research/carls/testing:test_util",
-        # package tensorflow
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
+    name = "candidate_sampling_ops_py",
+    srcs = ["candidate_sampling_ops.py"],
+    srcs_version = "PY3",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":context",
+        ":dynamic_embedding_config_py_pb2",
+        "//research/carls/kernels:gen_dynamic_embedding_ops_py",
+        "//research/carls/kernels:gen_sampled_logits_ops_py",
+        "//research/carls/kernels:gen_topk_ops_py",
+    ],
+)
+
+py_test(
+    name = "candidate_sampling_ops_test",
+    size = "small",
+    srcs = ["candidate_sampling_ops_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":candidate_sampling_ops_py",
+        ":context",
+        ":dynamic_embedding_ops_py",
+        "//research/carls/candidate_sampling:candidate_sampler_config_builder_py",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

@@ -42,7 +42,8 @@ Status KnowledgeBankGrpcServiceImpl::StartSession(
     return Status(StatusCode::INVALID_ARGUMENT, "Name is empty.");
   }
   const std::string session_handle = request->SerializeAsString();
-  const auto status = StartSessionIfNecessary(session_handle);
+  const auto status = StartSessionIfNecessary(
+      session_handle, /*require_candidate_sampler=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -59,7 +60,8 @@ Status KnowledgeBankGrpcServiceImpl::Lookup(grpc::ServerContext* context,
   if (request->key().empty()) {
     return Status(StatusCode::INVALID_ARGUMENT, "Empty input keys.");
   }
-  const auto status = StartSessionIfNecessary(request->session_handle());
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -98,7 +100,8 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
   if (request->values().empty() && request->gradients().empty()) {
     return Status(StatusCode::INVALID_ARGUMENT, "input is empty.");
   }
-  const auto status = StartSessionIfNecessary(request->session_handle());
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -186,7 +189,8 @@ grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
   if (request->sample_context().empty()) {
     return Status(StatusCode::INVALID_ARGUMENT, "No sample context.");
   }
-  const auto status = StartSessionIfNecessary(request->session_handle());
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/true);
   if (!status.ok()) {
     return status;
   }
@@ -233,7 +237,8 @@ Status KnowledgeBankGrpcServiceImpl::Export(grpc::ServerContext* context,
   if (request->export_directory().empty()) {
     return Status(StatusCode::INVALID_ARGUMENT, "export_directory is empty.");
   }
-  const auto status = StartSessionIfNecessary(request->session_handle());
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -255,7 +260,8 @@ Status KnowledgeBankGrpcServiceImpl::Import(grpc::ServerContext* context,
     return Status(StatusCode::INVALID_ARGUMENT,
                   "knowledge_bank_saved_path is empty.");
   }
-  const auto status = StartSessionIfNecessary(request->session_handle());
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -270,9 +276,14 @@ size_t KnowledgeBankGrpcServiceImpl::KnowledgeBankSize() {
 }
 
 Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
-    const std::string& session_handle) {
+    const std::string& session_handle, const bool require_candidate_sampler) {
   StartSessionRequest request;
   request.ParseFromString(session_handle);
+  if (require_candidate_sampler &&
+      !request.config().has_candidate_sampler_config()) {
+    return Status(StatusCode::FAILED_PRECONDITION,
+                  "candidate_sampler_config is required but is empty.");
+  }
   absl::MutexLock lock(&map_mu_);
   if (!kb_map_.contains(session_handle)) {
     // Creates a new KnowledgeBank.

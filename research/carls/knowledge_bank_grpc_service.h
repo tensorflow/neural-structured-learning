@@ -73,7 +73,8 @@ class KnowledgeBankGrpcServiceImpl final
   size_t KnowledgeBankSize();
 
  private:
-  grpc::Status StartSessionIfNecessary(const std::string& session_handle);
+  grpc::Status StartSessionIfNecessary(const std::string& session_handle,
+                                       bool require_candidate_sampler);
 
   // Protects maps lookup and update.
   absl::Mutex map_mu_;

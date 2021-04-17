@@ -22,6 +22,18 @@ package(
     licenses = ["notice"],  # Apache 2.0
 )
 
+py_library(
+    name = "__init__",
+    srcs = ["__init__.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":gen_dynamic_embedding_ops_py",
+        ":gen_io_ops_py",
+        ":gen_sampled_logits_ops_py",
+        ":gen_topk_ops_py",
+    ],
+)
+
 cc_library(
     name = "dynamic_embedding_manager_resource",
     srcs = ["dynamic_embedding_manager_resource.cc"],
@@ -90,4 +102,45 @@ carls_gen_op_wrapper_py(
     name = "gen_io_ops_py",
     out = "gen_io_ops.py",
     kernel_lib = ":io_ops",
+)
+
+cc_library(
+    name = "topk_ops",
+    srcs = ["topk_ops.cc"],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:dynamic_embedding_config_cc_proto",
+        "//research/carls:dynamic_embedding_manager",
+        "//research/carls/base:file_helper",
+        "@com_google_absl//absl/strings:str_format",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+    alwayslink = 1,
+)
+
+carls_gen_op_wrapper_py(
+    name = "gen_topk_ops_py",
+    out = "gen_topk_ops.py",
+    kernel_lib = ":topk_ops",
+)
+
+cc_library(
+    name = "sampled_logits_ops",
+    srcs = ["sampled_logits_ops.cc"],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:dynamic_embedding_config_cc_proto",
+        "//research/carls:dynamic_embedding_manager",
+        "//research/carls/base:file_helper",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+    alwayslink = 1,
+)
+
+carls_gen_op_wrapper_py(
+    name = "gen_sampled_logits_ops_py",
+    out = "gen_sampled_logits_ops.py",
+    kernel_lib = ":sampled_logits_ops",
 )
