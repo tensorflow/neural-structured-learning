@@ -20,6 +20,7 @@ message FeatureValue {
     BytesFeature bytes_feature = 1;
     FloatFeature float_feature = 2;
     Int64Feature int64_feature = 3;
+    Uint64Feature uint64_feature = 4;
   }
 }
 
@@ -44,5 +45,13 @@ message Int64Feature {
   // Weights associated with this feature vlaue.
   repeated float weight = 2;
   // Human-readable informaiton for each of the feature values.
+  string debug_info = 3;
+}
+
+message Uint64Feature {
+  uint64 value = 1;
+  // Weights associated with this feature vlaue.
+  repeated float weight = 2;
+  // Human-readable information for each of the feature values.
   string debug_info = 3;
 }

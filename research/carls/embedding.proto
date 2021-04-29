@@ -2,6 +2,9 @@ syntax = "proto3";
 
 package carls;
 
+import "google/protobuf/timestamp.proto";
+import "research/carls/input_context.proto";
+
 // Representation of an embedding vector and its related information.
 message EmbeddingVectorProto {
   // The lookup key associated with this embedding vector, e.g., normalized
@@ -14,4 +17,11 @@ message EmbeddingVectorProto {
 
   // Embedding vector.
   repeated float value = 2 [packed = true];
+
+  // Metadata, contains more information for the embedding, e.g. category_id.
+  InputContext meta_data = 4;
+
+  // Timestamp of the embedding, usually used for recording the last time this
+  // embedding is updated. Value is in microseconds elapsed since 1/1/1970.
+  google.protobuf.Timestamp timestamp = 5;
 }

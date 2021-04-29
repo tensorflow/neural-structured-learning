@@ -52,14 +52,32 @@ cc_library(
 )
 
 carls_cc_proto_library(
+    name = "input_context_cc_proto",
+    srcs = ["input_context.proto"],
+)
+
+carls_py_proto_library(
+    name = "input_context_py_pb2",
+    srcs = ["input_context.proto"],
+    deps = [":input_context_cc_proto"],
+)
+
+carls_cc_proto_library(
     name = "embedding_cc_proto",
     srcs = ["embedding.proto"],
+    deps = [
+        ":input_context_cc_proto",
+        "@com_google_protobuf//:protobuf",
+    ],
 )
 
 carls_py_proto_library(
     name = "embedding_py_pb2",
     srcs = ["embedding.proto"],
-    deps = [":embedding_cc_proto"],
+    deps = [
+        ":embedding_cc_proto",
+        ":input_context_py_pb2",
+    ],
 )
 
 carls_cc_proto_library(

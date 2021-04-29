@@ -185,3 +185,32 @@ cc_test(
         "@farmhash_archive//:farmhash",
     ],
 )
+
+cc_library(
+    name = "input_context_helper",
+    srcs = ["input_context_helper.cc"],
+    hdrs = ["input_context_helper.h"],
+    deps = [
+        ":status_helper",
+        ":top_n",
+        "//research/carls:input_context_cc_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@tensorflow_solib//:framework_lib",
+    ],
+)
+
+cc_test(
+    name = "input_context_helper_test",
+    srcs = ["input_context_helper_test.cc"],
+    deps = [
+        ":input_context_helper",
+        ":proto_helper",
+        "//research/carls:input_context_cc_proto",
+        "//research/carls/testing:test_helper",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
