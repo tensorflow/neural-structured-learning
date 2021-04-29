@@ -29,15 +29,6 @@ namespace carls {
 using tensorflow::random::PhiloxRandom;
 using tensorflow::random::SimplePhilox;
 
-// Move the contents from an owned raw pointer, returning by value.
-// Objects are easier to manage by value.
-template <class T>
-T ConsumeRawPtr(T *p) {
-  T tmp = std::move(*p);
-  delete p;
-  return tmp;
-}
-
 template <class Cmp>
 void TestIntTopNHelper(size_t limit, size_t n_elements, const Cmp &cmp,
                        SimplePhilox *random, bool test_peek,
@@ -57,10 +48,10 @@ void TestIntTopNHelper(size_t limit, size_t n_elements, const Cmp &cmp,
   }
   std::vector<int> v;
   if (test_extract_unsorted) {
-    v = ConsumeRawPtr(top.ExtractUnsorted());
+    v = *top.ExtractUnsorted();
     std::sort(v.begin(), v.end(), cmp);
   } else {
-    v = ConsumeRawPtr(top.Extract());
+    v = *top.Extract();
   }
   EXPECT_EQ(top_size, v.size());
   for (size_t i = 0; i != top_size; ++i) {
@@ -125,7 +116,7 @@ TEST(TopNTest, String) {
   top3 = top;
   EXPECT_EQ("test", top3.peek_bottom());
   {
-    std::vector<std::string> s = ConsumeRawPtr(top.Extract());
+    std::vector<std::string> s = *top.Extract();
     EXPECT_EQ(s[0], "waldemar");
     EXPECT_EQ(s[1], "top");
     EXPECT_EQ(s[2], "test");
@@ -135,13 +126,13 @@ TEST(TopNTest, String) {
   EXPECT_EQ(top2.peek_bottom(), "top");
 
   {
-    std::vector<std::string> s = ConsumeRawPtr(top2.Extract());
+    std::vector<std::string> s = *top2.Extract();
     EXPECT_EQ(s[0], "zero");
     EXPECT_EQ(s[1], "waldemar");
     EXPECT_EQ(s[2], "top");
   }
   {
-    std::vector<std::string> s = ConsumeRawPtr(top3.Extract());
+    std::vector<std::string> s = *top3.Extract();
     EXPECT_EQ(s[0], "waldemar");
     EXPECT_EQ(s[1], "top");
     EXPECT_EQ(s[2], "test");
@@ -154,7 +145,7 @@ TEST(TopNTest, String) {
     top4.push("ijkl");
     top4.push("efgh");
     top4.push("mnop");
-    std::vector<std::string> s = ConsumeRawPtr(top4.Extract());
+    std::vector<std::string> s = *top4.Extract();
     EXPECT_EQ(s[0], "mnop");
     EXPECT_EQ(s[1], "ijkl");
     EXPECT_EQ(s[2], "efgh");
@@ -179,7 +170,7 @@ TEST(TopNTest, Ptr) {
     delete dropped;
   }
 
-  std::vector<std::string *> extract = ConsumeRawPtr(topn.Extract());
+  std::vector<std::string *> extract = *topn.Extract();
   for (auto &temp : extract) {
     delete temp;
   }
@@ -201,7 +192,7 @@ TEST(TopNTest, MoveOnly) {
   for (int i = 8; i > 0; --i)
     topn.push(StrPtr(new std::string(std::to_string(i))));
 
-  std::vector<StrPtr> extract = ConsumeRawPtr(topn.Extract());
+  std::vector<StrPtr> extract = std::move(*topn.Extract());
   EXPECT_EQ(extract.size(), 3);
   EXPECT_EQ(*(extract[0]), "8");
   EXPECT_EQ(*(extract[1]), "7");
@@ -215,7 +206,7 @@ TEST(TopNTest, Nondestructive) {
   TopN<int> top4(4);
   for (int i = 0; i < 8; ++i) {
     top4.push(i);
-    std::vector<int> v = ConsumeRawPtr(top4.ExtractNondestructive());
+    std::vector<int> v = top4.ExtractNondestructive();
     EXPECT_EQ(std::min(i + 1, 4), v.size());
     for (size_t j = 0; j < v.size(); ++j) EXPECT_EQ(i - j, v[j]);
   }
@@ -223,7 +214,7 @@ TEST(TopNTest, Nondestructive) {
   TopN<int> top3(3);
   for (int i = 0; i < 8; ++i) {
     top3.push(i);
-    std::vector<int> v = ConsumeRawPtr(top3.ExtractUnsortedNondestructive());
+    std::vector<int> v = top3.ExtractUnsortedNondestructive();
     std::sort(v.begin(), v.end(), std::greater<int>());
     EXPECT_EQ(std::min(i + 1, 3), v.size());
     for (size_t j = 0; j < v.size(); ++j) EXPECT_EQ(i - j, v[j]);
