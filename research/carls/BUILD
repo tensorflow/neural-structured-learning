@@ -280,7 +280,7 @@ py_library(
     deps = [
         ":context",
         ":dynamic_embedding_config_py_pb2",
-        "//research/carls/kernels:gen_dynamic_embedding_ops_py",
+        "//research/carls/kernels:gen_carls_ops_py",
         # package tensorflow
     ],
 )
@@ -307,9 +307,7 @@ py_library(
     deps = [
         ":context",
         ":dynamic_embedding_config_py_pb2",
-        "//research/carls/kernels:gen_dynamic_embedding_ops_py",
-        "//research/carls/kernels:gen_sampled_logits_ops_py",
-        "//research/carls/kernels:gen_topk_ops_py",
+        "//research/carls/kernels:gen_carls_ops_py",
     ],
 )
 
@@ -351,6 +349,34 @@ py_test(
         ":context",
         ":dynamic_embedding_neighbor_cache",
         "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+        # package tensorflow
+    ],
+)
+
+py_library(
+    name = "io_ops",
+    srcs = ["io_ops.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_config_py_pb2",
+        "//research/carls/kernels:gen_carls_ops_py",
+    ],
+)
+
+py_test(
+    name = "io_ops_test",
+    srcs = ["io_ops_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_ops_py",
+        ":io_ops",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/flags",
+        "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         # package tensorflow
     ],

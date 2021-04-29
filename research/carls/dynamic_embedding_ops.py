@@ -21,7 +21,7 @@ import typing
 
 from research.carls import context
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from research.carls.kernels import gen_dynamic_embedding_ops as gen_de_op
+from research.carls.kernels import gen_carls_ops
 import tensorflow as tf
 
 
@@ -64,10 +64,11 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
     grad_placeholder = tf.Variable(0.0)
 
   context.add_to_collection(var_name, config)
-  resource = gen_de_op.dynamic_embedding_manager_resource(
+  resource = gen_carls_ops.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  return gen_de_op.dynamic_embedding_lookup(keys, grad_placeholder, resource)
+  return gen_carls_ops.dynamic_embedding_lookup(keys, grad_placeholder,
+                                                resource)
 
 
 def dynamic_embedding_update(keys: tf.Tensor,
@@ -102,10 +103,10 @@ def dynamic_embedding_update(keys: tf.Tensor,
     raise TypeError("Must specify a valid var_name.")
 
   context.add_to_collection(var_name, config)
-  resource = gen_de_op.dynamic_embedding_manager_resource(
+  resource = gen_carls_ops.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  return gen_de_op.dynamic_embedding_update(keys, values, resource)
+  return gen_carls_ops.dynamic_embedding_update(keys, values, resource)
 
 
 @tf.RegisterGradient("DynamicEmbeddingLookup")
@@ -122,7 +123,7 @@ def _dynamic_embedding_lookup_grad(op, grad):
     op.
   """
   grad = tf.reshape(grad, [-1, grad.shape[-1]])
-  return gen_de_op.dynamic_embedding_lookup_grad(
+  return gen_carls_ops.dynamic_embedding_lookup_grad(
       op.inputs[0],  # keys
       grad,
       op.inputs[2]  # resource

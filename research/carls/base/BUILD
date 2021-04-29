@@ -157,6 +157,7 @@ cc_test(
         ":top_n",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+        "@tensorflow_includes//:includes",
         "@tensorflow_solib//:framework_lib",
     ],
 )

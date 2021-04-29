@@ -17,9 +17,7 @@ import typing
 
 from research.carls import context
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from research.carls.kernels import gen_dynamic_embedding_ops as de_ops
-from research.carls.kernels import gen_sampled_logits_ops
-from research.carls.kernels import gen_topk_ops as gen_topk_op
+from research.carls.kernels import gen_carls_ops
 import tensorflow as tf
 
 
@@ -61,9 +59,9 @@ def top_k(inputs: tf.Tensor,
     raise ValueError("k must be greater than zero, got %d" % k)
 
   context.add_to_collection(var_name, de_config)
-  resource = de_ops.dynamic_embedding_manager_resource(
+  resource = gen_carls_ops.dynamic_embedding_manager_resource(
       de_config.SerializeToString(), var_name, service_address, timeout_ms)
-  return gen_topk_op.topk_lookup(inputs, k, resource)
+  return gen_carls_ops.topk_lookup(inputs, k, resource)
 
 
 def sampled_softmax_loss(positive_keys: tf.Tensor,
@@ -187,16 +185,15 @@ def compute_sampled_logits(positive_keys,
     raise ValueError("Invalid num_samples: %d" % num_samples)
 
   context.add_to_collection(var_name, de_config)
-  resource = de_ops.dynamic_embedding_manager_resource(
+  resource = gen_carls_ops.dynamic_embedding_manager_resource(
       de_config.SerializeToString(), var_name, service_address, timeout_ms)
 
   # Create a dummy variable so that the gradients can be passed in.
   grad_placeholder = tf.Variable(0.0)
 
   keys, labels, expected_counts, mask, weights = (
-      gen_sampled_logits_ops.sampled_logits_lookup(positive_keys, inputs,
-                                                   num_samples,
-                                                   grad_placeholder, resource))
+      gen_carls_ops.sampled_logits_lookup(positive_keys, inputs, num_samples,
+                                          grad_placeholder, resource))
 
   # Compute sampled logits.
   # Shape of weights: [d1, d2, dn-1, num_samples, embed_dim]
@@ -243,7 +240,7 @@ def _sampled_logits_lookup_grad(op, keys_grad, labels_grad,
   del keys_grad, labels_grad, expected_counts_grad, mask_grad  # Unused.
 
   pos_keys_grad, num_samples_grad, dummy_variable_grad, resource_grad = (
-      gen_sampled_logits_ops.sampled_logits_lookup_grad(
+      gen_carls_ops.sampled_logits_lookup_grad(
           keys=op.outputs[0],
           weight_gradients=weights_grad,
           handle=op.inputs[4]))

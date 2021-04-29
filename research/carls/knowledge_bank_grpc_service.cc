@@ -214,15 +214,16 @@ grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
   }
 
   for (const auto& sample_context : request->sample_context()) {
-    std::vector<candidate_sampling::SampledResult> results;
+    std::vector<std::pair<absl::string_view, candidate_sampling::SampledResult>>
+        results;
     auto status = cs_map_[request->session_handle()]->Sample(
         knowledge_bank, sample_context, request->num_samples(), &results);
     if (!status.ok()) {
       return ToGrpcStatus(status);
     }
     auto* samples = response->add_samples();
-    for (auto& result : results) {
-      *samples->add_sampled_result() = std::move(result);
+    for (auto& pair : results) {
+      *samples->add_sampled_result() = std::move(pair.second);
     }
   }
   return Status::OK;

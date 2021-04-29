@@ -144,3 +144,39 @@ carls_gen_op_wrapper_py(
     out = "gen_sampled_logits_ops.py",
     kernel_lib = ":sampled_logits_ops",
 )
+
+# Combines all kernels into one single library to avoid "Multiple OpKernel registrations" error
+# caused by multiple kernels linking the same dynamic_embedding_manager_resource lib.
+# This is necessary since tf.load_op_library only accepts one statically
+# linked .so file for each kernel.
+cc_library(
+    name = "carls_ops",
+    srcs = [
+        "dynamic_embedding_ops.cc",
+        "io_ops.cc",
+        "sampled_logits_ops.cc",
+        "topk_ops.cc",
+    ],
+    deps = [
+        ":dynamic_embedding_manager_resource",
+        "//research/carls:constants",
+        "//research/carls:dynamic_embedding_config_cc_proto",
+        "//research/carls:dynamic_embedding_manager",
+        "//research/carls/base:file_helper",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+    alwayslink = 1,
+)
+
+carls_gen_op_wrapper_py(
+    name = "gen_carls_ops_py",
+    out = "gen_carls_ops.py",
+    kernel_lib = ":carls_ops",
+)

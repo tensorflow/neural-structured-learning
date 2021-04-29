@@ -17,8 +17,7 @@ from typing import Text
 
 from research.carls import context
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
-from research.carls.kernels import gen_dynamic_embedding_ops as gen_de_op
-from research.carls.kernels import gen_io_ops
+from research.carls.kernels import gen_carls_ops
 
 
 def save_knowledge_bank(output_directory: Text,
@@ -52,10 +51,10 @@ def save_knowledge_bank(output_directory: Text,
   for name, config in context.get_all_collection():
     if var_names and (name not in var_names):
       continue
-    resource = gen_de_op.dynamic_embedding_manager_resource(
+    resource = gen_carls_ops.dynamic_embedding_manager_resource(
         config.SerializeToString(), name, service_address, timeout_ms)
 
-    saved_path = gen_io_ops.save_knowledge_bank(
+    saved_path = gen_carls_ops.save_knowledge_bank(
         output_directory, append_timestamp=append_timestamp, handle=resource)
     saved_paths.append(saved_path)
 
@@ -78,7 +77,7 @@ def restore_knowledge_bank(config: de_config_pb2.DynamicEmbeddingConfig,
     timeout_ms: Timeout millseconds for the connection. If negative, never
       timout.
   """
-  resource = gen_de_op.dynamic_embedding_manager_resource(
+  resource = gen_carls_ops.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  gen_io_ops.restore_knowledge_bank(saved_path, resource)
+  gen_carls_ops.restore_knowledge_bank(saved_path, resource)

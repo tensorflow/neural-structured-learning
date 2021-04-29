@@ -50,27 +50,29 @@ class NegativeSampler : public CandidateSampler {
  private:
   absl::Status SampleInternal(
       const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-      int num_samples, std::vector<SampledResult>* results) const override;
+      int num_samples,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results)
+      const override;
 
   // Samples unique keys from all the positive/negative key set.
-  absl::Status SampleUnique(const KnowledgeBank& knowledge_bank,
-                            std::vector<absl::string_view> positive_keys,
-                            const std::vector<absl::string_view>& all_keys,
-                            const int num_sampled,
-                            std::vector<SampledResult>* results) const;
+  absl::Status SampleUnique(
+      const KnowledgeBank& knowledge_bank,
+      std::vector<absl::string_view> positive_keys,
+      const std::vector<absl::string_view>& all_keys, const int num_sampled,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results) const;
 
   // Allows duplicates in the sampling.
   absl::Status UniformSampleWithReplacement(
       const KnowledgeBank& knowledge_bank,
       std::vector<absl::string_view> positive_keys,
       const std::vector<absl::string_view>& all_keys, const int num_sampled,
-      std::vector<SampledResult>* results) const;
+      std::vector<std::pair<absl::string_view, SampledResult>>* results) const;
 
   absl::Status LogUniformSampleWithReplacement(
       const KnowledgeBank& knowledge_bank,
       std::vector<absl::string_view> positive_keys,
       const std::vector<absl::string_view>& all_keys, const int num_sampled,
-      std::vector<SampledResult>* results) const;
+      std::vector<std::pair<absl::string_view, SampledResult>>* results) const;
 
   // Returns a random number sampled uniformly in [0, n).
   uint32_t Uniform(uint32_t n) const {
@@ -125,7 +127,8 @@ REGISTER_SAMPLER_FACTORY(
 
 absl::Status NegativeSampler::SampleInternal(
     const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-    int num_samples, std::vector<SampledResult>* results) const {
+    int num_samples,
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   if (sample_context.positive_key().empty()) {
     return absl::InvalidArgumentError("Empty positive keys.");
   }
@@ -153,10 +156,11 @@ absl::Status NegativeSampler::SampleUnique(
     const KnowledgeBank& knowledge_bank,
     std::vector<absl::string_view> positive_keys,
     const std::vector<absl::string_view>& all_keys, const int num_sampled,
-    std::vector<SampledResult>* results) const {
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   absl::flat_hash_set<absl::string_view> pos_set(positive_keys.begin(),
                                                  positive_keys.end());
-  const size_t range = all_keys.size();
+  const int pos_key_size = static_cast<int>(positive_keys.size());
+  const int range = static_cast<int>(all_keys.size());
   if (num_sampled > range) {
     return absl::InvalidArgumentError(
         absl::StrCat("Not enough data in the KnolwedgeBank available for "
@@ -168,15 +172,16 @@ absl::Status NegativeSampler::SampleUnique(
 
   // Case One: too many positive keys than num_sampled, returns num_sampled
   // randomly sampled positive keys.
-  if (positive_keys.size() >= num_sampled) {
+  if (pos_key_size >= num_sampled) {
     // Randomly choose num_sampled from positive set.
-    const float prob = static_cast<float>(num_sampled) / positive_keys.size();
-    int size = positive_keys.size();
+    const float prob = static_cast<float>(num_sampled) / pos_key_size;
+    int size = pos_key_size;
     for (int i = 0; i < num_sampled; ++i, --size) {
       int index = Uniform(size);
       results->push_back(
-          BuildSampledResult(knowledge_bank, positive_keys[index],
-                             /*is_positive=*/true, /*expected_count=*/prob));
+          {positive_keys[index],
+           BuildSampledResult(knowledge_bank, positive_keys[index],
+                              /*is_positive=*/true, /*expected_count=*/prob)});
       // Swap out the selected key.
       std::swap(positive_keys[index], positive_keys[size - 1]);
     }
@@ -188,11 +193,12 @@ absl::Status NegativeSampler::SampleUnique(
   // processing by avoiding random sampling.
   if (num_sampled == range) {
     // Choose everything.
-    for (size_t i = 0; i < range; ++i) {
+    for (int i = 0; i < range; ++i) {
       SampledResult sampled_result;
-      results->push_back(BuildSampledResult(knowledge_bank, all_keys[i],
-                                            pos_set.contains(all_keys[i]),
-                                            /*expected_count=*/1.0f));
+      results->push_back(
+          {all_keys[i], BuildSampledResult(knowledge_bank, all_keys[i],
+                                           pos_set.contains(all_keys[i]),
+                                           /*expected_count=*/1.0f)});
     }
     return absl::OkStatus();
   }
@@ -200,20 +206,22 @@ absl::Status NegativeSampler::SampleUnique(
   // Case Three: positive_keys.size() < num_sampled < range, sample randomly.
   const float prob = static_cast<float>(num_sampled - pos_set.size()) /
                      static_cast<float>(range - pos_set.size());
-  for (size_t i = 0; i < num_sampled; ++i) {
-    if (i < positive_keys.size()) {
-      results->push_back(BuildSampledResult(knowledge_bank, positive_keys[i],
-                                            /*is_positive=*/true,
-                                            /*expected_count=*/1));
+  for (int i = 0; i < num_sampled; ++i) {
+    if (i < pos_key_size) {
+      results->push_back({std::string(positive_keys[i]),
+                          BuildSampledResult(knowledge_bank, positive_keys[i],
+                                             /*is_positive=*/true,
+                                             /*expected_count=*/1)});
       continue;
     }
     size_t index = Uniform(range);
     while (pos_set.contains(all_keys[index])) {
       index = (index + 1) % range;
     }
-    results->push_back(BuildSampledResult(knowledge_bank, all_keys[index],
-                                          /*is_positive=*/false,
-                                          /*expected_count=*/prob));
+    results->push_back({std::string(all_keys[index]),
+                        BuildSampledResult(knowledge_bank, all_keys[index],
+                                           /*is_positive=*/false,
+                                           /*expected_count=*/prob)});
     // Insert into positive keyword set to avoid resampling.
     pos_set.insert(all_keys[index]);
   }
@@ -224,18 +232,20 @@ absl::Status NegativeSampler::LogUniformSampleWithReplacement(
     const KnowledgeBank& knowledge_bank,
     std::vector<absl::string_view> positive_keys,
     const std::vector<absl::string_view>& all_keys, const int num_sampled,
-    std::vector<SampledResult>* results) const {
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   absl::flat_hash_set<absl::string_view> pos_set(positive_keys.begin(),
                                                  positive_keys.end());
   const size_t range = all_keys.size();
   const float log_range = std::log1p(range);  // Computes log(range + 1).
+  const int pos_key_size = static_cast<int>(positive_keys.size());
   results->clear();
   results->reserve(num_sampled);
   for (int i = 0; i < num_sampled; ++i) {
-    if (i < positive_keys.size()) {
-      results->push_back(BuildSampledResult(knowledge_bank, positive_keys[i],
-                                            /*is_positive=*/true,
-                                            /*expected_count=*/1));
+    if (i < pos_key_size) {
+      results->push_back({positive_keys[i],
+                          BuildSampledResult(knowledge_bank, positive_keys[i],
+                                             /*is_positive=*/true,
+                                             /*expected_count=*/1)});
       continue;
     }
     // The following is based on tensorflow/core/kernels/range_sampler.h
@@ -246,10 +256,11 @@ absl::Status NegativeSampler::LogUniformSampleWithReplacement(
     const float prob = (log((index + 2.0) / (index + 1.0))) / log_range;
     // numerically stable version of (1 - (1-p)^num_tries).
     const float expected_count =
-        StableExpectedCount(num_sampled - positive_keys.size(), prob);
-    results->push_back(BuildSampledResult(knowledge_bank, all_keys[index],
-                                          pos_set.contains(all_keys[index]),
-                                          expected_count));
+        StableExpectedCount(num_sampled - pos_key_size, prob);
+    results->push_back(
+        {all_keys[index], BuildSampledResult(knowledge_bank, all_keys[index],
+                                             pos_set.contains(all_keys[index]),
+                                             expected_count)});
   }
   return absl::OkStatus();
 }
@@ -258,7 +269,7 @@ absl::Status NegativeSampler::UniformSampleWithReplacement(
     const KnowledgeBank& knowledge_bank,
     std::vector<absl::string_view> positive_keys,
     const std::vector<absl::string_view>& all_keys, const int num_sampled,
-    std::vector<SampledResult>* results) const {
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   absl::flat_hash_set<absl::string_view> pos_set(positive_keys.begin(),
                                                  positive_keys.end());
   const size_t range = all_keys.size();
@@ -269,22 +280,24 @@ absl::Status NegativeSampler::UniformSampleWithReplacement(
   // strategy, i.e., uniformly sampling num_sampled - |pos_set| samples.
   // Use numerically stable version of (1 - (1-p)^num_tries):
   // -expm1(num_tries * log1p(-p));
-  const size_t num_pos_keys = positive_keys.size();
+  const int num_pos_keys = static_cast<int>(positive_keys.size());
   const float expected_count =
       num_sampled > num_pos_keys
           ? StableExpectedCount(num_sampled - num_pos_keys, inv_range)
           : 1.0f;
   for (int i = 0; i < num_sampled; ++i) {
-    if (i < positive_keys.size()) {
-      results->push_back(BuildSampledResult(knowledge_bank, positive_keys[i],
-                                            /*is_positive=*/true,
-                                            /*expected_count=*/1));
+    if (i < num_pos_keys) {
+      results->push_back({positive_keys[i],
+                          BuildSampledResult(knowledge_bank, positive_keys[i],
+                                             /*is_positive=*/true,
+                                             /*expected_count=*/1)});
       continue;
     }
     const int64_t index = Uniform(range);
-    results->push_back(BuildSampledResult(knowledge_bank, all_keys[index],
-                                          pos_set.contains(all_keys[index]),
-                                          expected_count));
+    results->push_back({all_keys[index],
+                        BuildSampledResult(knowledge_bank, all_keys[index],
+                                           pos_set.contains(all_keys[index]),
+                                           expected_count)});
   }
   return absl::OkStatus();
 }
