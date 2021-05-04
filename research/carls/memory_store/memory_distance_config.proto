@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package carls.memory_store;
+
+// Configuration for the distance measurement in memory items.
+message MemoryDistanceConfig {
+  // Distance types used for computing the distance between an input point and
+  // a cluster.
+  enum DistanceType {
+    DEFAULT_UNKNOWN = 0;
+    // Coefficient-wise or element-wise mean Gaussian distance, defined as
+    // exp(-dist^2/2) where dist = \sum_i (x_i - mean_i)/sqrt(var_i) / n, with i
+    // indexing each dimension of input x and n is the dimension number.
+    CWISE_MEAN_GAUSSIAN = 1;
+    // The squared L2 distance from the given point to the center of a cluster.
+    // Note that this distance ignores data variance inside each cluster.
+    SQUARED_L2 = 2;
+  }
+}
