@@ -55,4 +55,38 @@ TEST(FileHelperTest, IsDirectory) {
   EXPECT_TRUE(IsDirectory(dirname).ok());
 }
 
+TEST(FileHelperTest, Basename) {
+  EXPECT_EQ("", Basename("/hello/"));
+  EXPECT_EQ("hello", Basename("/hello"));
+  EXPECT_EQ("world", Basename("hello/world"));
+  EXPECT_EQ("", Basename("hello/"));
+  EXPECT_EQ("world", Basename("world"));
+  EXPECT_EQ("", Basename("/"));
+  EXPECT_EQ("", Basename(""));
+}
+
+TEST(FileHelperTest, Dirname) {
+  EXPECT_EQ("/hello", Dirname("/hello/"));
+  EXPECT_EQ("/", Dirname("/hello"));
+  EXPECT_EQ("/hello", Dirname("/hello/world"));
+  EXPECT_EQ("hello", Dirname("hello/world"));
+  EXPECT_EQ("hello", Dirname("hello/"));
+  EXPECT_EQ("", Dirname("world"));
+  EXPECT_EQ("/", Dirname("/"));
+  EXPECT_EQ("", Dirname(""));
+}
+
+TEST(FileHelperTest, SplitPath) {
+  // We cannot write the type directly within the EXPECT, because the ',' breaks
+  // the macro.
+  using Pair = std::pair<absl::string_view, absl::string_view>;
+  EXPECT_EQ(Pair("/hello", ""), SplitPath("/hello/"));
+  EXPECT_EQ(Pair("/", "hello"), SplitPath("/hello"));
+  EXPECT_EQ(Pair("hello", "world"), SplitPath("hello/world"));
+  EXPECT_EQ(Pair("hello", ""), SplitPath("hello/"));
+  EXPECT_EQ(Pair("", "world"), SplitPath("world"));
+  EXPECT_EQ(Pair("/", ""), SplitPath("/"));
+  EXPECT_EQ(Pair("", ""), SplitPath(""));
+}
+
 }  // namespace carls

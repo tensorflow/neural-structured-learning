@@ -60,6 +60,27 @@ absl::Status WriteFileString(const std::string& filepath,
 // Checks if given path is a directory.
 absl::Status IsDirectory(const std::string& path);
 
+// Returns the part of the path before the final "/", EXCEPT:
+// * If there is a single leading "/" in the path, the result will be the
+//   leading "/".
+// * If there is no "/" in the path, the result is the empty prefix of the
+//   input string.
+absl::string_view Dirname(absl::string_view path);
+
+// Returns the part of the path after the final "/".  If there is no
+// "/" in the path, the result is the same as the input.
+// Note that this function's behavior differs from the Unix basename
+// command if path ends with "/". For such paths, this function returns the
+// empty string.
+absl::string_view Basename(absl::string_view path);
+
+// Return the parts of the path, split on the final "/".  If there is no
+// "/" in the path, the first part of the output is empty and the second
+// is the input. If the only "/" in the path is the first character, it is
+// the first part of the output.
+std::pair<absl::string_view, absl::string_view> SplitPath(
+    absl::string_view path);
+
 // Creates a path if it doesn't exist.
 absl::Status RecursivelyCreateDir(const std::string& dirname);
 
