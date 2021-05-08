@@ -215,3 +215,27 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "thread_bundle",
+    srcs = ["thread_bundle.cc"],
+    hdrs = ["thread_bundle.h"],
+    deps = [
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/synchronization",
+        "@tensorflow_includes//:includes",
+        "@tensorflow_solib//:framework_lib",
+    ],
+)
+
+cc_test(
+    name = "thread_bundle_test",
+    srcs = ["thread_bundle_test.cc"],
+    deps = [
+        ":thread_bundle",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
