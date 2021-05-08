@@ -87,6 +87,7 @@ carls_cc_proto_library(
         "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
         "//research/carls/gradient_descent:gradient_descent_config_cc_proto",
         "//research/carls/knowledge_bank:knowledge_bank_config_cc_proto",
+        "//research/carls/memory_store:memory_store_config_cc_proto",
     ],
 )
 
@@ -98,6 +99,7 @@ carls_py_proto_library(
         "//research/carls/candidate_sampling:candidate_sampler_config_py_pb2",
         "//research/carls/gradient_descent:gradient_descent_config_py_pb2",
         "//research/carls/knowledge_bank:knowledge_bank_config_py_pb2",
+        "//research/carls/memory_store:memory_store_config_py_pb2",
     ],
 )
 
@@ -108,6 +110,7 @@ carls_cc_proto_library(
         ":dynamic_embedding_config_cc_proto",
         ":embedding_cc_proto",
         "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
+        "//research/carls/memory_store:memory_store_config_cc_proto",
     ],
 )
 
@@ -175,6 +178,8 @@ cc_library(
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
+        "//research/carls/memory_store",
+        "//research/carls/memory_store:gaussian_memory",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
@@ -246,6 +251,7 @@ cc_library(
         ":knowledge_bank_grpc_service",
         "//research/carls/base:status_helper",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
+        "//research/carls/memory_store:gaussian_memory_config_cc_proto",
         "@com_github_grpc_grpc//:gpr_codegen",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",

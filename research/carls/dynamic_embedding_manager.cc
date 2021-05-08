@@ -25,6 +25,7 @@ limitations under the License.
 #include "grpc/impl/codegen/gpr_types.h"
 #include "grpcpp/impl/codegen/client_context.h"  // third_party
 #include "research/carls/base/status_helper.h"
+#include "research/carls/memory_store/gaussian_memory_config.pb.h"  // proto to pb
 
 ABSL_FLAG(std::string, kbs_address, "", "Address to a KBS server.");
 ABSL_FLAG(double, kbs_rpc_deadline_sec, 10,
@@ -290,6 +291,57 @@ absl::Status DynamicEmbeddingManager::UpdateGradients(const Tensor& keys,
   UpdateResponse update_response;
   return ToAbslStatus(
       stub_->Update(&context, update_request, &update_response));
+}
+
+absl::Status DynamicEmbeddingManager::LookupGaussianCluster(
+    const tensorflow::Tensor& inputs, const int mode, Tensor* mean,
+    Tensor* variance, Tensor* output_distance, Tensor* output_cluster_id) {
+  CHECK(mean != nullptr);
+  CHECK(variance != nullptr);
+  CHECK(output_distance != nullptr);
+  CHECK(output_cluster_id != nullptr);
+  RET_CHECK_TRUE(MemoryLookupRequest::LookupMode_IsValid(mode)) << mode;
+
+  MemoryLookupRequest request;
+  request.set_session_handle(session_handle_);
+  auto input_values = inputs.flat_inner_dims<float>();
+  // Computes the mean and variance along the last dimension.
+  const int input_dimension = inputs.dim_size(inputs.dims() - 1);
+  const int batch_size = inputs.NumElements() / input_dimension;
+  request.mutable_input()->Reserve(batch_size);
+  request.set_mode(static_cast<MemoryLookupRequest::LookupMode>(mode));
+  for (int b = 0; b < batch_size; ++b) {
+    auto* input = request.add_input();
+    for (int i = 0; i < input_dimension; ++i) {
+      input->add_value(input_values(b, i));
+    }
+  }
+  MemoryLookupResponse response;
+  grpc::ClientContext context;
+  context.set_deadline(std::chrono::system_clock::now() +
+                       absl::ToChronoSeconds(absl::Seconds(
+                           absl::GetFlag(FLAGS_kbs_rpc_deadline_sec))));
+  RET_CHECK_OK(stub_->MemoryLookup(&context, request, &response));
+  RET_CHECK_TRUE(response.memory_lookup_result_size() == batch_size);
+
+  // Computes batch gaussian memory output.
+  auto mean_values = mean->flat_inner_dims<float>();
+  auto variance_values = variance->flat_inner_dims<float>();
+  auto distance_values = output_distance->flat_inner_dims<float>();
+  auto cluster_ids = output_cluster_id->flat_inner_dims<int>();
+  for (int b = 0; b < batch_size; ++b) {
+    const auto& lookup_result = response.memory_lookup_result(b);
+    const auto& mean_proto = lookup_result.gaussian_cluster().mean();
+    const auto& variance_proto = lookup_result.gaussian_cluster().variance();
+    RET_CHECK_TRUE(mean_proto.value_size() == variance_proto.value_size());
+    for (int i = 0; i < mean_proto.value_size(); ++i) {
+      mean_values(b, i) = mean_proto.value(i);
+      variance_values(b, i) = variance_proto.value(i);
+    }
+    distance_values(b) = lookup_result.distance_to_cluster();
+    cluster_ids(b) = lookup_result.cluster_index();
+  }
+  return absl::OkStatus();
 }
 
 absl::Status DynamicEmbeddingManager::NegativeSampling(

@@ -58,6 +58,14 @@ class DynamicEmbeddingManager {
   absl::Status UpdateGradients(const tensorflow::Tensor& keys,
                                const tensorflow::Tensor& grads);
 
+  // Looks up the mean and variance for each input tensor.
+  // mode must be consistent with MemoryLookupRequest::LookupMode.
+  absl::Status LookupGaussianCluster(const tensorflow::Tensor& inputs, int mode,
+                                     tensorflow::Tensor* mean,
+                                     tensorflow::Tensor* variance,
+                                     tensorflow::Tensor* output_distance,
+                                     tensorflow::Tensor* output_cluster_id);
+
   // Returns DynamicEmbeddingConfig.
   const DynamicEmbeddingConfig& config() { return config_; }
 

@@ -5,6 +5,7 @@ package carls;
 import "research/carls/candidate_sampling/candidate_sampler_config.proto";
 import "research/carls/dynamic_embedding_config.proto";
 import "research/carls/embedding.proto";
+import "research/carls/memory_store/memory_store_config.proto";
 
 message StartSessionRequest {
   // The config for processing embedding lookup/update.
@@ -77,6 +78,32 @@ message SampleResponse {
   repeated Samples samples = 1;
 }
 
+message MemoryLookupRequest {
+  // A handle to identify which session to use.
+  bytes session_handle = 1;
+
+  // List of lookup activations.
+  repeated EmbeddingVectorProto input = 2;
+
+  enum LookupMode {
+    DEFAULT_UNKNOWN = 0;
+    // Lookup without changing existing memory data.
+    LOOKUP_WITHOUT_UPDATE = 1;
+    // Lookup keys are used to update existing memory data, but new clusters
+    // would not be created.
+    LOOKUP_WITH_UPDATE = 2;
+    // Lookup keys are used to update existing memory data, and a new cluster
+    // can be created if the lookup input is too far away from existing ones.
+    LOOKUP_WITH_GROW = 3;
+  }
+  LookupMode mode = 3;
+}
+
+message MemoryLookupResponse {
+  // Memory lookup result for each input.
+  repeated memory_store.MemoryLookupResult memory_lookup_result = 1;
+}
+
 message ExportRequest {
   // A handle to identify which session to use.
   bytes session_handle = 1;
@@ -86,16 +113,26 @@ message ExportRequest {
 }
 
 message ExportResponse {
-  // The saved path for knowledge bank.
-  string knowledge_bank_saved_path = 1;
+  oneof saved_path {
+    // The saved path for knowledge bank.
+    string knowledge_bank_saved_path = 1;
+
+    // The saved path for memory store. Used by DynamicMemory.
+    string memory_store_saved_path = 2;
+  }
 }
 
 message ImportRequest {
   // A handle to identify which session to use.
   bytes session_handle = 1;
 
-  // The saved path for knowledge bank.
-  string knowledge_bank_saved_path = 2;
+  oneof saved_path {
+    // The saved path for knowledge bank.
+    string knowledge_bank_saved_path = 2;
+
+    // The saved path for memory store. Used by DynamicMemory.
+    string memory_store_saved_path = 3;
+  }
 }
 
 message ImportResponse {}
@@ -114,6 +151,9 @@ service KnowledgeBankService {
 
   // Samples the embeddings value from given context.
   rpc Sample(SampleRequest) returns (SampleResponse);
+
+  // Looks up a dynamic memory layer and returns the corresponding memory data.
+  rpc MemoryLookup(MemoryLookupRequest) returns (MemoryLookupResponse);
 
   // Exports current model to a given directory with timestamped subdir.
   rpc Export(ExportRequest) returns (ExportResponse);
