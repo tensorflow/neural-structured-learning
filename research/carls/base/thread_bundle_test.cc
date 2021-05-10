@@ -78,19 +78,23 @@ TEST(ThreadBundleTest, WithoutJoin) {
 }
 
 TEST(ThreadBundleTest, JoinAllWithDeadline_NotAllThreadsFinish) {
-  ThreadBundle b;
   std::atomic<int> sum{0};
-  // A fast worker increments sum by 1.
-  b.Add([&sum]() { sum += 1; });
-  // A slow worker increments sum by 10.
-  b.Add([&sum]() {
-    absl::SleepFor(absl::Milliseconds(100));
-    sum += 10;
-  });
-  // Wait for only 10 ms., so slow worker does not complete.
-  EXPECT_FALSE(b.JoinAllWithDeadline(absl::Now() + absl::Milliseconds(10)));
-  // Checks only fast worker is run.
-  EXPECT_EQ(1, sum);
+  // Leave `sum` outside ThreadBundle's scope such that when the slow worker
+  // is still running during the scope's destruction, `sum` is still valid.
+  {
+    ThreadBundle b("Test", 100);
+    // A fast worker increments sum by 1.
+    b.Add([&sum]() { sum += 1; });
+    // A slow worker increments sum by 10.
+    b.Add([&sum]() {
+      absl::SleepFor(absl::Milliseconds(100));
+      sum += 10;
+    });
+    // Wait for only 10 ms., so slow worker does not complete.
+    EXPECT_FALSE(b.JoinAllWithDeadline(absl::Now() + absl::Milliseconds(10)));
+    // Checks only fast worker is run.
+    EXPECT_EQ(1, sum);
+  }
 }
 
 TEST(ThreadBundleTest, JoinAllWithDeadline_AllThreadsFinish) {
