@@ -306,6 +306,56 @@ py_test(
 )
 
 py_library(
+    name = "dynamic_memory_ops_py",
+    srcs = ["dynamic_memory_ops.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_config_py_pb2",
+        "//research/carls/kernels:gen_carls_ops_py",
+        # package tensorflow
+    ],
+)
+
+py_test(
+    name = "dynamic_memory_ops_test",
+    size = "small",
+    srcs = ["dynamic_memory_ops_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_memory_ops_py",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
+    name = "dynamic_normalization_py",
+    srcs = ["dynamic_normalization.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":dynamic_memory_ops_py",
+        # package tensorflow
+    ],
+)
+
+py_test(
+    name = "dynamic_normalization_test",
+    size = "small",
+    srcs = ["dynamic_normalization_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_normalization_py",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
     name = "candidate_sampling_ops_py",
     srcs = ["candidate_sampling_ops.py"],
     srcs_version = "PY3",
