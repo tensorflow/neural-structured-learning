@@ -6,6 +6,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("//research/carls/third_party/farmhash:workspace.bzl", farmhash = "repo")
 farmhash()
 
+# leveldb
+load("//research/carls/third_party/leveldb:workspace.bzl", leveldb = "repo")
+leveldb()
+
 # absl
 http_archive(
     name = "com_google_absl",

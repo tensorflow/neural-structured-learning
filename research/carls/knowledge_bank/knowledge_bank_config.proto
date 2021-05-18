@@ -25,6 +25,22 @@ message InProtoKnowledgeBankConfig {
   EmbeddingData embedding_data = 1;
 }
 
+// Stores the embedding in the LevelDB which facilitates efficient key-value
+// lookup and update. The KnowledgeBankServer first loads all the embedding data
+// from the DB into memory then only updates the data in the DB when Export()
+// is called.
+message LeveldbKnowledgeBankConfig {
+  // THe address of the LevelDB file.
+  string leveldb_address = 1;
+
+  // Number of in-memory partitions for embedding data lookup/update.
+  int32 num_in_memory_partitions = 2;
+
+  // Maximal in-memory write buffer size for embedding update.
+  // Used for asynchronuous training. If the training is synchronuous, set to 1.
+  int32 max_in_memory_write_buffer_size = 3;
+}
+
 // MetaData for restoring the state of a KnowledgeBank.
 message KnowledgeBankCheckpointMetaData {
   // config from the base KnowledgeBank class.

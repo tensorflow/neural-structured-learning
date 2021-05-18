@@ -170,6 +170,7 @@ cc_library(
         "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/container:raw_hash_set",
         "@com_google_absl//absl/synchronization",
+        "@farmhash_archive//:farmhash",
         "@tensorflow_includes//:includes",
         "@tensorflow_solib//:framework_lib",
     ],
@@ -183,7 +184,6 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
-        "@farmhash_archive//:farmhash",
     ],
 )
 

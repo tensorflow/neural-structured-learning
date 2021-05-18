@@ -151,3 +151,37 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "leveldb_knowledge_bank",
+    srcs = ["leveldb_knowledge_bank.cc"],
+    deps = [
+        ":knowledge_bank",
+        "//research/carls:embedding_cc_proto",
+        "//research/carls/base:async_node_hash_map",
+        "//research/carls/base:proto_helper",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_leveldb//:db",
+    ],
+    alwayslink = 1,
+)
+
+cc_test(
+    name = "leveldb_knowledge_bank_test",
+    srcs = ["leveldb_knowledge_bank_test.cc"],
+    deps = [
+        ":initializer_cc_proto",
+        ":knowledge_bank",
+        ":leveldb_knowledge_bank",
+        "//research/carls:embedding_cc_proto",
+        "//research/carls/base:file_helper",
+        "//research/carls/base:proto_helper",
+        "//research/carls/base:thread_bundle",
+        "//research/carls/testing:test_helper",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_leveldb//:db",
+    ],
+)
