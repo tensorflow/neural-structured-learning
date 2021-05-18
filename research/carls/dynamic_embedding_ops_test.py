@@ -174,8 +174,7 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
     init = self._config.knowledge_bank_config.initializer
     init.default_embedding.value.append(1)
     init.default_embedding.value.append(2)
-    with self.assertRaisesRegex(Exception,
-                                'DynamicEmbeddingManager is NULL.'):
+    with self.assertRaisesRegex(Exception, 'DynamicEmbeddingManager is NULL.'):
       de_ops.dynamic_embedding_lookup(['first', 'second', ''],
                                       self._config,
                                       'emb',
@@ -234,6 +233,57 @@ class DynamicEmbeddingOpsTest(tf.test.TestCase, parameterized.TestCase):
     new_loss = y * tf.math.log(new_pred) + (1 - y) * tf.math.log(1 - new_pred)
     for old, new in zip(loss.numpy(), new_loss.numpy()):
       self.assertLess(new[0], old[0])
+
+  def _create_dataset(self):
+    """Returns a tf.data.Dataset with dynamic embedding as input."""
+    dataset = tf.data.Dataset.range(100)
+    dataset = dataset.batch(batch_size=4, drop_remainder=True)
+
+    def _parse(example):
+      string_ids = tf.strings.as_string(example)
+      input_embed = de_ops.dynamic_embedding_lookup(
+          string_ids,
+          self._config,
+          'input_embed',
+          service_address=self._kbs_address,
+          skip_gradient_update=True)
+      return input_embed
+
+    dataset = dataset.map(_parse, num_parallel_calls=2)
+    return dataset
+
+  def testDynamicEmbeddingTfDataset(self):
+    """Test DynamicEmbedding's compatibility with tf.data.Dataset API."""
+    dataset = self._create_dataset()
+    for data in dataset:
+      self.assertAllEqual([4, 2], data.shape)
+
+  def testDynamicEmbeddingKerasInterface_KerasLayer(self):
+    de_layer = de_ops.DynamicEmbeddingLookup(
+        self._config, 'embed', service_address=self._kbs_address)
+    # 1D case.
+    embed = de_layer(np.array(['key1', 'key2', 'key3']))
+    self.assertEqual((3, 2), embed.shape)
+    # 2D case.
+    embed = de_layer(np.array([['key1', 'key2'], ['key3', '']]))
+    self.assertEqual((2, 2, 2), embed.shape)
+
+  def testDynamicEmbeddingKerasInterface_KerasModel(self):
+    """A simple Logistic Regression Keras model."""
+    string_ids = np.array([['yes'], ['no'], ['good'], ['bad']])
+    y_train = np.array([[[1, 0]], [[0, 1]], [[1, 0]], [[0, 1]]])
+
+    model = tf.keras.models.Sequential([
+        de_ops.DynamicEmbeddingLookup(
+            self._config, 'embed', service_address=self._kbs_address),
+        tf.keras.layers.Dense(2, activation='softmax')
+    ])
+    model.compile(
+        optimizer='sgd', loss='categorical_crossentropy', metrics=['accuracy'])
+    history = model.fit(string_ids, y_train, epochs=10)
+    # Checks that the loss is decreased.
+    self.assertLess(history.history['loss'][-1], history.history['loss'][0])
+
 
 if __name__ == '__main__':
   tf.test.main()

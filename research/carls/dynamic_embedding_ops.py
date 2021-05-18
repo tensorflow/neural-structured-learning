@@ -13,16 +13,66 @@
 # limitations under the License.
 """DynamicEmbedding related ops."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import typing
 
 from research.carls import context
 from research.carls import dynamic_embedding_config_pb2 as de_config_pb2
 from research.carls.kernels import gen_carls_ops
 import tensorflow as tf
+
+
+class DynamicEmbeddingLookup(tf.keras.layers.Layer):
+  """A Keras Layer for Dynamic Embedding Lookup.
+
+  This is useful when the gradient descent update is required for embedding
+  lookup. The input of this layer is a `Tensor` of string keys and it outputs
+  the embedding output as a float `Tensor`.
+
+  """
+
+  def __init__(self,
+               config: de_config_pb2.DynamicEmbeddingConfig,
+               var_name: typing.Text,
+               service_address: typing.Text = "",
+               timeout_ms: int = -1):
+    """Constructor for DynamicEmbeddingLookup.
+
+    Args:
+      config: A DynamicEmbeddingConfig proto that configures the embedding.
+      var_name: A unique name for the given embedding.
+      service_address: The address of a knowledge bank service. If empty, the
+        value passed from --kbs_address (defined in
+        .../carls/dynamic_embedding_manager.cc) flag will be used instead.
+      timeout_ms: Timeout millseconds for the connection. If negative, never
+        timout.
+
+    Raises:
+      ValueError: if var_name is `None` or empty.
+    """
+    super(DynamicEmbeddingLookup, self).__init__()
+    if not var_name:
+      raise ValueError("Must specify a non-empty var_name.")
+
+    self.embedding_dimension = config.embedding_dimension
+    context.add_to_collection(var_name, config)
+    self.resource = gen_carls_ops.dynamic_embedding_manager_resource(
+        config.SerializeToString(), var_name, service_address, timeout_ms)
+
+  def build(self, input_shape):
+    del input_shape  # Not used.
+    # Creates a placeholder variable for the dynamic_embedding_lookup() such
+    # that the gradients can be passed into _dynamic_embedding_lookup_grad().
+    self.grad_placeholder = self.add_weight(
+        name="grad_placeholder",
+        shape=[1],
+        dtype=tf.float32,
+        trainable=True,
+        initializer=tf.keras.initializers.zeros)
+
+  def call(self, keys):
+    return gen_carls_ops.dynamic_embedding_lookup(keys, self.grad_placeholder,
+                                                  self.resource,
+                                                  self.embedding_dimension)
 
 
 def dynamic_embedding_lookup(keys: tf.Tensor,
@@ -37,9 +87,9 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
     keys: A string `Tensor` of shape [batch_size] or [batch_size,
       max_sequence_length] where an empty string would be mapped to an all zero
       embedding.
-    config: A DynamicEmbeddingConfig proto that configs the embedding.
+    config: A DynamicEmbeddingConfig proto that configures the embedding.
     var_name: A unique name for the given embedding.
-    service_address: The address of a dynamic embedding service. If empty, the
+    service_address: The address of a knowledge bank service. If empty, the
       value passed from --kbs_address flag will be used instead.
     skip_gradient_update: A boolean indicating if gradient update is needed.
     timeout_ms: Timeout millseconds for the connection. If negative, never
@@ -68,7 +118,8 @@ def dynamic_embedding_lookup(keys: tf.Tensor,
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
   return gen_carls_ops.dynamic_embedding_lookup(keys, grad_placeholder,
-                                                resource)
+                                                resource,
+                                                config.embedding_dimension)
 
 
 def dynamic_embedding_update(keys: tf.Tensor,
@@ -84,7 +135,7 @@ def dynamic_embedding_update(keys: tf.Tensor,
       max_sequence_length].
     values: A `Tensor` of shape [batch_size, embedding_dimension] or
       [batch_size, max_sequence_length, embedding_dimension].
-    config: A DynamicEmbeddingConfig proto that configs the embedding.
+    config: A DynamicEmbeddingConfig proto that configures the embedding.
     var_name: A unique name for the given embedding.
     service_address: The address of a dynamic embedding service. If empty, the
       value passed from --kbs_address flag will be used instead.
@@ -106,7 +157,8 @@ def dynamic_embedding_update(keys: tf.Tensor,
   resource = gen_carls_ops.dynamic_embedding_manager_resource(
       config.SerializeToString(), var_name, service_address, timeout_ms)
 
-  return gen_carls_ops.dynamic_embedding_update(keys, values, resource)
+  return gen_carls_ops.dynamic_embedding_update(keys, values, resource,
+                                                config.embedding_dimension)
 
 
 @tf.RegisterGradient("DynamicEmbeddingLookup")
