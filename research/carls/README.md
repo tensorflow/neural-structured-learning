@@ -69,7 +69,7 @@ $ bash neural_structured_learning/examples/preprocess/cora/prep_data.sh
 ### Step Three: Run the example
 
 ```sh
-$ bazel run research/carls/examples:graph_keras_mlp_cora -- \
+$ bazel run research/carls/examples/graph_regularization:graph_keras_mlp_cora -- \
 /tmp/cora/train_merged_examples.tfr /tmp/cora/test_examples.tfr \
 --alsologtostderr --output_dir=/tmp/carls
 ```
