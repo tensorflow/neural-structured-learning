@@ -13,14 +13,14 @@ Minimal implementation of [Denoised Smoothing: A Provable Defense for Pretrained
 
 Randomized Smoothing is a well-tested method to provably defend against _l2_ adversarial attacks under a specific radii. But it assumes that a classifier performs well under Gaussian noisy perturbations which may not always be the case.  
 
-**Note**: I utilized many scripts from the [official repository](https://github.com/microsoft/denoised-smoothing) of Denoised Smoothing to develop this repository. My aim with this repository is to provide a template for researchers to conduct certification tests with Keras/TensorFlow models. I encourage the readers to check out the original repository, it's really well-developed. 
+**Note**: Many scripts have been utilized from the [official repository](https://github.com/microsoft/denoised-smoothing) of Denoised Smoothing to develop this. 
 
 ## Further notes
 
 * The Denoised Smoothing process is demonstrated on the CIFAR-10 dataset. 
-* You can train a classifier quickly with the [`Train_Classifier.ipynb`](https://colab.research.google.com/github/sayakpaul/Denoised-Smoothing-TF/blob/main/Train_Classifier.ipynb) notebook.
-* Training the denoiser is demonstrated in the [`Train_Denoiser.ipynb`](https://colab.research.google.com/github/sayakpaul/Denoised-Smoothing-TF/blob/main/Train_Denoiser.ipynb) notebook. 
-* Certification tests are in [`Certification_Test.ipynb`](https://colab.research.google.com/github/sayakpaul/Denoised-Smoothing-TF/blob/main/Certification_Test.ipynb) notebook. 
+* You can train a classifier quickly with the [`Train_Classifier.ipynb`](https://colab.research.google.com/github/sayakpaul/neural-structured-learning/blob/master/research/denoised_smoothing/notebooks/Train_Classifier.ipynb) notebook.
+* Training of the denoiser is demonstrated in the [`Train_Denoiser.ipynb`](https://colab.research.google.com/github/sayakpaul/neural-structured-learning/blob/master/research/denoised_smoothing/notebooks/Train_Denoiser.ipynb) notebook. 
+* Certification tests are in [`Certification_Test.ipynb`](https://colab.research.google.com/github/sayakpaul/neural-structured-learning/blob/master/research/denoised_smoothing/notebooks/Certification_Test.ipynb) notebook. 
 
 All the notebooks can be executed on Colab! You also have the option to train using the free TPUs.
 
@@ -34,7 +34,7 @@ As we can see prepending a pre-trained denoiser is extremely helpful for our pur
 
 ## Models
 
-The models are available inside [`models.tar.gz`](https://github.com/sayakpaul/Denoised-Smoothing-TF/blob/main/models.tar.gz) in the `SavedModel` format. In the interest of reproducibility, the initial model weights are also provided. 
+The models are available inside [`models.tar.gz`](https://github.com/sayakpaul/Denoised-Smoothing-TF/blob/main/models.tar.gz) in `SavedModel` format. In the interest of reproducibility, the initial model weights are also provided. 
 
 ## Acknowledgements
 
