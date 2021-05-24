@@ -10,6 +10,10 @@ farmhash()
 load("//research/carls/third_party/leveldb:workspace.bzl", leveldb = "repo")
 leveldb()
 
+# rocksdb
+load("//research/carls/third_party/rocksdb:workspace.bzl", rocksdb = "repo")
+rocksdb()
+
 # absl
 http_archive(
     name = "com_google_absl",
