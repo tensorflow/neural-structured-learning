@@ -24,7 +24,7 @@ def conv_block(x: tf.Tensor, channels: int = 64, ksize: int = 3,
     channels,
     kernel_size=ksize,
     padding=padding,
-    use_bias=True if bn else False,
+    use_bias=bn,
     kernel_initializer="orthogonal"
   )(x)
   if bn:

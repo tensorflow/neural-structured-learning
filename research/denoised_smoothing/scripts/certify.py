@@ -26,12 +26,11 @@ def perform_certification_test(base_classifier: tf.keras.Model,
                  10, sigma)
   if not os.path.exists(outfile.split('sigma')[0]):
     os.makedirs(outfile.split('sigma')[0])
-
-  f = open(outfile, 'w')
-  print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f,
+  
+  with open(outfile, "w") as f:
+    print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f,
       flush=True)
   print("idx\tlabel\tpredict\tradius\tcorrect\ttime", flush=True)
-  f.close()
 
   images, labels = dataset
   for i in range(len(images)):
@@ -53,12 +52,11 @@ def perform_certification_test(base_classifier: tf.keras.Model,
 
     time_elapsed = str(
       datetime.timedelta(seconds=(after_time - before_time)))
-
-    f = open(outfile, 'a')
-    print("{}\t{}\t{}\t{:.3}\t{}\t{}".format(
-      i, label, prediction, radius, correct, time_elapsed),
-      file=f, flush=True)
+    
+    with open(outfile, "a") as f:
+      print("{}\t{}\t{}\t{:.3}\t{}\t{}".format(
+        i, label, prediction, radius, correct, time_elapsed),
+        file=f, flush=True)
     print("{}\t{}\t{}\t{:.3}\t{}\t{}".format(
       i, label, prediction, radius, correct, time_elapsed),
       flush=True)
-    f.close()
