@@ -64,17 +64,12 @@ http_archive(
 # Use local tf to avoid error that tensorflow objects already registered.
 # Use custom protoc to make sure all protoc are built on the version of local tf
 # curl -L "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" | sha256
-load("//research/carls:bazel/repo.bzl", "cc_tf_configure", "carls_protoc_deps")
+load("//research/carls:bazel/repo.bzl", "cc_tf_configure")
 cc_tf_configure()
 
 # Load protobuf compiler, protobuf and gRPC.
 # They MUST be in sync with TensorFlow's corresponding versions defined in
 # TENSORFLOW_DIR/tensorflow/workspace2.bzl
-
-# Protobuf compiler.
-PROTOC_VERSION = "3.9.2"
-PROTOC_SHA256 = "0d9034a3b02bd77edf5ef926fb514819a0007f84252c5e6a6391ddfc4189b904"
-carls_protoc_deps(version = PROTOC_VERSION, sha256 = PROTOC_SHA256)
 
 # Protobuffer
 http_archive(
