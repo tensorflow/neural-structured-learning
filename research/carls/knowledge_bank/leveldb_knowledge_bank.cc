@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "absl/base/thread_annotations.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_join.h"
@@ -34,7 +35,7 @@ constexpr char kMetaDataOutputBaseName[] = "leveldb_embedding_metadata.txt";
 }  // namespace
 
 // An implementation of KnowledgeBank using LevelDB as its internal storage of
-// embedding data.
+// embedding data. All methods of this class are thread-safe.
 class LeveldbKnowledgeBank : public KnowledgeBank {
  public:
   LeveldbKnowledgeBank(const KnowledgeBankConfig& config, int dimension)
@@ -54,58 +55,85 @@ class LeveldbKnowledgeBank : public KnowledgeBank {
  private:
   // Implementation of the Lookup interface.
   absl::Status Lookup(const absl::string_view key,
-                      EmbeddingVectorProto* result) const override;
+                      EmbeddingVectorProto* result) const
+      ABSL_LOCKS_EXCLUDED(load_db_mu_) override;
 
   // Implementation of the LookupWithUpdate interface.
   absl::Status LookupWithUpdate(const absl::string_view key,
-                                EmbeddingVectorProto* result) override;
+                                EmbeddingVectorProto* result)
+      ABSL_LOCKS_EXCLUDED(load_db_mu_, keys_mu_) override;
 
   // Updates the embedding of a single key.
   absl::Status Update(const absl::string_view key,
-                      const EmbeddingVectorProto& value) override;
+                      const EmbeddingVectorProto& value)
+      ABSL_LOCKS_EXCLUDED(load_db_mu_, keys_mu_) override;
 
   // Implementation of the ExportInternal interface.
   // Exports the embeddings of updated keys and save these keys into a txt file.
   absl::Status ExportInternal(const std::string& dir,
-                              std::string* exported_path) override;
+                              std::string* exported_path)
+      ABSL_LOCKS_EXCLUDED(load_db_mu_, keys_mu_) override;
 
   // Implementation of the ImportInternal interface.
   // It treats `saved_path` as a LevelDB address and attempts to reload the
   // embedding data from it.
   // Note that a LevelDB can only be opened by one process.
-  absl::Status ImportInternal(const std::string& saved_path) override;
+  absl::Status ImportInternal(const std::string& saved_path)
+      ABSL_LOCKS_EXCLUDED(load_db_mu_, keys_mu_) override;
 
   // Returns the size of the current embedding data.
-  size_t Size() const override { return embedding_data_.size(); }
+  size_t Size() const ABSL_LOCKS_EXCLUDED(load_db_mu_) override {
+    absl::ReaderMutexLock rl(&load_db_mu_);
+    return embedding_data_.size();
+  }
 
   // Implementation of the Keys interface.
-  std::vector<absl::string_view> Keys() const override {
+  std::vector<absl::string_view> Keys() const
+      ABSL_LOCKS_EXCLUDED(load_db_mu_) override {
     absl::ReaderMutexLock l(&keys_mu_);
     return keys_;
   }
 
   // Implementation of the Contains interface.
-  bool Contains(absl::string_view key) const override {
+  bool Contains(absl::string_view key) const
+      ABSL_LOCKS_EXCLUDED(load_db_mu_) override {
+    absl::ReaderMutexLock rl(&load_db_mu_);
     return embedding_data_.find(std::string(key)) != embedding_data_.end();
+  }
+
+  void ClearInternalData() ABSL_EXCLUSIVE_LOCKS_REQUIRED(load_db_mu_)
+      ABSL_LOCKS_EXCLUDED(keys_mu_) {
+    absl::MutexLock l(&keys_mu_);
+    // Makes sure not other thread is accessing embedding_data_ when
+    // ClearInternalData() is called.
+    embedding_data_.clear();
+    keys_.clear();
+    updated_keys_.clear();
+    keys_set_.clear();
   }
 
   // Loads all the data into memory.
   absl::Status LoadDataFromLevelDb(const std::string& db_path,
-                                   bool create_if_missing);
+                                   bool create_if_missing)
+      ABSL_LOCKS_EXCLUDED(load_db_mu_, keys_mu_);
 
   // LevelDB related.
   std::unique_ptr<leveldb::DB> leveldb_;
   const LeveldbKnowledgeBankConfig leveldb_config_;
 
+  // Mutex for updating all the internal data, e.g., in LoadDataFromLevelDb().
+  mutable absl::Mutex load_db_mu_;
   // Stores the in-memory (key, embedding) data for efficient lookup/update.
   // async_node_hash_map is sharded based on the keys to improve parallelism.
-  mutable async_node_hash_map<std::string, EmbeddingVectorProto>
-      embedding_data_;
+  // Note that only a read share of the lock is required even when doing writes
+  // to this field, since async_node_hash_map is thread-safe.
+  mutable async_node_hash_map<std::string, EmbeddingVectorProto> embedding_data_
+      ABSL_GUARDED_BY(load_db_mu_);
 
   // The list of keys of the embedding, used for the Keys() method.
   mutable absl::Mutex keys_mu_;
   std::vector<absl::string_view> keys_ ABSL_GUARDED_BY(keys_mu_);
-  // Keeps track of all the availabe keys.
+  // Keeps track of all the available keys.
   absl::flat_hash_set<absl::string_view> keys_set_ ABSL_GUARDED_BY(keys_mu_);
   // The set of keys that are updated but not exported.
   absl::flat_hash_set<std::string> updated_keys_ ABSL_GUARDED_BY(keys_mu_);
@@ -147,17 +175,21 @@ REGISTER_KNOWLEDGE_BANK_FACTORY(
 
 absl::Status LeveldbKnowledgeBank::Lookup(const absl::string_view key,
                                           EmbeddingVectorProto* result) const {
+  absl::ReaderMutexLock rl(&load_db_mu_);
   const std::string str_key(key);
-  if (embedding_data_.find(str_key) == embedding_data_.end()) {
+  const auto iter = embedding_data_.find(str_key);
+  if (iter == embedding_data_.end()) {
     return absl::InvalidArgumentError(
         absl::StrCat("Key is not found: ", str_key));
   }
-  *result = embedding_data_.find(str_key)->second;
+  *result = iter->second;
   return absl::OkStatus();
 }
 
 absl::Status LeveldbKnowledgeBank::LookupWithUpdate(
     const absl::string_view key, EmbeddingVectorProto* result) {
+  // Use a reader locker since embedding_data_ is thread-safe.
+  absl::ReaderMutexLock rl(&load_db_mu_);
   std::string str_key(key);
   if (embedding_data_.find(str_key) == embedding_data_.end()) {
     // Insert a new embedding.
@@ -181,6 +213,8 @@ absl::Status LeveldbKnowledgeBank::LookupWithUpdate(
 
 absl::Status LeveldbKnowledgeBank::Update(const absl::string_view key,
                                           const EmbeddingVectorProto& value) {
+  // Use a reader locker since embedding_data_ is thread-safe.
+  absl::ReaderMutexLock rl(&load_db_mu_);
   const std::string str_key(key);
   embedding_data_.insert_or_assign(str_key, value);
   {
@@ -197,6 +231,7 @@ absl::Status LeveldbKnowledgeBank::Update(const absl::string_view key,
 
 absl::Status LeveldbKnowledgeBank::ExportInternal(const std::string& dir,
                                                   std::string* exported_path) {
+  absl::ReaderMutexLock rl(&load_db_mu_);
   *exported_path = leveldb_config_.leveldb_address();
   absl::MutexLock l(&keys_mu_);
   leveldb::WriteOptions options;
@@ -234,17 +269,19 @@ absl::Status LeveldbKnowledgeBank::LoadDataFromLevelDb(
     return absl::InternalError(status.ToString());
   }
   RET_CHECK_TRUE(db != nullptr);
+
+  // Use a write lock to prevent other methods from accessing the internal data
+  // during loading.
+  absl::WriterMutexLock wl(&load_db_mu_);
   leveldb_.reset(db);
+
+  ClearInternalData();
 
   // Iterate over each item in the database and print them
   std::unique_ptr<leveldb::Iterator> it(
       leveldb_->NewIterator(leveldb::ReadOptions()));
 
   absl::MutexLock l(&keys_mu_);
-  embedding_data_.clear();
-  keys_.clear();
-  updated_keys_.clear();
-
   unsigned int count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     EmbeddingVectorProto proto;
