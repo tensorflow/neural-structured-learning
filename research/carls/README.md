@@ -73,3 +73,18 @@ $ bazel run research/carls/examples/graph_regularization:graph_keras_mlp_cora --
 /tmp/cora/train_merged_examples.tfr /tmp/cora/test_examples.tfr \
 --alsologtostderr --output_dir=/tmp/carls
 ```
+
+## Citation
+
+You can cite our [CARLS](https://arxiv.org/abs/2105.12849) paper as
+
+```
+@misc{carls2021,
+      title={CARLS: Cross-platform Asynchronous Representation Learning System},
+      author={Chun-Ta Lu and Yun Zeng and Da-Cheng Juan and Yicheng Fan, and Zhe Li and Jan Dlabal and Yi-Ting Chen and Arjun Gopalan and Allan Heydon and Chun-Sung Ferng and Reah Miyara and Ariel Fuxman and Futang Peng and Zhen Li and Tom Duerig and Andrew Tomkins},
+      year={2021},
+      eprint={2105.12849},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
