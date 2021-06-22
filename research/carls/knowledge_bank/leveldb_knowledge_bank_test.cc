@@ -32,7 +32,8 @@ using ::testing::Eq;
 using ::testing::TempDir;
 
 std::string UniqueFilename() {
-  return absl::StrCat(absl::ToUnixMillis(absl::Now()), "data.db");
+  static int64_t counter = 0;
+  return absl::StrCat(counter++, "data.db");
 }
 
 }  // namespace
