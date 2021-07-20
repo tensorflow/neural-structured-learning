@@ -120,6 +120,11 @@ class GraphRegularizationWithCaching(graph_regularization.GraphRegularization):
     # Invoke the call() function of the neighbor features layer directly instead
     # of invoking it as a callable to avoid Keras from wrapping placeholder
     # tensors with the tf.identity() op.
+
+    for feature_name, feature_value in inputs.items():
+      if len(feature_value.shape) < 2:
+        inputs[feature_name] = tf.expand_dims(feature_value, axis=-1)
+
     sample_features, nbr_features, nbr_weights = self.nbr_features_layer.call(
         inputs)
     base_output = self._infer_and_update(
