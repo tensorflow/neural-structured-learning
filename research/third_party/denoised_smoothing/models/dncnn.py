@@ -1,4 +1,4 @@
-"""
+""" Denoising convolutional neural networks.
 # Referenced from:
 https://github.com/microsoft/denoised-smoothing/blob/master/code/archs/dncnn.py
 # Original:
