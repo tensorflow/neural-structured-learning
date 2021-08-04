@@ -128,6 +128,11 @@ please fill this
 [form](https://docs.google.com/forms/d/1AQEcPSgmwWBJj3H2haEytF4C_fr1aotWaHjCEXpPm2A);
 we would love to hear from you.
 
+## Featured Usage
+
+Please see the [usage page](usage.md) to learn more about how NSL is being
+discussed and used in the open source community.
+
 ## Release Notes
 
 Please see the [release notes](RELEASE.md) for detailed version updates.
