@@ -31,6 +31,7 @@ py_library(
         ":version",
         "//neural_structured_learning/configs",
         "//neural_structured_learning/estimator",
+        "//neural_structured_learning/experimental",
         "//neural_structured_learning/keras",
         "//neural_structured_learning/lib",
         "//neural_structured_learning/tools",
