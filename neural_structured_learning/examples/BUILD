@@ -2,8 +2,6 @@ package(
     licenses = ["notice"],  # Apache 2.0
 )
 
-exports_files(["LICENSE"])
-
 py_binary(
     name = "graph_keras_mlp_cora",
     srcs = ["graph_keras_mlp_cora.py"],
