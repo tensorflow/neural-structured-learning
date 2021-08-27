@@ -15,15 +15,15 @@ limitations under the License.
 
 #include "research/carls/dynamic_embedding_manager.h"
 
-#include "grpcpp/create_channel.h"  // net
 // Placeholder for internal channel credential  // net
-#include "grpcpp/security/credentials.h"  // net
 #include "grpcpp/support/time.h"  // net
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "grpc/impl/codegen/gpr_types.h"
+#include "grpcpp/create_channel.h"  // third_party
 #include "grpcpp/impl/codegen/client_context.h"  // third_party
+#include "grpcpp/security/credentials.h"  // third_party
 #include "research/carls/base/status_helper.h"
 #include "research/carls/memory_store/gaussian_memory_config.pb.h"  // proto to pb
 
