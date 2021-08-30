@@ -78,8 +78,8 @@ interactively explore NSL. Here are a few:
 *   [training with synthesized graphs](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_lstm_imdb.ipynb)
 *   [adversarial learning](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/adversarial_keras_cnn_mnist.ipynb)
 
-You can find more examples and tutorials under the [examples](examples)
-directory.
+You can find more examples and tutorials under the
+[examples](neural_structured_learning/examples) directory.
 
 ## Contributing to NSL
 

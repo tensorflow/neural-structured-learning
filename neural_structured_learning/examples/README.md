@@ -19,9 +19,9 @@ The
 subdirectory contains colab-based tutorials that allow you to explore NSL
 interactively. This subdirectory is generally where most new tutorials are
 added. Note that the tutorials shown on our
-[TensorFlow website](https://github.com/tensorflow/neural-structured-learning)
+[TensorFlow website](https://www.tensorflow.org/neural_structured_learning/framework#step-by-step_tutorials)
 are hosted under the
-[g3doc/tutorials](https://github.com/tensorflow/neural-structured-learning/g3doc/tutorials)
+[g3doc/tutorials](https://github.com/tensorflow/neural-structured-learning/tree/master/g3doc/tutorials)
 directory.
 
 ## Data Preprocessing Scripts
