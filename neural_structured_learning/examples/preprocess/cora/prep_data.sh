@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Script to download and preprocess the Cora dataset for use by NSL models.
+
 # URL for downloading Cora dataset.
 URL=https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz
 
