@@ -43,7 +43,8 @@ Status KnowledgeBankGrpcServiceImpl::StartSession(
   }
   const std::string session_handle = request->SerializeAsString();
   const auto status = StartSessionIfNecessary(
-      session_handle, /*require_candidate_sampler=*/false);
+      session_handle, /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -61,7 +62,8 @@ Status KnowledgeBankGrpcServiceImpl::Lookup(grpc::ServerContext* context,
     return Status(StatusCode::INVALID_ARGUMENT, "Empty input keys.");
   }
   const auto status = StartSessionIfNecessary(
-      request->session_handle(), /*require_candidate_sampler=*/false);
+      request->session_handle(), /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -101,7 +103,8 @@ Status KnowledgeBankGrpcServiceImpl::Update(grpc::ServerContext* context,
     return Status(StatusCode::INVALID_ARGUMENT, "input is empty.");
   }
   const auto status = StartSessionIfNecessary(
-      request->session_handle(), /*require_candidate_sampler=*/false);
+      request->session_handle(), /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -190,7 +193,8 @@ grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
     return Status(StatusCode::INVALID_ARGUMENT, "No sample context.");
   }
   const auto status = StartSessionIfNecessary(
-      request->session_handle(), /*require_candidate_sampler=*/true);
+      request->session_handle(), /*require_candidate_sampler=*/true,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
@@ -214,16 +218,65 @@ grpc::Status KnowledgeBankGrpcServiceImpl::Sample(grpc::ServerContext* context,
   }
 
   for (const auto& sample_context : request->sample_context()) {
-    std::vector<candidate_sampling::SampledResult> results;
+    std::vector<std::pair<absl::string_view, candidate_sampling::SampledResult>>
+        results;
     auto status = cs_map_[request->session_handle()]->Sample(
         knowledge_bank, sample_context, request->num_samples(), &results);
     if (!status.ok()) {
       return ToGrpcStatus(status);
     }
     auto* samples = response->add_samples();
-    for (auto& result : results) {
-      *samples->add_sampled_result() = std::move(result);
+    for (auto& pair : results) {
+      *samples->add_sampled_result() = std::move(pair.second);
     }
+  }
+  return Status::OK;
+}
+
+grpc::Status KnowledgeBankGrpcServiceImpl::MemoryLookup(
+    grpc::ServerContext* context, const MemoryLookupRequest* request,
+    MemoryLookupResponse* response) {
+  if (request->session_handle().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "session_handle is empty.");
+  }
+  if (request->input().empty()) {
+    return Status(StatusCode::INVALID_ARGUMENT, "input is empty.");
+  }
+  const auto status = StartSessionIfNecessary(
+      request->session_handle(), /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/true);
+  if (!status.ok()) {
+    return status;
+  }
+  std::vector<memory_store::MemoryLookupResult> results;
+  absl::Status absl_status;
+  switch (request->mode()) {
+    case MemoryLookupRequest::LOOKUP_WITHOUT_UPDATE:
+      absl_status = ms_map_[request->session_handle()]->BatchLookup(
+          request->input(), &results);
+      if (!absl_status.ok()) {
+        return ToGrpcStatus(absl_status);
+      }
+      break;
+    case MemoryLookupRequest::LOOKUP_WITH_UPDATE:
+      absl_status = ms_map_[request->session_handle()]->BatchLookupWithUpdate(
+          request->input(), &results);
+      if (!absl_status.ok()) {
+        return ToGrpcStatus(absl_status);
+      }
+      break;
+    case MemoryLookupRequest::LOOKUP_WITH_GROW:
+      absl_status = ms_map_[request->session_handle()]->BatchLookupWithGrow(
+          request->input(), &results);
+      if (!absl_status.ok()) {
+        return ToGrpcStatus(absl_status);
+      }
+      break;
+    default:
+      return Status(StatusCode::INVALID_ARGUMENT, "Unknown lookup mode.");
+  }
+  for (auto& result : results) {
+    *response->add_memory_lookup_result() = std::move(result);
   }
   return Status::OK;
 }
@@ -238,16 +291,26 @@ Status KnowledgeBankGrpcServiceImpl::Export(grpc::ServerContext* context,
     return Status(StatusCode::INVALID_ARGUMENT, "export_directory is empty.");
   }
   const auto status = StartSessionIfNecessary(
-      request->session_handle(), /*require_candidate_sampler=*/false);
+      request->session_handle(), /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
   StartSessionRequest start_request;
   start_request.ParseFromString(request->session_handle());
   absl::MutexLock lock(&map_mu_);
-  return ToGrpcStatus(kb_map_[request->session_handle()]->Export(
-      request->export_directory(), start_request.name(),
-      response->mutable_knowledge_bank_saved_path()));
+  if (kb_map_.contains(request->session_handle())) {
+    return ToGrpcStatus(kb_map_[request->session_handle()]->Export(
+        request->export_directory(), start_request.name(),
+        response->mutable_knowledge_bank_saved_path()));
+  } else if (ms_map_.contains(request->session_handle())) {
+    return ToGrpcStatus(ms_map_[request->session_handle()]->Export(
+        request->export_directory(), start_request.name(),
+        response->mutable_memory_store_saved_path()));
+  } else {
+    return Status(StatusCode::INVALID_ARGUMENT,
+                  "Neither KnowledgeStore nor MemoryStore is initialized.");
+  }
 }
 
 Status KnowledgeBankGrpcServiceImpl::Import(grpc::ServerContext* context,
@@ -256,18 +319,30 @@ Status KnowledgeBankGrpcServiceImpl::Import(grpc::ServerContext* context,
   if (request->session_handle().empty()) {
     return Status(StatusCode::INVALID_ARGUMENT, "session_handle is empty.");
   }
-  if (request->knowledge_bank_saved_path().empty()) {
-    return Status(StatusCode::INVALID_ARGUMENT,
-                  "knowledge_bank_saved_path is empty.");
-  }
   const auto status = StartSessionIfNecessary(
-      request->session_handle(), /*require_candidate_sampler=*/false);
+      request->session_handle(), /*require_candidate_sampler=*/false,
+      /*require_memory_store=*/false);
   if (!status.ok()) {
     return status;
   }
   absl::MutexLock lock(&map_mu_);
-  return ToGrpcStatus(kb_map_[request->session_handle()]->Import(
-      request->knowledge_bank_saved_path()));
+  if (kb_map_.contains(request->session_handle())) {
+    if (request->knowledge_bank_saved_path().empty()) {
+      return Status(StatusCode::INVALID_ARGUMENT,
+                    "knowledge_bank_saved_path is empty.");
+    }
+    return ToGrpcStatus(kb_map_[request->session_handle()]->Import(
+        request->knowledge_bank_saved_path()));
+  } else if (ms_map_.contains(request->session_handle())) {
+    if (request->memory_store_saved_path().empty()) {
+      return Status(StatusCode::INVALID_ARGUMENT,
+                    "memory_store_saved_path is empty.");
+    }
+    return ToGrpcStatus(ms_map_[request->session_handle()]->Import(
+        request->memory_store_saved_path()));
+  }
+  return Status(StatusCode::INVALID_ARGUMENT,
+                "Neither KnowledgeStore nor MemoryStore is initialized.");
 }
 
 size_t KnowledgeBankGrpcServiceImpl::KnowledgeBankSize() {
@@ -276,7 +351,8 @@ size_t KnowledgeBankGrpcServiceImpl::KnowledgeBankSize() {
 }
 
 Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
-    const std::string& session_handle, const bool require_candidate_sampler) {
+    const std::string& session_handle, const bool require_candidate_sampler,
+    const bool require_memory_store) {
   StartSessionRequest request;
   request.ParseFromString(session_handle);
   if (require_candidate_sampler &&
@@ -284,8 +360,13 @@ Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
     return Status(StatusCode::FAILED_PRECONDITION,
                   "candidate_sampler_config is required but is empty.");
   }
+  if (require_memory_store && !request.config().has_memory_store_config()) {
+    return Status(StatusCode::FAILED_PRECONDITION,
+                  "memory_store_config is required but is empty.");
+  }
   absl::MutexLock lock(&map_mu_);
-  if (!kb_map_.contains(session_handle)) {
+  if (request.config().has_knowledge_bank_config() &&
+      !kb_map_.contains(session_handle)) {
     // Creates a new KnowledgeBank.
     auto knowledge_bank =
         KnowledgeBankFactory::Make(request.config().knowledge_bank_config(),
@@ -314,6 +395,15 @@ Status KnowledgeBankGrpcServiceImpl::StartSessionIfNecessary(
       return Status(StatusCode::INTERNAL, "Creating CandidateSampler failed.");
     }
     cs_map_[session_handle] = std::move(sampler);
+  }
+  if (request.config().has_memory_store_config() &&
+      !ms_map_.contains(session_handle)) {
+    auto memory_store = memory_store::MemoryStoreFactory::Make(
+        request.config().memory_store_config());
+    if (memory_store == nullptr) {
+      return Status(StatusCode::INTERNAL, "Creating MemoryStore failed.");
+    }
+    ms_map_[session_handle] = std::move(memory_store);
   }
   return Status::OK;
 }

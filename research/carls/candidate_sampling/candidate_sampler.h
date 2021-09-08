@@ -41,9 +41,14 @@ class CandidateSampler {
 
   // The public interface for generating samples from given sample_context from
   // knowledge bank.
-  absl::Status Sample(const KnowledgeBank& knowledge_bank,
-                      const SampleContext& sample_context, int num_samples,
-                      std::vector<SampledResult>* results) const;
+  // NOTE: This interface returns a vector of
+  // std::pair<absl::string_view, SampledResult> instead of simply SampledResult
+  // to get around a protobuf compatibility issue that the key of SampledResult
+  // could mess up with each other when copying to a std::vector<SampledResult>.
+  absl::Status Sample(
+      const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
+      int num_samples,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results) const;
 
   // Adds or update a candidate for sampling.
   virtual absl::Status InsertOrUpdate(absl::string_view key,
@@ -59,7 +64,9 @@ class CandidateSampler {
   // the inputs have been checked (num_samples > 0 and results != nullptr).
   virtual absl::Status SampleInternal(
       const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-      int num_samples, std::vector<SampledResult>* results) const = 0;
+      int num_samples,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results)
+      const = 0;
 
   const CandidateSamplerConfig config_;
 };

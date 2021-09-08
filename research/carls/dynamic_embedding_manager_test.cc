@@ -568,4 +568,154 @@ TEST_F(DynamicEmbeddingManagerTest, ImportAndExport) {
   EXPECT_EQ(embed_value(2, 1), new_embed_value(2, 1));
 }
 
+TEST_F(DynamicEmbeddingManagerTest, LookupGaussianCluster) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/3);
+  *config.mutable_memory_store_config() =
+      ParseTextProtoOrDie<memory_store::MemoryStoreConfig>(R"pb(
+        extension {
+          [type.googleapis.com/carls.memory_store.GaussianMemoryConfig] {
+            per_cluster_buffer_size: 2
+            distance_to_cluster_threshold: 0.1
+            max_num_clusters: 2
+            bootstrap_steps: 0
+            min_variance: 0.1
+            distance_type: CWISE_MEAN_GAUSSIAN
+          }
+        }
+      )pb");
+  config.clear_knowledge_bank_config();
+  auto de_manager = DynamicEmbeddingManager::Create(config, "mem", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  Tensor inputs(tensorflow::DT_FLOAT, TensorShape({2, 2}));
+  Tensor mean_output(tensorflow::DT_FLOAT, TensorShape({2, 2}));
+  Tensor variance_output(tensorflow::DT_FLOAT, TensorShape({2, 2}));
+  Tensor distance_output(tensorflow::DT_FLOAT, TensorShape({2}));
+  Tensor cluster_id_output(tensorflow::DT_INT32, TensorShape({2}));
+
+  // Two points {[1, 2], [3, 4]}.
+  auto input_values = inputs.matrix<float>();
+  input_values(0, 0) = 1;
+  input_values(0, 1) = 2;
+  input_values(1, 0) = 3;
+  input_values(1, 1) = 4;
+
+  ASSERT_OK(de_manager->LookupGaussianCluster(
+      inputs, /*mode=*/2, &mean_output, &variance_output, &distance_output,
+      &cluster_id_output));
+  // Mean of {[1, 2], [3, 4]} is [2, 3]
+  auto mean_output_values = mean_output.matrix<float>();
+  std::vector<std::vector<float>> expected_values{{2, 3}, {2, 3}};
+  for (size_t i = 0; i < expected_values.size(); ++i) {
+    for (size_t j = 0; j < expected_values[i].size(); ++j) {
+      EXPECT_FLOAT_EQ(expected_values[i][j], mean_output_values(i, j));
+    }
+  }
+
+  // The variance of dim-0 is ((1-2)^2 + (3-2)^2) / 2 = 1.
+  // Same for dim-1.
+  auto variance_output_values = variance_output.matrix<float>();
+  expected_values = {{1, 1}, {1, 1}};
+  for (size_t i = 0; i < expected_values.size(); ++i) {
+    for (size_t j = 0; j < expected_values[i].size(); ++j) {
+      EXPECT_FLOAT_EQ(expected_values[i][j], variance_output_values(i, j));
+    }
+  }
+
+  // Distance computed by CWISE_MEAN_GAUSSIAN = exp(-d^2/2), where d = 1 for
+  // both inputs.
+  auto distance_output_values = distance_output.vec<float>();
+  EXPECT_FLOAT_EQ(0.60653067, distance_output_values(0));
+  EXPECT_FLOAT_EQ(0.60653067, distance_output_values(1));
+
+  // Only one cluster.
+  auto cluster_id_output_values = cluster_id_output.vec<int32_t>();
+  EXPECT_EQ(0, cluster_id_output_values(0));
+  EXPECT_EQ(0, cluster_id_output_values(1));
+}
+
+TEST_F(DynamicEmbeddingManagerTest, LookupGaussianCluster_3DInput) {
+  KnowledgeBankServiceOptions options;
+  KbsServerHelper helper(options);
+  std::string address = absl::StrCat("localhost:", helper.port());
+  DynamicEmbeddingConfig config = BuildConfig(/*dimension=*/3);
+  *config.mutable_memory_store_config() =
+      ParseTextProtoOrDie<memory_store::MemoryStoreConfig>(R"pb(
+        extension {
+          [type.googleapis.com/carls.memory_store.GaussianMemoryConfig] {
+            per_cluster_buffer_size: 4
+            distance_to_cluster_threshold: 0.1
+            max_num_clusters: 2
+            bootstrap_steps: 0
+            min_variance: 1
+            distance_type: CWISE_MEAN_GAUSSIAN
+          }
+        }
+      )pb");
+  config.clear_knowledge_bank_config();
+  auto de_manager = DynamicEmbeddingManager::Create(config, "mem", address);
+  ASSERT_TRUE(de_manager != nullptr);
+
+  Tensor inputs(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
+  Tensor mean_output(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
+  Tensor variance_output(tensorflow::DT_FLOAT, TensorShape({2, 2, 2}));
+  Tensor distance_output(tensorflow::DT_FLOAT, TensorShape({2, 2}));
+  Tensor cluster_id_output(tensorflow::DT_INT32, TensorShape({2, 2}));
+
+  // Four input points: {[1, 2], [3, 4], [5, 6], [7, 8]}.
+  auto input_values = inputs.tensor<float, 3>();
+  input_values(0, 0, 0) = 1;
+  input_values(0, 0, 1) = 2;
+  input_values(0, 1, 0) = 3;
+  input_values(0, 1, 1) = 4;
+  input_values(1, 0, 0) = 5;
+  input_values(1, 0, 1) = 6;
+  input_values(1, 1, 0) = 7;
+  input_values(1, 1, 1) = 8;
+
+  ASSERT_OK(de_manager->LookupGaussianCluster(
+      inputs, /*mode=*/2, &mean_output, &variance_output, &distance_output,
+      &cluster_id_output));
+  // Mean of {[1, 2], [3, 4], [5, 6], [7, 8]} is [4, 5]
+  auto mean_output_values = mean_output.tensor<float, 3>();
+  std::vector<std::vector<std::vector<float>>> expected_values{
+      {{4, 5}, {4, 5}}, {{4, 5}, {4, 5}}};
+  for (size_t i = 0; i < expected_values.size(); ++i) {
+    for (size_t j = 0; j < expected_values[i].size(); ++j) {
+      for (size_t k = 0; k < expected_values[i][j].size(); ++k) {
+        EXPECT_FLOAT_EQ(expected_values[i][j][k], mean_output_values(i, j, k));
+      }
+    }
+  }
+
+  // The variance of dim-0 is ((1-4)^2 + (3-4)^2 + (5-4)^2 + (7-4)^2) / 4 = 5.
+  // Same for dim-1.
+  auto variance_output_values = variance_output.tensor<float, 3>();
+  expected_values = {{{5, 5}, {5, 5}}, {{5, 5}, {5, 5}}};
+  for (size_t i = 0; i < expected_values.size(); ++i) {
+    for (size_t j = 0; j < expected_values[i].size(); ++j) {
+      for (size_t k = 0; k < expected_values[i][j].size(); ++k) {
+        EXPECT_FLOAT_EQ(expected_values[i][j][k],
+                        variance_output_values(i, j, k));
+      }
+    }
+  }
+
+  auto distance_output_values = distance_output.matrix<float>();
+  EXPECT_FLOAT_EQ(0.40656966, distance_output_values(0, 0));
+  EXPECT_FLOAT_EQ(0.90483743, distance_output_values(0, 1));
+  EXPECT_FLOAT_EQ(0.90483743, distance_output_values(1, 0));
+  EXPECT_FLOAT_EQ(0.40656966, distance_output_values(1, 1));
+
+  // Only one cluster.
+  auto cluster_id_output_values = cluster_id_output.matrix<int32_t>();
+  EXPECT_FLOAT_EQ(0, cluster_id_output_values(0, 0));
+  EXPECT_FLOAT_EQ(0, cluster_id_output_values(0, 1));
+  EXPECT_FLOAT_EQ(0, cluster_id_output_values(1, 0));
+  EXPECT_FLOAT_EQ(0, cluster_id_output_values(1, 1));
+}
+
 }  // namespace carls

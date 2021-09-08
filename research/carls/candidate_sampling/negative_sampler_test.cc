@@ -109,41 +109,48 @@ TEST_F(NegativeSamplerTest, SampingWithReplacement) {
     SampleContext context;
     context.add_positive_key("key0");
     context.add_positive_key("key1");
-    std::vector<SampledResult> results;
+    std::vector<std::pair<absl::string_view, SampledResult>> results;
 
     // Same number of positives and num_samples = num_total_keys.
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/2), context,
                               /*num_samples=*/2, &results));
     ASSERT_EQ(2, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_TRUE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_TRUE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
 
     // num_pos = num_total_keys (3) > num_samples (2).
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/3), context,
                               /*num_samples=*/2, &results));
     ASSERT_EQ(2, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_TRUE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_TRUE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
 
     //  num_pos < num_total_keys = num_samples
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/3), context,
                               /*num_samples=*/3, &results));
     ASSERT_EQ(3, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_TRUE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_TRUE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
     // The third one is randomly chosen so we only know the prob.
     if (algorithm == NegativeSamplerConfig::LOG_UNIFORM) {
-      EXPECT_FLOAT_EQ(0.5,
-                      results[2].negative_sampling_result().expected_count());
+      EXPECT_FLOAT_EQ(
+          0.5, results[2].second.negative_sampling_result().expected_count());
     } else {  // uniform sampler.
-      EXPECT_FLOAT_EQ(1.0 / 3.0,
-                      results[2].negative_sampling_result().expected_count());
+      EXPECT_FLOAT_EQ(
+          1.0 / 3.0,
+          results[2].second.negative_sampling_result().expected_count());
     }
   }
 }
@@ -156,27 +163,32 @@ TEST_F(NegativeSamplerTest, UniqueSamping) {
     SampleContext context;
     context.add_positive_key("key0");
     context.add_positive_key("key1");
-    std::vector<SampledResult> results;
+    std::vector<std::pair<absl::string_view, SampledResult>> results;
 
     // Same number of positives and num_samples = num_total_keys.
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/2), context,
                               /*num_samples=*/2, &results));
     ASSERT_EQ(2, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_TRUE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_TRUE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
 
     // num_pos (2) < num_total_keys = num_samples (3)
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/3), context,
                               /*num_samples=*/3, &results));
     ASSERT_EQ(3, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_TRUE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FALSE(results[2].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[2].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_TRUE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FALSE(results[2].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[2].second.negative_sampling_result().expected_count());
 
     // num_pos (1) < num_total_keys = num_samples (3)
     context.clear_positive_key();
@@ -184,25 +196,29 @@ TEST_F(NegativeSamplerTest, UniqueSamping) {
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/3), context,
                               /*num_samples=*/3, &results));
     ASSERT_EQ(3, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_FALSE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FALSE(results[2].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[1].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(1, results[2].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_FALSE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FALSE(results[2].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[1].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        1, results[2].second.negative_sampling_result().expected_count());
 
     // num_pos (1) < num_samples (3) < num_total_keys (5)
     ASSERT_OK(sampler->Sample(FakeKnowledgeBank(/*num_keys=*/5), context,
                               /*num_samples=*/3, &results));
     ASSERT_EQ(3, results.size());
-    EXPECT_TRUE(results[0].negative_sampling_result().is_positive());
-    EXPECT_FALSE(results[1].negative_sampling_result().is_positive());
-    EXPECT_FALSE(results[2].negative_sampling_result().is_positive());
-    EXPECT_FLOAT_EQ(1, results[0].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(0.5,
-                    results[1].negative_sampling_result().expected_count());
-    EXPECT_FLOAT_EQ(0.5,
-                    results[2].negative_sampling_result().expected_count());
+    EXPECT_TRUE(results[0].second.negative_sampling_result().is_positive());
+    EXPECT_FALSE(results[1].second.negative_sampling_result().is_positive());
+    EXPECT_FALSE(results[2].second.negative_sampling_result().is_positive());
+    EXPECT_FLOAT_EQ(
+        1, results[0].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        0.5, results[1].second.negative_sampling_result().expected_count());
+    EXPECT_FLOAT_EQ(
+        0.5, results[2].second.negative_sampling_result().expected_count());
   }
 }
 

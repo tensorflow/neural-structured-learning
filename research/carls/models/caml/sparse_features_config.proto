@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package carls;
+
+import "research/carls/input_context.proto";
+
+// Config for constructing a phrase EmbeddingLookup used for sentence embedding.
+message PhraseEmbeddingLookup {
+  // Config for the embedding data that are stored in a TFRecord file,
+  // The key of each embedding is stored in the EmbeddingVectorProto.tag field.
+  message TFRecordConfig {
+    // The path to the TFRecord file.
+    string tfrecord_path = 1;
+  }
+  // Config for the embedding data that is stored in the LevelDB.
+  message LevelDbConfig {
+    string leveldb_address = 1;
+  }
+  oneof embedding_config {
+    TFRecordConfig tfrecord_config = 1;
+    LevelDbConfig leveldb_config = 2;
+  }
+}
+
+// Information used during serving of sentence embedding. It should be paired
+// with a PhraseEmbeddingLookup in serving.
+message SparseFeatureEmbeddingMetaData {
+  // Embedding dimension, should be the same as keyword embedding.
+  int32 embedding_dimension = 1;
+
+  // Used for computing sigma(x) from the last sigma_dimension of the embedding
+  // data and if this is set, params should contain "sigma_kernel" and
+  // "sigma_bias" for the computation.
+  int32 sigma_dimension = 2;
+
+  // Combine method for computing the embedding of a sentence or a phrase.
+  enum CombineMethod {
+    UNKNOWN = 0;
+    // Compute the weight of a phrase by $a / (P(w) + a)$ and require
+    // params['a'] to be set. P(w) (phrase frequency) is stored in the weight
+    // field of the embedding. See the paper
+    // https://openreview.net/pdf?id=SyK00v5xx for more details.
+    WEIGHTED_BY_FREQ = 1;
+    // Simply $\sum_w (1 - \sigma(w)) emb_s(w)$ and $\sigma(w)$ is computed by
+    // projecting `emb(w)` to the line segment connecting `emb_i(w)` and `v_c`,
+    // where `emb_s(w)` is the component left by remove vc component from
+    // `emb(w)`. This is used for reembedding.
+    CAML_PROJECT_TO_VC = 2;
+    // Computes the full $\sum_X ((1 - \sigma(x)) emb_s(x) + \sigma(x) v_c)$
+    // where
+    // $\sigma(x)$ is computed by using the sigma_dimension in MetaData, namely
+    // $1 / (1 + exp(-(sigma_kernel * w[-sigma_dimension:-1]+ sigma_bias)))$.
+    // `emb_s(x)` is `w[:embedding_dimension]`.
+    // This is used by embeddings learned from training.
+    CAML_BSFE = 3;
+    // Simply compute the mean of segmented phrase embeddings.
+    MEAN = 4;
+  }
+  CombineMethod combine_method = 3;
+
+  // Parameters for computing the sparse features embedding. For example, in the
+  // case of the paper (https://openreview.net/pdf?id=SyK00v5xx),
+  // the parameter should be params.feature_map["a"] as used for computing
+  // weight $a / (P(w) + a)$ for each phrase w.
+  InputContext params = 4;
+
+  // Context free embedding or also known as v_c in CAML, can be used
+  // for OOV embedding in NN model. If combine_method =
+  // WEIGHTED_BY_FREQ, it represents the principal component computed
+  // from all sentence embeddings. The size should equal to embedding_dimension.
+  repeated float context_free_embedding = 5;
+}
+
+// A sparse features embedding consists of a phrase embedding lookup and
+// meta_data for composition.
+message SparseFeatureEmbeddingConfig {
+  // Config for phrase embedding lookup.
+  PhraseEmbeddingLookup phrase_embedding_lookup = 1;
+
+  // MetaData for computing the sparse features embedding.
+  SparseFeatureEmbeddingMetaData meta_data = 2;
+}

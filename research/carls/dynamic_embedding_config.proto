@@ -5,6 +5,7 @@ package carls;
 import "research/carls/candidate_sampling/candidate_sampler_config.proto";
 import "research/carls/gradient_descent/gradient_descent_config.proto";
 import "research/carls/knowledge_bank/knowledge_bank_config.proto";
+import "research/carls/memory_store/memory_store_config.proto";
 
 // Configurations for a DynamicEmbedding. This is used to decide which storage
 // system is used for storing embeddings and also the corresponding
@@ -17,4 +18,6 @@ message DynamicEmbeddingConfig {
   GradientDescentConfig gradient_descent_config = 3;
 
   candidate_sampling.CandidateSamplerConfig candidate_sampler_config = 4;
+
+  memory_store.MemoryStoreConfig memory_store_config = 5;
 }

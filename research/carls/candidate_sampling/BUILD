@@ -102,7 +102,7 @@ cc_test(
     srcs = ["negative_sampler_test.cc"],
     deps = [
         ":candidate_sampler",
-        ":log_uniform_sampler",
+        ":negative_sampler",
         "//research/carls/knowledge_bank:initializer_cc_proto",
         "//research/carls/testing:test_helper",
         "@com_google_googletest//:gtest_main",

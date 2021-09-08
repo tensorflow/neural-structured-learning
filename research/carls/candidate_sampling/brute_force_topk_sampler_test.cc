@@ -127,7 +127,7 @@ TEST_F(BruteForceTopkSamplerTest, InvalidInput) {
   auto sampler = CreateSampler(COSINE);
   auto knowledge_bank = CreateKnowledgeBank(2);
   SampleContext context;
-  std::vector<SampledResult> results;
+  std::vector<std::pair<absl::string_view, SampledResult>> results;
 
   // Empty context.
   EXPECT_ERROR_EQ(
@@ -165,11 +165,11 @@ TEST_F(BruteForceTopkSamplerTest, CosineSimilarity) {
   context.mutable_activation()->add_value(1);
   context.mutable_activation()->add_value(2);
 
-  std::vector<SampledResult> results;
+  std::vector<std::pair<absl::string_view, SampledResult>> results;
   ASSERT_OK(
       sampler->Sample(*knowledge_bank, context, /*num_samples=*/1, &results));
   ASSERT_EQ(1, results.size());
-  EXPECT_THAT(results[0], EqualsProto<SampledResult>(R"pb(
+  EXPECT_THAT(results[0].second, EqualsProto<SampledResult>(R"pb(
                 topk_sampling_result {
                   key: "key1"
                   embedding { value: 1 value: 2 }
@@ -195,11 +195,11 @@ TEST_F(BruteForceTopkSamplerTest, DotProtudctSimilarity) {
   context.mutable_activation()->add_value(1);
   context.mutable_activation()->add_value(2);
 
-  std::vector<SampledResult> results;
+  std::vector<std::pair<absl::string_view, SampledResult>> results;
   ASSERT_OK(
       sampler->Sample(*knowledge_bank, context, /*num_samples=*/1, &results));
   ASSERT_EQ(1, results.size());
-  EXPECT_THAT(results[0], EqualsProto<SampledResult>(R"pb(
+  EXPECT_THAT(results[0].second, EqualsProto<SampledResult>(R"pb(
                 topk_sampling_result {
                   key: "key2"
                   embedding { value: 3 value: 4 }

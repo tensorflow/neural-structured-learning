@@ -87,7 +87,6 @@ def _find_python_solib_path(repo_ctx):
         fail("Could not locate python shared library path:\n{}"
             .format(exec_result.stderr))
     version = exec_result.stdout.splitlines()[-1]
-    basename = "lib{}.so".format(version)
     exec_result = repo_ctx.execute(
         ["{}-config".format(version), "--configdir"],
         quiet = True,
@@ -96,11 +95,21 @@ def _find_python_solib_path(repo_ctx):
         fail("Could not locate python shared library path:\n{}"
             .format(exec_result.stderr))
     solib_dir = exec_result.stdout.splitlines()[-1]
+
+    # Under Linux the lib file ends with .so.
+    basename = "lib{}.so".format(version)
     full_path = repo_ctx.path("{}/{}".format(solib_dir, basename))
-    if not full_path.exists:
-        fail("Unable to find python shared library file:\n{}/{}"
-            .format(solib_dir, basename))
-    return struct(dir = solib_dir, basename = basename)
+    if full_path.exists:
+        return struct(dir = solib_dir, basename = basename)
+
+    # Under MacOS the lib file ends with .dylib.
+    basename = "lib{}.dylib".format(version)
+    full_path = repo_ctx.path("{}/{}".format(solib_dir, basename))
+    if full_path.exists:
+        return struct(dir = solib_dir, basename = basename)
+
+    fail("Unable to find python shared library file:\n{}/lib{}.[so|dylib]"
+        .format(solib_dir, version))
 
 def _eigen_archive_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
@@ -296,43 +305,3 @@ def cc_tf_configure():
         implementation = _python_includes_repo_impl,
     )
     make_python_inc_repo(name = "python_includes")
-
-def _carls_protoc_archive(ctx):
-    version = ctx.attr.version
-    sha256 = ctx.attr.sha256
-
-    override_version = ctx.os.environ.get("CARLS_PROTOC_VERSION")
-    if override_version:
-        sha256 = ""
-        version = override_version
-
-    urls = [
-        "https://github.com/protocolbuffers/protobuf/releases/download/v%s/protoc-%s-linux-x86_64.zip" % (version, version),
-    ]
-    ctx.download_and_extract(
-        url = urls,
-        sha256 = sha256,
-    )
-
-    ctx.file(
-        "BUILD",
-        content = """
-filegroup(
-    name = "protoc_bin",
-    srcs = ["bin/protoc"],
-    visibility = ["//visibility:public"],
-)
-""",
-        executable = False,
-    )
-
-carls_protoc_archive = repository_rule(
-    implementation = _carls_protoc_archive,
-    attrs = {
-        "version": attr.string(mandatory = True),
-        "sha256": attr.string(mandatory = True),
-    },
-)
-
-def carls_protoc_deps(version, sha256):
-    carls_protoc_archive(name = "protobuf_protoc", version = version, sha256 = sha256)

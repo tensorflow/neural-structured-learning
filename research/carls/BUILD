@@ -52,14 +52,32 @@ cc_library(
 )
 
 carls_cc_proto_library(
+    name = "input_context_cc_proto",
+    srcs = ["input_context.proto"],
+)
+
+carls_py_proto_library(
+    name = "input_context_py_pb2",
+    srcs = ["input_context.proto"],
+    deps = [":input_context_cc_proto"],
+)
+
+carls_cc_proto_library(
     name = "embedding_cc_proto",
     srcs = ["embedding.proto"],
+    deps = [
+        ":input_context_cc_proto",
+        "@com_google_protobuf//:protobuf",
+    ],
 )
 
 carls_py_proto_library(
     name = "embedding_py_pb2",
     srcs = ["embedding.proto"],
-    deps = [":embedding_cc_proto"],
+    deps = [
+        ":embedding_cc_proto",
+        ":input_context_py_pb2",
+    ],
 )
 
 carls_cc_proto_library(
@@ -69,6 +87,7 @@ carls_cc_proto_library(
         "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
         "//research/carls/gradient_descent:gradient_descent_config_cc_proto",
         "//research/carls/knowledge_bank:knowledge_bank_config_cc_proto",
+        "//research/carls/memory_store:memory_store_config_cc_proto",
     ],
 )
 
@@ -80,6 +99,7 @@ carls_py_proto_library(
         "//research/carls/candidate_sampling:candidate_sampler_config_py_pb2",
         "//research/carls/gradient_descent:gradient_descent_config_py_pb2",
         "//research/carls/knowledge_bank:knowledge_bank_config_py_pb2",
+        "//research/carls/memory_store:memory_store_config_py_pb2",
     ],
 )
 
@@ -90,6 +110,7 @@ carls_cc_proto_library(
         ":dynamic_embedding_config_cc_proto",
         ":embedding_cc_proto",
         "//research/carls/candidate_sampling:candidate_sampler_config_cc_proto",
+        "//research/carls/memory_store:memory_store_config_cc_proto",
     ],
 )
 
@@ -157,6 +178,8 @@ cc_library(
         "//research/carls/gradient_descent:gradient_descent_optimizer",
         "//research/carls/knowledge_bank",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
+        "//research/carls/memory_store",
+        "//research/carls/memory_store:gaussian_memory",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/strings",
@@ -228,6 +251,7 @@ cc_library(
         ":knowledge_bank_grpc_service",
         "//research/carls/base:status_helper",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
+        "//research/carls/memory_store:gaussian_memory_config_cc_proto",
         "@com_github_grpc_grpc//:gpr_codegen",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",
@@ -262,7 +286,7 @@ py_library(
     deps = [
         ":context",
         ":dynamic_embedding_config_py_pb2",
-        "//research/carls/kernels:gen_dynamic_embedding_ops_py",
+        "//research/carls/kernels:gen_carls_ops_py",
         # package tensorflow
     ],
 )
@@ -282,6 +306,56 @@ py_test(
 )
 
 py_library(
+    name = "dynamic_memory_ops_py",
+    srcs = ["dynamic_memory_ops.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_config_py_pb2",
+        "//research/carls/kernels:gen_carls_ops_py",
+        # package tensorflow
+    ],
+)
+
+py_test(
+    name = "dynamic_memory_ops_test",
+    size = "small",
+    srcs = ["dynamic_memory_ops_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_memory_ops_py",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
+    name = "dynamic_normalization_py",
+    srcs = ["dynamic_normalization.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":dynamic_memory_ops_py",
+        # package tensorflow
+    ],
+)
+
+py_test(
+    name = "dynamic_normalization_test",
+    size = "small",
+    srcs = ["dynamic_normalization_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_normalization_py",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_library(
     name = "candidate_sampling_ops_py",
     srcs = ["candidate_sampling_ops.py"],
     srcs_version = "PY3",
@@ -289,9 +363,7 @@ py_library(
     deps = [
         ":context",
         ":dynamic_embedding_config_py_pb2",
-        "//research/carls/kernels:gen_dynamic_embedding_ops_py",
-        "//research/carls/kernels:gen_sampled_logits_ops_py",
-        "//research/carls/kernels:gen_topk_ops_py",
+        "//research/carls/kernels:gen_carls_ops_py",
     ],
 )
 
@@ -333,6 +405,34 @@ py_test(
         ":context",
         ":dynamic_embedding_neighbor_cache",
         "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/testing:parameterized",
+        # package tensorflow
+    ],
+)
+
+py_library(
+    name = "io_ops",
+    srcs = ["io_ops.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_config_py_pb2",
+        "//research/carls/kernels:gen_carls_ops_py",
+    ],
+)
+
+py_test(
+    name = "io_ops_test",
+    srcs = ["io_ops_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":context",
+        ":dynamic_embedding_ops_py",
+        ":io_ops",
+        "//research/carls/testing:test_util",
+        "@com_google_absl_py//absl/flags",
+        "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         # package tensorflow
     ],

@@ -27,22 +27,20 @@ limitations under the License.
 // If n is a constant, the total storage required is a constant and the running
 // time is linear in p.
 //
-// NOTE(zhifengc): There is a way to do this in O(min(n, p)) storage and O(p)
+// NOTE: There is a way to do this in O(min(n, p)) storage and O(p)
 // runtime. The basic idea is to repeatedly fill up a buffer of 2 * n elements,
 // discarding the lowest n elements whenever the buffer is full using a linear-
 // time median algorithm. This may have better performance when the input
 // sequence is partially sorted.
-//
-// NOTE(zhifengc): This class should be redesigned to avoid reallocating a
-// vector for each Extract.
 
-#ifndef TENSORFLOW_LIB_GTL_TOP_N_H_
-#define TENSORFLOW_LIB_GTL_TOP_N_H_
+#ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_TOP_N_H_
+#define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_TOP_N_H_
 
 #include <stddef.h>
 
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -58,7 +56,7 @@ namespace carls {
 // ascending order.
 //
 // TopN is rule-of-zero copyable and movable if its members are.
-template <class T, class Cmp = std::greater<T> >
+template <class T, class Cmp = std::greater<T>>
 class TopN {
  public:
   // The TopN is in one of the three states:
@@ -125,23 +123,20 @@ class TopN {
   // Peeks the bottom result without calling Extract()
   const T &peek_bottom();
 
-  // Extract the elements as a vector sorted in descending order.  The caller
-  // assumes ownership of the vector and must delete it when done.  This is a
+  // Extract the elements as a vector sorted in descending order. This is a
   // destructive operation.  The only method that can be called immediately
   // after Extract() is Reset().
-  std::vector<T> *Extract();
+  std::unique_ptr<std::vector<T>> Extract();
 
   // Similar to Extract(), but makes no guarantees the elements are in sorted
-  // order.  As with Extract(), the caller assumes ownership of the vector and
-  // must delete it when done.  This is a destructive operation.  The only
+  // order. This is a destructive operation.  The only
   // method that can be called immediately after ExtractUnsorted() is Reset().
-  std::vector<T> *ExtractUnsorted();
+  std::unique_ptr<std::vector<T>> ExtractUnsorted();
 
   // A non-destructive version of Extract(). Copy the elements in a new vector
-  // sorted in descending order and return it.  The caller assumes ownership of
-  // the new vector and must delete it when done.  After calling
+  // sorted in descending order and return it. After calling
   // ExtractNondestructive(), the caller can continue to push() new elements.
-  std::vector<T> *ExtractNondestructive() const;
+  std::vector<T> ExtractNondestructive() const;
 
   // A non-destructive version of Extract(). Copy the elements to a given
   // vector sorted in descending order. After calling
@@ -158,7 +153,7 @@ class TopN {
   // The caller assumes ownership of the new vector and must delete it when
   // done.  After calling ExtractUnsortedNondestructive(), the caller can
   // continue to push() new elements.
-  std::vector<T> *ExtractUnsortedNondestructive() const;
+  std::vector<T> ExtractUnsortedNondestructive() const;
 
   // A non-destructive version of ExtractUnsorted(). Copy the elements into
   // a given vector, with no guarantees the elements are in sorted order.
@@ -276,8 +271,8 @@ const T &TopN<T, Cmp>::peek_bottom() {
 }
 
 template <class T, class Cmp>
-std::vector<T> *TopN<T, Cmp>::Extract() {
-  auto out = new std::vector<T>;
+std::unique_ptr<std::vector<T>> TopN<T, Cmp>::Extract() {
+  std::unique_ptr<std::vector<T>> out(new std::vector<T>);
   out->swap(elements_);
   if (state_ != HEAP_SORTED) {
     std::sort(out->begin(), out->end(), cmp_);
@@ -289,8 +284,8 @@ std::vector<T> *TopN<T, Cmp>::Extract() {
 }
 
 template <class T, class Cmp>
-std::vector<T> *TopN<T, Cmp>::ExtractUnsorted() {
-  auto out = new std::vector<T>;
+std::unique_ptr<std::vector<T>> TopN<T, Cmp>::ExtractUnsorted() {
+  std::unique_ptr<std::vector<T>> out(new std::vector<T>);
   out->swap(elements_);
   if (state_ == HEAP_SORTED) {
     // Remove the limit_+1'th element.
@@ -300,15 +295,15 @@ std::vector<T> *TopN<T, Cmp>::ExtractUnsorted() {
 }
 
 template <class T, class Cmp>
-std::vector<T> *TopN<T, Cmp>::ExtractNondestructive() const {
-  auto out = new std::vector<T>;
-  ExtractNondestructive(out);
+std::vector<T> TopN<T, Cmp>::ExtractNondestructive() const {
+  std::vector<T> out;
+  ExtractNondestructive(&out);
   return out;
 }
 
 template <class T, class Cmp>
 void TopN<T, Cmp>::ExtractNondestructive(std::vector<T> *output) const {
-  CHECK(output);
+  CHECK(output != nullptr);
   *output = elements_;
   if (state_ != HEAP_SORTED) {
     std::sort(output->begin(), output->end(), cmp_);
@@ -319,15 +314,15 @@ void TopN<T, Cmp>::ExtractNondestructive(std::vector<T> *output) const {
 }
 
 template <class T, class Cmp>
-std::vector<T> *TopN<T, Cmp>::ExtractUnsortedNondestructive() const {
-  auto elements = new std::vector<T>;
-  ExtractUnsortedNondestructive(elements);
-  return elements;
+std::vector<T> TopN<T, Cmp>::ExtractUnsortedNondestructive() const {
+  std::vector<T> out;
+  ExtractUnsortedNondestructive(&out);
+  return out;
 }
 
 template <class T, class Cmp>
 void TopN<T, Cmp>::ExtractUnsortedNondestructive(std::vector<T> *output) const {
-  CHECK(output);
+  CHECK(output != nullptr);
   *output = elements_;
   if (state_ == HEAP_SORTED) {
     // Remove the limit_+1'th element.
@@ -343,4 +338,4 @@ void TopN<T, Cmp>::Reset() {
 
 }  // namespace carls
 
-#endif  // TENSORFLOW_LIB_GTL_TOP_N_H_
+#endif  // NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_TOP_N_H_

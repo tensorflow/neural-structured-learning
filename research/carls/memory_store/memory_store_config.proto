@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package carls.memory_store;
+
+import "google/protobuf/any.proto";
+import "research/carls/memory_store/gaussian_memory_config.proto";
+
+// Configuration for a MemoryStore.
+message MemoryStoreConfig {
+  // Implementation is encoded in extension.
+  google.protobuf.Any extension = 1000;
+}
+
+// Representation of the lookup result for a single input.
+message MemoryLookupResult {
+  // The closest gaussian cluster.
+  // Expect this to morph into a oneof field once new memory types are added.
+  GaussianCluster gaussian_cluster = 1;
+
+  // Distance to the cluster center.
+  float distance_to_cluster = 2;
+
+  // Index of the cluster in the memory.
+  int32 cluster_index = 3;
+}

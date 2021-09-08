@@ -37,6 +37,35 @@ using ::tensorflow::Tensor;
 using ::tensorflow::TensorShape;
 using ::tensorflow::errors::FailedPrecondition;
 using ::tensorflow::errors::InvalidArgument;
+using ::tensorflow::shape_inference::DimensionHandle;
+using ::tensorflow::shape_inference::DimensionOrConstant;
+using ::tensorflow::shape_inference::InferenceContext;
+using ::tensorflow::shape_inference::ShapeHandle;
+
+// Sets the last dimension of the input to be embedding_dimension.
+Status SetInputShape(InferenceContext* c) {
+  int embedding_dimension;
+  TF_RETURN_IF_ERROR(c->GetAttr("embedding_dimension", &embedding_dimension));
+  DynamicEmbeddingConfig config;
+  ShapeHandle input_shape = c->input(0);
+  auto rank = c->Rank(input_shape);
+  if (rank > 0) {
+    std::vector<DimensionHandle> dims;
+    dims.reserve(rank);
+    for (int i = 0; i < rank; ++i) {
+      dims.push_back(c->Dim(input_shape, i));
+    }
+    dims.push_back(c->MakeDim(DimensionOrConstant(embedding_dimension)));
+    c->set_output(0, c->MakeShape(dims));
+  } else {
+    // Otherwise (rank == 0), assume input shape is 1D.
+    ShapeHandle output_shape =
+        c->Matrix(InferenceContext::kUnknownDim,
+                  DimensionOrConstant(embedding_dimension));
+    c->set_output(0, output_shape);
+  }
+  return Status::OK();
+}
 
 }  // namespace
 
@@ -45,6 +74,8 @@ REGISTER_OP("DynamicEmbeddingLookup")
     .Input("grad_placeholder: float")
     .Input("handle: resource")
     .Output("values: float")
+    .Attr("embedding_dimension: int")
+    .SetShapeFn([](InferenceContext* c) { return SetInputShape(c); })
     .Doc(R"doc(
 An operation that returns the embedding of a given set of keys.
 
@@ -63,6 +94,8 @@ REGISTER_OP("DynamicEmbeddingUpdate")
     .Input("values: float")
     .Input("handle: resource")
     .Output("results: float")
+    .Attr("embedding_dimension: int")
+    .SetShapeFn([](InferenceContext* c) { return SetInputShape(c); })
     .Doc(R"doc(
 An operation that updates the embeddings of a given set of keys in the dynamic
 embedding service.

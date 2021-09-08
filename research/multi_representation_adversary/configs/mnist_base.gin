@@ -1,0 +1,43 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Common configs for experiments on MNIST.
+
+data.get_training_dataset.dataset = "mnist"
+data.get_validation_dataset.dataset = "mnist"
+data.get_test_dataset.dataset = "mnist"
+data.preprocess_image.width = 28
+data.preprocess_image.height = 28
+data.preprocess_image.num_channels = 1
+
+resnet.build_resnet_v1.input_shape = (28, 28, 1)
+resnet.build_resnet_v1.depth = 50
+resnet.build_resnet_v1.num_classes = 10
+resnet.build_resnet_v1.num_filters = 16
+resnet.build_resnet_v1.l2_reg_weight = 1e-4
+resnet.build_resnet_v1.return_logits = True
+
+trainer.train.epochs = 60
+trainer.train.steps_per_epoch = 486
+trainer.train.global_batch_size = 100
+# Lower learning rate by 1/10 at 50% and 75% of training
+trainer.learning_rate_scheduler.values = [0.001, 0.0001, 0.00001]
+trainer.learning_rate_scheduler.breakpoints = [30, 45]  # epochs
+
+selectors.construct_representation_selector.sample_freq = 1  # steps
+selectors.construct_representation_selector.update_freq = 3  # epochs
+
+evaluator.evaluate.epochs = 60
+evaluator.evaluate.batch_size = 100
+evaluator.evaluate.aggregation_interval = 3  # epochs, same as update_freq

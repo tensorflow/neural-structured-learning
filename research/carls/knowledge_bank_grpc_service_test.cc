@@ -68,6 +68,7 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, StartSession_EmptyConfig) {
   StartSessionRequest request;
   StartSessionResponse response;
   request.set_name("an embedding");
+  request.mutable_config()->mutable_knowledge_bank_config();
   auto status = kbs_server_.StartSession(&context_, &request, &response);
   EXPECT_EQ("Creating KnowledgeBank failed.", status.error_message());
 }
@@ -549,6 +550,204 @@ TEST_F(KnowledgeBankGrpcServiceImplTest, Sample_LogUniformSample) {
                   }
                 }
               )pb"));
+}
+
+TEST_F(KnowledgeBankGrpcServiceImplTest, MemoryLookup) {
+  // Starts a valid session.
+  StartSessionRequest start_request;
+  StartSessionResponse start_response;
+  start_request.set_name("dynamic_memory");
+
+  *de_config_.mutable_memory_store_config() =
+      ParseTextProtoOrDie<memory_store::MemoryStoreConfig>(R"pb(
+        extension {
+          [type.googleapis.com/carls.memory_store.GaussianMemoryConfig] {
+            per_cluster_buffer_size: 2
+            distance_to_cluster_threshold: 0.9
+            max_num_clusters: 2
+            bootstrap_steps: 0
+            min_variance: 1
+            distance_type: CWISE_MEAN_GAUSSIAN
+          }
+        }
+      )pb");
+
+  *start_request.mutable_config() = de_config_;
+  ASSERT_OK(
+      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(!start_response.session_handle().empty());
+  const auto& session_handle = start_response.session_handle();
+
+  MemoryLookupRequest request;
+  {  // Empty session handle.
+    MemoryLookupResponse response;
+    auto status = kbs_server_.MemoryLookup(&context_, &request, &response);
+    EXPECT_EQ("session_handle is empty.", status.error_message());
+  }
+  request.set_session_handle(session_handle);
+
+  {  // Empty input.
+    MemoryLookupResponse response;
+    auto status = kbs_server_.MemoryLookup(&context_, &request, &response);
+    EXPECT_EQ("input is empty.", status.error_message());
+  }
+  *request.add_input() = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    value: 1
+    value: 2
+  )pb");
+
+  {  // Missing lookup mode.
+    MemoryLookupResponse response;
+    auto status = kbs_server_.MemoryLookup(&context_, &request, &response);
+    EXPECT_EQ("Unknown lookup mode.", status.error_message());
+  }
+
+  request.set_mode(MemoryLookupRequest::LOOKUP_WITH_UPDATE);
+  {  // Single input.
+    MemoryLookupResponse response;
+    ASSERT_OK(kbs_server_.MemoryLookup(&context_, &request, &response));
+    EXPECT_THAT(response, EqualsProto<MemoryLookupResponse>(R"pb(
+                  memory_lookup_result {
+                    gaussian_cluster {
+                      mean { value: 1 value: 2 }
+                      variance { value: 1 value: 1 }
+                    }
+                    distance_to_cluster: 1
+                    cluster_index: 0
+                  }
+                )pb"));
+  }
+
+  {  // Multiple input.
+    request.clear_input();
+    *request.add_input() = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+      value: 5
+      value: 2
+    )pb");
+    *request.add_input() = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+      value: 3
+      value: 4
+    )pb");
+    MemoryLookupResponse response;
+    ASSERT_OK(kbs_server_.MemoryLookup(&context_, &request, &response));
+    // Because buffer_size = 2, the old data would be preempted and new center
+    // becomes [4, 3] with equal distance to both points.
+    EXPECT_THAT(response, EqualsProto<MemoryLookupResponse>(R"pb(
+                  memory_lookup_result {
+                    gaussian_cluster {
+                      mean { value: 4 value: 3 }
+                      variance { value: 1 value: 1 }
+                    }
+                    distance_to_cluster: 0.60653067
+                    cluster_index: 0
+                  }
+                  memory_lookup_result {
+                    gaussian_cluster {
+                      mean { value: 4 value: 3 }
+                      variance { value: 1 value: 1 }
+                    }
+                    distance_to_cluster: 0.60653067
+                    cluster_index: 0
+                  }
+                )pb"));
+  }
+}
+
+TEST_F(KnowledgeBankGrpcServiceImplTest, ExportAndImport_DynamicMemory) {
+  // Starts a valid session.
+  StartSessionRequest start_request;
+  StartSessionResponse start_response;
+  start_request.set_name("dynamic_memory");
+
+  *de_config_.mutable_memory_store_config() =
+      ParseTextProtoOrDie<memory_store::MemoryStoreConfig>(R"pb(
+        extension {
+          [type.googleapis.com/carls.memory_store.GaussianMemoryConfig] {
+            per_cluster_buffer_size: 2
+            distance_to_cluster_threshold: 0.9
+            max_num_clusters: 2
+            bootstrap_steps: 0
+            min_variance: 1
+            distance_type: CWISE_MEAN_GAUSSIAN
+          }
+        }
+      )pb");
+  de_config_.clear_knowledge_bank_config();
+
+  *start_request.mutable_config() = de_config_;
+  ASSERT_OK(
+      kbs_server_.StartSession(&context_, &start_request, &start_response));
+  ASSERT_TRUE(!start_response.session_handle().empty());
+  const auto& session_handle = start_response.session_handle();
+
+  MemoryLookupRequest request;
+  MemoryLookupResponse response;
+
+  request.set_session_handle(session_handle);
+  *request.add_input() = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+    value: 1
+    value: 2
+  )pb");
+  request.set_mode(MemoryLookupRequest::LOOKUP_WITH_UPDATE);
+
+  request.set_session_handle(session_handle);
+  ASSERT_OK(kbs_server_.MemoryLookup(&context_, &request, &response));
+  EXPECT_THAT(response, EqualsProto<MemoryLookupResponse>(R"pb(
+                memory_lookup_result {
+                  gaussian_cluster {
+                    mean { value: 1 value: 2 }
+                    variance { value: 1 value: 1 }
+                  }
+                  distance_to_cluster: 1
+                  cluster_index: 0
+                }
+              )pb"));
+
+  ExportRequest export_request;
+  ExportResponse export_response;
+  export_request.set_session_handle(session_handle);
+  export_request.set_export_directory(testing::TempDir());
+  ASSERT_OK(kbs_server_.Export(&context_, &export_request, &export_response));
+  auto dirname = Dirname(export_response.memory_store_saved_path());
+  EXPECT_TRUE(absl::EndsWith(dirname, "dynamic_memory"));
+
+  // Import
+  {
+    KnowledgeBankGrpcServiceImpl new_kbs_server_;
+    ASSERT_OK(new_kbs_server_.StartSession(&context_, &start_request,
+                                           &start_response));
+    // Imports the gaussian clusters.
+    ImportRequest import_request;
+    ImportResponse import_response;
+    import_request.set_session_handle(session_handle);
+    import_request.set_memory_store_saved_path(
+        export_response.memory_store_saved_path());
+    ASSERT_OK(
+        new_kbs_server_.Import(&context_, &import_request, &import_response));
+
+    MemoryLookupRequest new_request;
+    MemoryLookupResponse new_response;
+    new_request.set_session_handle(session_handle);
+    *new_request.add_input() = ParseTextProtoOrDie<EmbeddingVectorProto>(R"pb(
+      value: 2
+      value: 1
+    )pb");
+    new_request.set_mode(MemoryLookupRequest::LOOKUP_WITH_UPDATE);
+
+    // Returns the mean and variance of [1, 2] and [2, 1].
+    ASSERT_OK(
+        new_kbs_server_.MemoryLookup(&context_, &new_request, &new_response));
+    EXPECT_THAT(new_response, EqualsProto<MemoryLookupResponse>(R"pb(
+                  memory_lookup_result {
+                    gaussian_cluster {
+                      mean { value: 1.5 value: 1.5 }
+                      variance { value: 1 value: 1 }
+                    }
+                    distance_to_cluster: 0.8824969
+                    cluster_index: 0
+                  }
+                )pb"));
+  }
 }
 
 TEST_F(KnowledgeBankGrpcServiceImplTest, ExportAndImport) {

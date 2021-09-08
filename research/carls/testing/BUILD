@@ -75,6 +75,7 @@ py_library(
     deps = [
         "//research/carls:dynamic_embedding_config_py_pb2",
         "//research/carls:kbs_server_helper_pybind",
+        "//research/carls/memory_store:gaussian_memory_config_py_pb2",
         "@com_google_absl_py//absl/flags",
         "@com_google_protobuf//:protobuf_python",
     ],

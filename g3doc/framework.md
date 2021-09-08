@@ -75,9 +75,9 @@ NSL brings the following advantages:
 
 ## Step-by-step Tutorials
 
-To obtain hands-on experience with Neural Structured Learning, we have three
-tutorials that cover various scenarios where structured signals may be
-explicitly given, induced or constructed:
+To obtain hands-on experience with Neural Structured Learning, we have tutorials
+that cover various scenarios where structured signals may be explicitly given,
+constructed, or induced. Here are a few:
 
 *   [Graph regularization for document classification using natural graphs](tutorials/graph_keras_mlp_cora.ipynb).
     In this tutorial, we explore the use of graph regularization to classify
@@ -91,3 +91,7 @@ explicitly given, induced or constructed:
     In this tutorial, we explore the use of adversarial learning (where
     structured signals are induced) to classify images containing numeric
     digits.
+
+More examples and tutorials can be found in the
+[examples](https://github.com/tensorflow/neural-structured-learning/tree/master/neural_structured_learning/examples)
+directory of our GitHub repository.

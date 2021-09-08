@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package carls.memory_store;
+
+import "research/carls/embedding.proto";
+import "research/carls/memory_store/memory_distance_config.proto";
+
+// Config for a Gaussian Memory.
+message GaussianMemoryConfig {
+  // Maximal number of data points for each cluster to keep in its buffer.
+  // Required: must > 0. Usually set this number to be at least mini-batch size.
+  int32 per_cluster_buffer_size = 1;
+
+  // A positive value for deciding if a new cluster should be created during
+  // training.
+  // For example, if the distance is measured by CWISE_MEAN_GAUSSIAN, a point
+  // that is smaller than the given threshold should fork a new cluster;
+  // If the distance is measured by SQUARED_L2 distance to the cluster center, a
+  // point that is larger than the given threshold should fork a new cluster,
+  // etc.
+  float distance_to_cluster_threshold = 2;
+
+  // Optional, maximal allowed number of clusters.
+  // If specified, must > 0.
+  int32 max_num_clusters = 3;
+
+  // Number of update steps that must be ran before memory growth can happen.
+  int32 bootstrap_steps = 4;
+
+  // The minimal variance as a prior for each dimension.
+  // Required: must > 0.
+  float min_variance = 5;
+
+  // Distance type for closest gaussian cluster lookup.
+  MemoryDistanceConfig.DistanceType distance_type = 6;
+}
+
+// A cluster of the data represented by its (mean, variance).
+message GaussianCluster {
+  // Center/Average of the cluster.
+  EmbeddingVectorProto mean = 1;
+
+  // Element-wise variance of the cluster.
+  EmbeddingVectorProto variance = 2;
+}
+
+// MetaData for restoring the state of a GaussianMemory.
+message GaussianMemoryCheckpointMetaData {
+  // ClusterData corresponds to in-memory
+  message ClusterData {
+    // Mean and variance of the Gaussian cluster.
+    GaussianCluster gaussian_cluster = 1;
+
+    // Sampled activation instances stored in the memory.
+    repeated EmbeddingVectorProto activation_instance = 2;
+  }
+
+  // ClusterData for different clusters.
+  repeated ClusterData cluster_data = 1;
+}

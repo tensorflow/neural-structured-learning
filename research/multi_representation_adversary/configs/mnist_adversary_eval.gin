@@ -1,0 +1,31 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Attack hyperparameters for evaluation on MNIST.
+
+attacks.linf_config.num_iter = 40
+attacks.linf_config.epsilon = 0.2
+attacks.linf_config.step_size = 0.0125  # 2.5 * epsilon / num_iter
+
+attacks.l2_config.num_iter = 40
+attacks.l2_config.epsilon = 2
+attacks.l2_config.step_size = 0.125  # 2.5 * epsilon / num_iter
+
+attacks.l1_config.num_iter = 100
+attacks.l1_config.epsilon = 10
+attacks.l1_config.step_size = 0.25  # 2.5 * epsilon / num_iter
+attacks.l1_config.percentile = 99
+attacks.l1_config.num_classes = 10
+
+attacks.union_config.restart = 20

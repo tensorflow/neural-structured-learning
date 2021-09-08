@@ -67,7 +67,9 @@ class BruteForceTopkSampler : public CandidateSampler {
  private:
   absl::Status SampleInternal(
       const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-      int num_samples, std::vector<SampledResult>* results) const override;
+      int num_samples,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results)
+      const override;
 
   const BruteForceTopkSamplerConfig topk_config_;
 };
@@ -88,7 +90,8 @@ REGISTER_SAMPLER_FACTORY(BruteForceTopkSamplerConfig,
 
 absl::Status BruteForceTopkSampler::SampleInternal(
     const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-    int num_samples, std::vector<SampledResult>* results) const {
+    int num_samples,
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   if (!sample_context.has_activation()) {
     return absl::InvalidArgumentError("No activation from sample_context.");
   }
@@ -146,7 +149,7 @@ absl::Status BruteForceTopkSampler::SampleInternal(
     result->set_key(std::string(candidate_info.key));
     result->set_similarity(candidate_info.similarity);
     *(result->mutable_embedding()) = std::move(candidate_info.embed);
-    results->push_back(std::move(sampled_result));
+    results->push_back({candidate_info.key, std::move(sampled_result)});
   }
   return absl::OkStatus();
 }

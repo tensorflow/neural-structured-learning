@@ -24,6 +24,7 @@ limitations under the License.
 #include "research/carls/gradient_descent/gradient_descent_optimizer.h"
 #include "research/carls/knowledge_bank/knowledge_bank.h"
 #include "research/carls/knowledge_bank_service.grpc.pb.h"
+#include "research/carls/memory_store/memory_store.h"
 
 namespace carls {
 
@@ -59,6 +60,11 @@ class KnowledgeBankGrpcServiceImpl final
                       const SampleRequest* request,
                       SampleResponse* response) override;
 
+  // Implements the MemoryLookup method of KnowledgeBankService.
+  grpc::Status MemoryLookup(grpc::ServerContext* context,
+                            const MemoryLookupRequest* request,
+                            MemoryLookupResponse* response) override;
+
   // Implements the Export method of KnowledgeBankService.
   grpc::Status Export(grpc::ServerContext* context,
                       const ExportRequest* request,
@@ -74,7 +80,8 @@ class KnowledgeBankGrpcServiceImpl final
 
  private:
   grpc::Status StartSessionIfNecessary(const std::string& session_handle,
-                                       bool require_candidate_sampler);
+                                       bool require_candidate_sampler,
+                                       bool require_memory_store);
 
   // Protects maps lookup and update.
   absl::Mutex map_mu_;
@@ -88,6 +95,9 @@ class KnowledgeBankGrpcServiceImpl final
   absl::node_hash_map<std::string,
                       std::unique_ptr<candidate_sampling::CandidateSampler>>
       cs_map_;
+  // Maps from session_handle to MemoryStore.
+  absl::node_hash_map<std::string, std::unique_ptr<memory_store::MemoryStore>>
+      ms_map_;
 };
 
 }  // namespace carls

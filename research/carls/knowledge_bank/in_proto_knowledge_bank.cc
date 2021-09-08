@@ -62,7 +62,7 @@ class InProtoKnowledgeBank : public KnowledgeBank {
   std::vector<absl::string_view> Keys() const override;
 
   // Implementation of the Contains interface.
-  bool Contains(absl::string_view key) const {
+  bool Contains(absl::string_view key) const override {
     absl::ReaderMutexLock l(&mu_);
     return in_proto_config_.embedding_data().embedding_table().contains(
         std::string(key));

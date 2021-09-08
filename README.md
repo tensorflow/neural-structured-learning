@@ -71,38 +71,39 @@ learning with structured signals.
    target="_blank"><img src="http://img.youtube.com/vi/Js2WJkhdU7k/0.jpg"
                         alt="Adversarial Learning" width="180" border="2" /></a>
 
-We've also created the following hands-on colab-based tutorials that will allow
-you to interactively explore NSL:
+We've also created hands-on colab-based tutorials that will allow you to
+interactively explore NSL. Here are a few:
 
 *   [training with natural graphs](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_mlp_cora.ipynb)
 *   [training with synthesized graphs](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/graph_keras_lstm_imdb.ipynb)
 *   [adversarial learning](https://github.com/tensorflow/neural-structured-learning/blob/master/g3doc/tutorials/adversarial_keras_cnn_mnist.ipynb)
+
+You can find more examples and tutorials under the
+[examples](neural_structured_learning/examples) directory.
 
 ## Contributing to NSL
 
 Contributions are welcome and highly appreciated - there are several ways to
 contribute to TF Neural Structured Learning:
 
-*   Case studies. If you are interested in applying NSL, consider wrapping up
+*   Case studies: If you are interested in applying NSL, consider wrapping up
     your usage as a tutorial, a new dataset, or an example model that others
-    could use for experiments and/or development.
+    could use for experiments and/or development. The [examples](examples)
+    directory could be a good destination for such contributions.
 
-*   Product excellence. If you are interested in improving NSL's product
+*   Product excellence: If you are interested in improving NSL's product
     excellence and developer experience, the best way is to clone this repo,
     make changes directly on the implementation in your local repo, and then
     send us pull request to integrate your changes.
 
-*   New algorithms. If you are interested in developing new algorithms for NSL,
+*   New algorithms: If you are interested in developing new algorithms for NSL,
     the best way is to study the implementations of NSL libraries, and to think
     of extensions to the existing implementation (or alternative approaches). If
     you have a proposal for a new algorithm, we recommend starting by staging
-    your project in the `research` directory and including a colab notebook to
-    showcase the new features.
-
-    If you develop new algorithms in your own repository, we are happy to
-    feature pointers to academic publications and/or repositories that use NSL,
-    on
-    [tensorflow.org/neural_structured_learning](http://www.tensorflow.org/neural_structured_learning).
+    your project in the [research](research) directory and including a colab
+    notebook to showcase the new features. If you develop new algorithms in your
+    own repository, we would be happy to feature pointers to academic
+    publications and/or repositories using NSL from this repository.
 
 Please be sure to review the [contribution guidelines](CONTRIBUTING.md).
 
@@ -127,6 +128,11 @@ to file issues, bugs, and feature requests. For questions, please direct them to
 please fill this
 [form](https://docs.google.com/forms/d/1AQEcPSgmwWBJj3H2haEytF4C_fr1aotWaHjCEXpPm2A);
 we would love to hear from you.
+
+## Featured Usage
+
+Please see the [usage page](usage.md) to learn more about how NSL is being
+discussed and used in the open source community.
 
 ## Release Notes
 

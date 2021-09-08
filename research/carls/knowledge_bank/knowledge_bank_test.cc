@@ -82,9 +82,9 @@ class FakeEmbedding : public KnowledgeBank {
 
   size_t Size() const override { return data_table_.embedding_table_size(); }
 
-  std::vector<absl::string_view> Keys() const { return keys_; }
+  std::vector<absl::string_view> Keys() const override { return keys_; }
 
-  bool Contains(absl::string_view key) const {
+  bool Contains(absl::string_view key) const override {
     return data_table_.embedding_table().contains(std::string(key));
   }
 

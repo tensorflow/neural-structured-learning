@@ -55,13 +55,15 @@ def carls_cc_proto_library(name, srcs = [], deps = [], **kwargs):
         srcs = srcs,
         outs = gen_srcs + gen_hdrs,
         tools = dep_srcs + [
-            "@protobuf_protoc//:protoc_bin",
+            "@com_google_protobuf//:well_known_protos",
+            "@com_google_protobuf//:protoc",
             "@tensorflow_includes//:protos",
         ],
         cmd = """
         OUTDIR=$$(echo $(RULEDIR) | sed -e 's#research/carls.*##')
-        $(location @protobuf_protoc//:protoc_bin) \
+        $(location @com_google_protobuf//:protoc) \
           --proto_path=external/tensorflow_includes/tensorflow_includes/ \
+          --proto_path=external/com_google_protobuf/src/ \
           --proto_path=. \
           --cpp_out=$$OUTDIR {}""".format(
             " ".join(src_paths),
@@ -130,13 +132,15 @@ def carls_py_proto_library(name, srcs = [], deps = [], **kwargs):
         srcs = srcs,
         outs = gen_srcs,
         tools = proto_deps + [
-            "@protobuf_protoc//:protoc_bin",
+            "@com_google_protobuf//:well_known_protos",
+            "@com_google_protobuf//:protoc",
             "@tensorflow_includes//:protos",
         ],
         cmd = """
         OUTDIR=$$(echo $(RULEDIR) | sed -e 's#research/carls.*##')
-        $(location @protobuf_protoc//:protoc_bin) \
+        $(location @com_google_protobuf//:protoc) \
           --proto_path=external/tensorflow_includes/tensorflow_includes/ \
+          --proto_path=external/com_google_protobuf/src/ \
           --proto_path=. \
           --python_out=$$OUTDIR {}""".format(
             " ".join(src_paths),
@@ -192,15 +196,17 @@ def carls_cc_grpc_library(
         srcs = srcs,
         outs = gen_srcs + gen_hdrs + gen_mocks,
         tools = proto_src_deps + [
-            "@protobuf_protoc//:protoc_bin",
+            "@com_google_protobuf//:well_known_protos",
+            "@com_google_protobuf//:protoc",
             "@tensorflow_includes//:protos",
             "@com_github_grpc_grpc//src/compiler:grpc_cpp_plugin",
         ],
         cmd = """
         OUTDIR=$$(echo $(RULEDIR) | sed -e 's#research/carls.*##')
-        $(location @protobuf_protoc//:protoc_bin) \
+        $(location @com_google_protobuf//:protoc) \
           --plugin=protoc-gen-grpc=$(location @com_github_grpc_grpc//src/compiler:grpc_cpp_plugin) \
           --proto_path=external/tensorflow_includes/tensorflow_includes/ \
+          --proto_path=external/com_google_protobuf/src/ \
           --proto_path=. \
           --grpc_out={} {}""".format(
             "generate_mock_code=true:$$OUTDIR" if generate_mocks else "$$OUTDIR",

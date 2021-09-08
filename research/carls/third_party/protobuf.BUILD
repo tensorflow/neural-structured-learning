@@ -1,5 +1,5 @@
 _CHECK_VERSION = """
-PROTOC_VERSION=$$($(location @protobuf_protoc//:protoc_bin) --version \
+PROTOC_VERSION=$$($(location @com_google_protobuf//:protoc) --version \
   | cut -d' ' -f2 | sed -e 's/\\./ /g')
 PROTOC_VERSION=$$(printf '%d%03d%03d' $${PROTOC_VERSION})
 TF_PROTO_VERSION=$$(grep '#define PROTOBUF_MIN_PROTOC_VERSION' \
@@ -22,7 +22,7 @@ genrule(
     srcs = [
         "tf_includes/google/protobuf/port_def.inc",
     ],
-    tools = ["@protobuf_protoc//:protoc_bin"],
+    tools = ["@com_google_protobuf//:protoc"],
     cmd = _CHECK_VERSION,
 )
 

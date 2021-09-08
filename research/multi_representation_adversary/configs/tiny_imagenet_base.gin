@@ -1,0 +1,43 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Common configs for experiments on Tiny-ImageNet.
+
+data.get_training_dataset.dataset = "tiny_imagenet"
+data.get_validation_dataset.dataset = "tiny_imagenet"
+data.get_test_dataset.dataset = "tiny_imagenet"
+data.preprocess_image.width = 64
+data.preprocess_image.height = 64
+data.preprocess_image.num_channels = 3
+
+resnet.build_resnet_v1.input_shape = (64, 64, 3)
+resnet.build_resnet_v1.depth = 50
+resnet.build_resnet_v1.num_classes = 200
+resnet.build_resnet_v1.num_filters = 64
+resnet.build_resnet_v1.l2_reg_weight = 1e-4
+resnet.build_resnet_v1.return_logits = True
+
+trainer.train.epochs = 90
+trainer.train.steps_per_epoch = 351  # 100K * 0.9 / 256
+trainer.train.global_batch_size = 256
+# Lower learning rate by 1/10 at 33% and 67% of training
+trainer.learning_rate_scheduler.values = [0.01, 0.001, 0.0001]
+trainer.learning_rate_scheduler.breakpoints = [30, 60]  # epochs
+
+selectors.construct_representation_selector.sample_freq = 1  # steps
+selectors.construct_representation_selector.update_freq = 3  # epochs
+
+evaluator.evaluate.epochs = 90
+evaluator.evaluate.batch_size = 64
+evaluator.evaluate.aggregation_interval = 3  # epochs, same as update_freq

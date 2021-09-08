@@ -17,11 +17,11 @@ limitations under the License.
 
 #include <thread>  // NOLINT
 
-#include "grpcpp/create_channel.h"  // net
 // Placeholder for internal channel credential  // net
-#include "grpcpp/security/credentials.h"  // net
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "grpcpp/create_channel.h"  // third_party
+#include "grpcpp/security/credentials.h"  // third_party
 
 namespace carls {
 

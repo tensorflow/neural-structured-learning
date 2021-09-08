@@ -18,6 +18,7 @@ limitations under the License.
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 
 namespace carls {
 namespace candidate_sampling {
@@ -30,7 +31,9 @@ class FakeSampler : public CandidateSampler {
 
   absl::Status SampleInternal(
       const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-      int num_samples, std::vector<SampledResult>* results) const override {
+      int num_samples,
+      std::vector<std::pair<absl::string_view, SampledResult>>* results)
+      const override {
     return absl::OkStatus();
   }
 

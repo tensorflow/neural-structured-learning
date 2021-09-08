@@ -107,6 +107,30 @@ absl::Status IsDirectory(const std::string& path) {
   return ToAbslStatus(env->IsDirectory(path));
 }
 
+absl::string_view Dirname(absl::string_view path) {
+  return SplitPath(path).first;
+}
+
+absl::string_view Basename(absl::string_view path) {
+  return SplitPath(path).second;
+}
+
+std::pair<absl::string_view, absl::string_view> SplitPath(
+    absl::string_view path) {
+  auto pos = path.find_last_of('/');
+
+  // Handle the case with no '/' in 'path'.
+  if (pos == absl::string_view::npos)
+    return std::make_pair(path.substr(0, 0), path);
+
+  // Handle the case with a single leading '/' in 'path'.
+  if (pos == 0)
+    return std::make_pair(path.substr(0, 1), absl::ClippedSubstr(path, 1));
+
+  return std::make_pair(path.substr(0, pos),
+                        absl::ClippedSubstr(path, pos + 1));
+}
+
 absl::Status RecursivelyCreateDir(const std::string& dirname) {
   tensorflow::Env* env = tensorflow::Env::Default();
   return ToAbslStatus(env->RecursivelyCreateDir(dirname));

@@ -27,7 +27,8 @@ CandidateSampler::~CandidateSampler() {}
 
 absl::Status CandidateSampler::Sample(
     const KnowledgeBank& knowledge_bank, const SampleContext& sample_context,
-    int num_samples, std::vector<SampledResult>* results) const {
+    int num_samples,
+    std::vector<std::pair<absl::string_view, SampledResult>>* results) const {
   if (results == nullptr) {
     return absl::InvalidArgumentError("Null input.");
   }
