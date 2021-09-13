@@ -118,6 +118,11 @@ Structured Learning:
 *   [Neural Clustering Processes](research/neural_clustering)
 *   [CARLS: Cross-platform Asynchronous Representation Learning System](research/carls)
 
+## Featured Usage
+
+Please see the [usage page](usage.md) to learn more about how NSL is being
+discussed and used in the open source community.
+
 ## Issues, Questions, and Feedback
 
 Please use
@@ -128,11 +133,6 @@ to file issues, bugs, and feature requests. For questions, please direct them to
 please fill this
 [form](https://docs.google.com/forms/d/1AQEcPSgmwWBJj3H2haEytF4C_fr1aotWaHjCEXpPm2A);
 we would love to hear from you.
-
-## Featured Usage
-
-Please see the [usage page](usage.md) to learn more about how NSL is being
-discussed and used in the open source community.
 
 ## Release Notes
 
