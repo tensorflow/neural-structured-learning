@@ -117,6 +117,7 @@ Structured Learning:
 *   [GAM: Graph Agreement Models for Semi-Supervised Learning](research/gam)
 *   [Neural Clustering Processes](research/neural_clustering)
 *   [CARLS: Cross-platform Asynchronous Representation Learning System](research/carls)
+*   [Denoised Smoothing: A Provable Defense for Pretrained Classifiers](research/third_party/denoised_smoothing)
 
 ## Featured Usage
 
