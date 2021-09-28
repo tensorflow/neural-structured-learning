@@ -48,9 +48,10 @@ Processes." ICML 2020](https://arxiv.org/abs/1901.00409)
 ## [Denoised Smoothing: A Provable Defense for Pretrained Classifiers](third_party/denoised_smoothing)
 
 The implementations of Denoised Smoothing [5] are provided in the
-`third_party/denoised_smoothing` folder on a strict "as is" basis, without warranties or
-conditions of any kind. Also, these implementations may not be compatible with
-certain TensorFlow versions or Python versions.
+`third_party/denoised_smoothing` folder on a strict "as is" basis, without
+warranties or conditions of any kind. Also, these implementations may not be
+compatible with certain TensorFlow versions or Python versions.
 
-[[5] H. Salman, M.Sun, C. Mitelut, G. Yang, A. Kapoor., Z. Kolter "Denoised Smoothing:
-A Provable Defense for Pretrained Classifiers." NeurIPS 2020](https://arxiv.org/abs/2003.01908)
+[[5] H. Salman, M.Sun, C. Mitelut, G. Yang, A. Kapoor., Z. Kolter "Denoised
+Smoothing: A Provable Defense for Pretrained Classifiers." NeurIPS
+2020](https://arxiv.org/abs/2003.01908)
