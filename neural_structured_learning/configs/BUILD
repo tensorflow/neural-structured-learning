@@ -31,7 +31,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         # package attr
-        # package enum
         # package tensorflow
     ],
 )

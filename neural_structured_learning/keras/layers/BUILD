@@ -84,7 +84,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         # package attr
-        # package enum
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib:distances",
         "//neural_structured_learning/lib:utils",
