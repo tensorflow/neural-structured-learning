@@ -356,6 +356,7 @@ TEST_F(LeveldbKnowledgeBankTest, ExportAndImport) {
   EXPECT_NOT_OK(knowledge_bank->Import("fake DB"));
 }
 
+// This test is known to be flaky.
 TEST_F(LeveldbKnowledgeBankTest, AsyncLookupWithUpdate) {
   auto knowledge_bank = CreateKnowledgeBank(
       /*embedding_dimension=*/2,
