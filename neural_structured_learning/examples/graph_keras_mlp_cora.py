@@ -125,7 +125,6 @@ def make_dataset(file_path, training, include_nbr_features, hparams):
         nbr_feature_key = '{}{}_{}'.format(NBR_FEATURE_PREFIX, i, 'words')
         nbr_weight_key = '{}{}{}'.format(NBR_FEATURE_PREFIX, i,
                                          NBR_WEIGHT_SUFFIX)
-        nbr_id_key = '{}{}_{}'.format(NBR_FEATURE_PREFIX, i, 'id')
         feature_spec[nbr_feature_key] = tf.io.FixedLenFeature(
             [hparams.max_seq_length],
             tf.int64,
@@ -133,8 +132,6 @@ def make_dataset(file_path, training, include_nbr_features, hparams):
                 0, dtype=tf.int64, shape=[hparams.max_seq_length]))
         feature_spec[nbr_weight_key] = tf.io.FixedLenFeature(
             [1], tf.float32, default_value=tf.constant([0.0]))
-        feature_spec[nbr_id_key] = tf.io.FixedLenFeature(
-            (), tf.string, default_value='')
 
     features = tf.io.parse_single_example(example_proto, feature_spec)
 
