@@ -40,6 +40,20 @@ More details can be found in our
 [slides](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or
 [poster](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
 
+## Updated Results
+A bug was discovered in the implementation of the GAM agreement regularization term after publication. We have fixed the bug (PR #82) and have rerun the affected experiments. Below are the updated results (note that the GAM* results are not affected). 
+
+Dataset  | Method      | Updated Accuracy (mean ± stderr)
+-------- | :---------: | :-------------: 
+Cora     | MLP + GAM   | 80.2 ± 0.31 
+&nbsp;   | GCN + GAM   | 84.8 ± 0.06 
+Citeseer | MLP + GAM   | 73.2 ± 0.06
+&nbsp;   | GCN + GAM   | 72.2 ± 0.44
+Pubmed   | MLP + GAM   | 75.6 ± 0.07
+&nbsp;   | GCN + GAM   | 81.0 ± 0.09
+
+Although some of these numbers are lower than what was originally reported, the takeaways presented in our paper still hold: GAM adds a significant boost to the original base models, and also performs better than other forms of regularization reported in our paper. Nevertheless, we appologise for any inconvenience caused by this bug!
+
 ## How to run
 
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer, Pubmed), from this

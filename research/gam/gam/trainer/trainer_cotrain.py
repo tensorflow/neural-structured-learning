@@ -356,7 +356,10 @@ class TrainerCotraining(Trainer):
     """
     # Select the candidate samples for self-labeling, and make predictions.
     # Remove the validation and test samples from the unlabeled data, if there,
-    # to avoid self-labeling them.
+    # to avoid self-labeling them. We could potentially leave the test edges
+    # but once a node self-labeled, is label is fixed for the remaining 
+    # co-train iterations, and would not take advantage of the improved
+    # versions of the model.
     indices_unlabeled = data.get_indices_unlabeled()
     eval_ind = set(data.get_indices_val()) | set(data.get_indices_test())
     indices_unlabeled = np.asarray(
@@ -633,7 +636,9 @@ class TrainerCotraining(Trainer):
       logging.info(
           '--------- Cotrain step %6d | Accuracy val: %10.4f | '
           'Accuracy test: %10.4f ---------', step, val_acc, test_acc)
-
+      logging.info(
+          'Best validation acc: %.4f, corresponding test acc: %.4f at '
+          'iteration %d', best_val_acc, test_acc_at_best, iter_at_best)
       if self.first_iter_original and step == 0:
         logging.info('No self-labeling because the first iteration trains the '
                      'original classifier for evaluation purposes.')
