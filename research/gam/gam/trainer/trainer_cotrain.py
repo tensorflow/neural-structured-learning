@@ -355,11 +355,11 @@ class TrainerCotraining(Trainer):
         assign to each of the selected nodes.
     """
     # Select the candidate samples for self-labeling, and make predictions.
-    # Remove the validation and test samples from the unlabeled data, if there,
-    # to avoid self-labeling them. We could potentially leave the test edges
-    # but once a node self-labeled, is label is fixed for the remaining 
-    # co-train iterations, and would not take advantage of the improved
-    # versions of the model.
+    # We remove the validation and test samples from the unlabeled data,
+    # to avoid self-labeling them. We could potentially allow them to be
+    # self-labeled, but once a node is self-labeled its label is fixed for 
+    # the remaining co-train iterations, so it would not take advantage 
+    # of the improved versions of the model.
     indices_unlabeled = data.get_indices_unlabeled()
     eval_ind = set(data.get_indices_val()) | set(data.get_indices_test())
     indices_unlabeled = np.asarray(
