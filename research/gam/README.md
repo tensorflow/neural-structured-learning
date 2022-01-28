@@ -45,7 +45,7 @@ A bug was discovered in the implementation of the GAM agreement regularization t
 
 <img src="img/gam-updated-results.png " width="400">
 
-Although some of these numbers are lower than what was originally reported, the takeaways presented in our paper still hold: GAM adds a significant boost to the original base models, and also performs better than other forms of regularization reported in our paper. Nevertheless, we appologise for any inconvenience caused by this bug!
+Although some of these numbers are lower than what was originally reported, the takeaways presented in our paper still hold: GAM adds a significant boost to the original base models, and also performs better than other forms of regularization reported in our paper. Nevertheless, we apologize for any inconvenience caused by this bug!
 
 ## How to run
 
