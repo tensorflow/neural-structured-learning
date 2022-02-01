@@ -40,6 +40,21 @@ More details can be found in our
 [slides](https://drive.google.com/open?id=1tWEMoyrbLnzfSfTfYFi9eWgZWaPKF3Uu) or
 [poster](https://drive.google.com/file/d/1BZNR4B-xM41hdLLqx4mLsQ4KKJOhjgqV/view).
 
+## Updated Results
+
+A bug was discovered in the implementation of the GAM agreement regularization
+term after publication. We have fixed the bug (PR #82) and have rerun the
+affected experiments. Below are the updated results (note that the GAM* results
+are not affected).
+
+<img src="img/gam-updated-results.png " width="400">
+
+Although some of these numbers are lower than what was originally reported, the
+takeaways presented in our paper still hold: GAM adds a significant boost to the
+original base models, and also performs better than other forms of
+regularization reported in our paper. Nevertheless, we apologize for any
+inconvenience caused by this bug!
+
 ## How to run
 
 To run GAM on a graph-based dataset (e.g., Cora, Citeseer, Pubmed), from this
@@ -63,13 +78,13 @@ the dataset name accordingly: `$ tensorboard --logdir=outputs/summaries/cora`
 
 An example of such visualization for Cora with GCN + GAM model on the Pubmed
 dataset is the following:
-![Tensorboard plot](gam_gcn_pubmed.png?raw=true "GCN + GAM on Pubmed")
+![Tensorboard plot](img/gam_gcn_pubmed.png?raw=true "GCN + GAM on Pubmed")
 
 Similarly, we can run with multiple different parameter configurations and plot
 the results together for comparison. An example showing the accuracy per
 co-train iteration of a GCN + GAM model on the Cora dataset for 3 runs with 3
 different random seeds is the following:
-![Tensorboard plot](gam_gcn_cora_multiple_seeds.png?raw=true "GCN + GAM on Cora")
+![Tensorboard plot](img/gam_gcn_cora_multiple_seeds.png?raw=true "GCN + GAM on Cora")
 
 ## References
 

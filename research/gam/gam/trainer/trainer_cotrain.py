@@ -355,12 +355,15 @@ class TrainerCotraining(Trainer):
         assign to each of the selected nodes.
     """
     # Select the candidate samples for self-labeling, and make predictions.
-    # Remove the validation samples from the unlabeled data, if there, to avoid
-    # self-labeling them.
+    # We remove the validation and test samples from the unlabeled data,
+    # to avoid self-labeling them. We could potentially allow them to be
+    # self-labeled, but once a node is self-labeled its label is fixed for
+    # the remaining co-train iterations, so it would not take advantage
+    # of the improved versions of the model.
     indices_unlabeled = data.get_indices_unlabeled()
-    val_ind = set(data.get_indices_val())
+    eval_ind = set(data.get_indices_val()) | set(data.get_indices_test())
     indices_unlabeled = np.asarray(
-        [ind for ind in indices_unlabeled if ind not in val_ind])
+        [ind for ind in indices_unlabeled if ind not in eval_ind])
     predictions = trainer_cls.predict(
         session, indices_unlabeled, is_train=False)
 
@@ -546,8 +549,8 @@ class TrainerCotraining(Trainer):
 
     # Create a saver which saves only the variables that we would need to
     # restore in case the training process is restarted.
-    vars_to_save = [iter_cotrain] + trainer_agr.vars_to_save + \
-                   trainer_cls.vars_to_save
+    vars_to_save = [iter_cotrain
+                   ] + trainer_agr.vars_to_save + trainer_cls.vars_to_save
     saver = tf.train.Saver(vars_to_save)
 
     # Create a TensorFlow session. We allow soft placement in order to place
@@ -633,7 +636,9 @@ class TrainerCotraining(Trainer):
       logging.info(
           '--------- Cotrain step %6d | Accuracy val: %10.4f | '
           'Accuracy test: %10.4f ---------', step, val_acc, test_acc)
-
+      logging.info(
+          'Best validation acc: %.4f, corresponding test acc: %.4f at '
+          'iteration %d', best_val_acc, test_acc_at_best, iter_at_best)
       if self.first_iter_original and step == 0:
         logging.info('No self-labeling because the first iteration trains the '
                      'original classifier for evaluation purposes.')
