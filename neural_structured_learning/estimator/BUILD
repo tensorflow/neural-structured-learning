@@ -40,6 +40,7 @@ py_library(
         "//neural_structured_learning/configs",
         "//neural_structured_learning/lib",
         # package tensorflow
+        # package tensorflow:tensorflow_estimator
     ],
 )
 
@@ -54,6 +55,7 @@ py_test(
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow
+        # package tensorflow:tensorflow_estimator
         # package tensorflow framework_test_lib,
     ],
 )
@@ -67,6 +69,7 @@ py_library(
         "//neural_structured_learning/lib:distances",
         "//neural_structured_learning/lib:utils",
         # package tensorflow
+        # package tensorflow:tensorflow_estimator
     ],
 )
 
@@ -81,6 +84,7 @@ py_test(
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow
+        # package tensorflow:tensorflow_estimator
         # package tensorflow framework_test_lib,
     ],
 )

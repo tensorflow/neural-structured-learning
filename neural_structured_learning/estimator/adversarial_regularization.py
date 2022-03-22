@@ -24,6 +24,7 @@ import inspect
 import neural_structured_learning.configs as nsl_configs
 import neural_structured_learning.lib as nsl_lib
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 def add_adversarial_regularization(estimator,
@@ -106,7 +107,7 @@ def add_adversarial_regularization(estimator,
       original_spec = base_fn(features, labels)
 
       # Adversarial regularization only happens in training.
-      if mode != tf.estimator.ModeKeys.TRAIN:
+      if mode != tf_estimator.ModeKeys.TRAIN:
         return original_spec
 
       adv_neighbor, _ = nsl_lib.gen_adv_neighbor(

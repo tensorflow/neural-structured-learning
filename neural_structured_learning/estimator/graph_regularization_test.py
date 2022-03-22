@@ -26,6 +26,7 @@ import neural_structured_learning.estimator as nsl_estimator
 
 import numpy as np
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 from google.protobuf import text_format
 from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
@@ -136,7 +137,7 @@ class GraphRegularizationTest(tf.test.TestCase):
 
     fc = tf.feature_column.numeric_column(
         FEATURE_NAME, shape=np.array(weight).shape)
-    return tf.estimator.LinearRegressor(
+    return tf_estimator.LinearRegressor(
         feature_columns=(fc,), model_dir=self.model_dir, optimizer='SGD')
 
   @test_util.run_v1_only('Requires tf.get_variable')
@@ -452,7 +453,7 @@ class GraphRegularizationTest(tf.test.TestCase):
         # The always-positive activation funciton is to make sure the batch mean
         # is non-zero.
         batch_norm_layer = tf.compat.v1.layers.batch_normalization(
-            hidden_layer, training=(mode == tf.estimator.ModeKeys.TRAIN))
+            hidden_layer, training=(mode == tf_estimator.ModeKeys.TRAIN))
       return batch_norm_layer
 
     def model_fn(features, labels, mode, params=None, config=None):
@@ -461,8 +462,8 @@ class GraphRegularizationTest(tf.test.TestCase):
       with tf.compat.v1.variable_scope('logit', reuse=tf.AUTO_REUSE):
         logits = tf.compat.v1.layers.dense(embeddings, units=1)
       predictions = tf.argmax(logits, 1)
-      if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(
+      if mode == tf_estimator.ModeKeys.PREDICT:
+        return tf_estimator.EstimatorSpec(
             mode=mode,
             predictions={
                 'logits': logits,
@@ -470,8 +471,8 @@ class GraphRegularizationTest(tf.test.TestCase):
             })
 
       loss = tf.losses.sigmoid_cross_entropy(labels, logits)
-      if mode == tf.estimator.ModeKeys.EVAL:
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss)
+      if mode == tf_estimator.ModeKeys.EVAL:
+        return tf_estimator.EstimatorSpec(mode=mode, loss=loss)
 
       optimizer = optimizer_fn()
       train_op = optimizer.minimize(
@@ -479,7 +480,7 @@ class GraphRegularizationTest(tf.test.TestCase):
       update_ops = tf.compat.v1.get_collection(
           tf.compat.v1.GraphKeys.UPDATE_OPS)
       train_op = tf.group(train_op, *update_ops)
-      return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+      return tf_estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     def input_fn():
       nbr_feature = '{}{}_{}'.format(NBR_FEATURE_PREFIX, 0, FEATURE_NAME)
@@ -492,7 +493,7 @@ class GraphRegularizationTest(tf.test.TestCase):
       labels = tf.constant([[1], [0], [1]])
       return tf.data.Dataset.from_tensor_slices((features, labels)).batch(3)
 
-    base_est = tf.estimator.Estimator(
+    base_est = tf_estimator.Estimator(
         model_fn, model_dir=self.model_dir, params=None)
     graph_reg_config = nsl_configs.make_graph_reg_config(
         max_neighbors=1, multiplier=1)

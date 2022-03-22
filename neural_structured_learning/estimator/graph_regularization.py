@@ -24,6 +24,7 @@ from neural_structured_learning.lib import distances
 from neural_structured_learning.lib import utils
 
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 def add_graph_regularization(estimator,
@@ -108,7 +109,7 @@ def add_graph_regularization(estimator,
         auxiliary_name_scope=False):
       nbr_features = dict()
       nbr_weights = None
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         # Extract sample features, neighbor features, and neighbor weights if we
         # are in training mode.
         sample_features, nbr_features, nbr_weights = (
@@ -130,7 +131,7 @@ def add_graph_regularization(estimator,
       # - neighbor inputs exist
       # - the graph regularization multiplier is greater than zero.
       # So, return early if any of these conditions is false.
-      if (not has_nbr_inputs or mode != tf.estimator.ModeKeys.TRAIN or
+      if (not has_nbr_inputs or mode != tf_estimator.ModeKeys.TRAIN or
           graph_reg_config.multiplier <= 0):
         return base_spec
 

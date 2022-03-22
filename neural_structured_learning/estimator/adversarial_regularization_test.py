@@ -26,6 +26,7 @@ import neural_structured_learning.configs as nsl_configs
 import neural_structured_learning.estimator as nsl_estimator
 import numpy as np
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
 
@@ -66,7 +67,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
 
     fc = tf.feature_column.numeric_column(FEATURE_NAME,
                                           shape=np.array(weight).shape)
-    return tf.estimator.LinearRegressor(
+    return tf_estimator.LinearRegressor(
         feature_columns=(fc,), model_dir=self.model_dir, optimizer='SGD')
 
   @test_util.run_v1_only('Requires tf.GraphKeys')
@@ -132,7 +133,7 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     y0 = np.array([1, 0, 1, 0])
     input_fn = single_batch_input_fn({FEATURE_NAME: x0}, y0)
     fc = tf.feature_column.numeric_column(FEATURE_NAME, shape=[2])
-    base_est = tf.estimator.DNNClassifier(
+    base_est = tf_estimator.DNNClassifier(
         hidden_units=[4],
         feature_columns=[fc],
         model_dir=self.model_dir,
