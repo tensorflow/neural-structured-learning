@@ -743,7 +743,7 @@ class AdversarialRegularization(tf.keras.Model):
     ```
     """
     # pylint: enable=line-too-long
-    save.save_model(self, filepath, overwrite, include_optimizer, save_format,
+    save.save_model(self.base_model, filepath, overwrite, include_optimizer, save_format,
                     signatures, options, save_traces)
 
 
