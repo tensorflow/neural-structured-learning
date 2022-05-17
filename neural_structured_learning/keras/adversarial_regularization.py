@@ -21,6 +21,7 @@ import collections
 import functools
 import types
 from keras.utils import traceback_utils
+from keras.saving import save
 
 import attr
 import neural_structured_learning.configs as nsl_configs
@@ -695,11 +696,6 @@ class AdversarialRegularization(tf.keras.Model):
         scaled_adv_loss, name='scaled_adversarial_loss', aggregation='mean')
     return outputs
 
-  def save(self, *args, **kwargs):
-    raise NotImplementedError(
-        'Saving `AdversarialRegularization` models is currently not supported. '
-        'Consider using `save_weights` or saving the `base_model`.')
-
 
   @traceback_utils.filter_traceback
   def save(self,
@@ -749,8 +745,6 @@ class AdversarialRegularization(tf.keras.Model):
     # pylint: enable=line-too-long
     save.save_model(self, filepath, overwrite, include_optimizer, save_format,
                     signatures, options, save_traces)
-
-
 
 
 
