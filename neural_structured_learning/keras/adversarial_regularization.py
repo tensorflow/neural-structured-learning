@@ -20,10 +20,14 @@ from __future__ import print_function
 import collections
 import functools
 import types
-from keras.utils import traceback_utils
-from keras.saving import save
+
 
 import attr
+
+from keras.saving import save
+from keras.utils import traceback_utils
+
+
 import neural_structured_learning.configs as nsl_configs
 from neural_structured_learning.lib import adversarial_neighbor
 import six
