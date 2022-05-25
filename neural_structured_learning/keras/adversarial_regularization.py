@@ -27,7 +27,6 @@ import attr
 from keras.saving import save
 from keras.utils import traceback_utils
 
-
 import neural_structured_learning.configs as nsl_configs
 from neural_structured_learning.lib import adversarial_neighbor
 import six
