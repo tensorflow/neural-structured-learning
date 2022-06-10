@@ -21,6 +21,7 @@ import collections
 import functools
 import types
 
+
 import attr
 import neural_structured_learning.configs as nsl_configs
 from neural_structured_learning.lib import adversarial_neighbor
@@ -695,9 +696,10 @@ class AdversarialRegularization(tf.keras.Model):
     return outputs
 
   def save(self, *args, **kwargs):
-    raise NotImplementedError(
-        'Saving `AdversarialRegularization` models is currently not supported. '
-        'Consider using `save_weights` or saving the `base_model`.')
+    """Saves the base model. See base class for details of the interface."""
+    # Adversarial regularization doesn't introduce new model variables, so
+    # saving the base model can capture all variables in the model.
+    self.base_model.save(*args, **kwargs)
 
   def perturb_on_batch(self, x, **config_kwargs):
     """Perturbs the given input to generates adversarial examples.
