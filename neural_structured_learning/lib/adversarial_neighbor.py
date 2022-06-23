@@ -149,7 +149,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
   # features and feature masks) with possibly missing values (e.g. no mask for
   # some features).
   def _compose_as_dict(self, inputs):
-    if isinstance(inputs, collections.Mapping):
+    if isinstance(inputs, collections.abc.Mapping):
       return inputs
     elif isinstance(inputs, (tuple, list)):
       return dict(enumerate(inputs))  # index -> value
@@ -157,7 +157,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       return {'': inputs} if inputs is not None else {}
 
   def _decompose_as(self, structure, values):
-    if isinstance(structure, collections.Mapping):
+    if isinstance(structure, collections.abc.Mapping):
       return values
     elif isinstance(structure, (tuple, list)):
       return [values[index] for index in range(len(structure))]

@@ -235,7 +235,7 @@ class _LossWrapper(tf.keras.losses.Loss):
 def _prepare_loss_fns(loss, output_names):
   """Converts `loss` to a list of per-output loss functions or objects."""
   # losses for multiple outputs indexed by name
-  if isinstance(loss, collections.Mapping):
+  if isinstance(loss, collections.abc.Mapping):
     for name in output_names:
       if name not in loss:
         raise ValueError(
@@ -247,7 +247,7 @@ def _prepare_loss_fns(loss, output_names):
     return [tf.keras.losses.get(loss) for _ in output_names]
 
   # losses for multiple outputs indexed by position
-  if isinstance(loss, collections.Sequence):
+  if isinstance(loss, collections.abc.Sequence):
     if len(loss) != len(output_names):
       raise ValueError('`loss` should have the same number of elements as '
                        'model output')
@@ -262,13 +262,13 @@ def _prepare_loss_weights(loss_weights, output_names):
   if loss_weights is None:
     return [1.0] * len(output_names)
 
-  if isinstance(loss_weights, collections.Sequence):
+  if isinstance(loss_weights, collections.abc.Sequence):
     if len(loss_weights) != len(output_names):
       raise ValueError('`loss_weights` should have the same number of elements '
                        'as model output')
     return list(map(float, loss_weights))
 
-  if isinstance(loss_weights, collections.Mapping):
+  if isinstance(loss_weights, collections.abc.Mapping):
     for name in output_names:
       if name not in loss_weights:
         raise ValueError('Loss weight for {} not found in `loss_weights` '
@@ -326,13 +326,13 @@ def _prepare_metric_fns(metrics, output_names, loss_wrappers):
   if metrics is None:
     return [[] for _ in output_names]
 
-  if not isinstance(metrics, (list, collections.Mapping)):
+  if not isinstance(metrics, (list, collections.abc.Mapping)):
     raise TypeError('`metrics` must be a list or a dict, got {}'.format(
         str(metrics)))
 
   to_list = lambda x: x if isinstance(x, list) else [x]
 
-  if isinstance(metrics, collections.Mapping):
+  if isinstance(metrics, collections.abc.Mapping):
     # Converts `metrics` from a dictionary to a list of lists using the order
     # specified in `output_names`.
     metrics = [to_list(metrics.get(name, [])) for name in output_names]
