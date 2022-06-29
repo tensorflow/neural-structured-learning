@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import os
 
 from absl.testing import parameterized
 import neural_structured_learning.configs as configs
@@ -64,10 +65,12 @@ def build_linear_keras_functional_model(input_shape,
 def build_linear_keras_subclassed_model(input_shape, weights, dynamic=False):
   del input_shape
 
-  class LinearModel(tf.keras.Model):
+  class CustomLinearModel(tf.keras.Model):
 
-    def __init__(self):
-      super(LinearModel, self).__init__(dynamic=dynamic)
+    def __init__(self, weights, name=None, dynamic=False):
+      super(CustomLinearModel, self).__init__(name=name, dynamic=dynamic)
+      self.init_weights = weights
+      self.init_dynamic = dynamic
       self.dense = tf.keras.layers.Dense(
           weights.shape[-1],
           use_bias=False,
@@ -77,7 +80,14 @@ def build_linear_keras_subclassed_model(input_shape, weights, dynamic=False):
     def call(self, inputs):
       return self.dense(inputs['feature'])
 
-  return LinearModel()
+    def get_config(self):
+      return {
+          'name': self.name,
+          'weights': self.init_weights,
+          'dynamic': self.init_dynamic
+      }
+
+  return CustomLinearModel(weights, dynamic=dynamic)
 
 
 def build_linear_keras_dynamic_model(input_shape, weights):
@@ -727,6 +737,42 @@ class AdversarialRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     x_adv = x0 + pgd_epsilon * np.sign((y_hat - y0) * w.T)
     self.assertAllClose(x_adv, adv_inputs['feature'])
     self.assertAllClose(y0, adv_inputs['label'])
+
+  def _test_adv_model_save(self, model_fn):
+    """Template for testing model saving and loading."""
+    w, x0, y0, lr, adv_config, _ = self._set_up_linear_regression()
+    model = model_fn(input_shape=(2,), weights=w)
+    adv_model = adversarial_regularization.AdversarialRegularization(
+        model, label_keys=['label'], adv_config=adv_config)
+    adv_model.compile(optimizer=tf.keras.optimizers.SGD(lr), loss=['MAE'])
+
+    # Run the model before saving it. This is necessary for subclassed models.
+    inputs = {'feature': x0, 'label': y0}
+    adv_model.evaluate(inputs, steps=1)
+
+    saved_model_dir = os.path.join(self.get_temp_dir(), 'saved_model')
+    adv_model.save(saved_model_dir)
+
+    loaded_model = tf.keras.models.load_model(saved_model_dir)
+    self.assertEqual(
+        len(loaded_model.trainable_weights), len(adv_model.trainable_weights))
+    for w_loaded, w_adv in zip(loaded_model.trainable_weights,
+                               adv_model.trainable_weights):
+      self.assertAllClose(
+          tf.keras.backend.get_value(w_loaded),
+          tf.keras.backend.get_value(w_adv))
+
+  @parameterized.named_parameters([
+      ('sequential', build_linear_keras_sequential_model),
+      ('functional', build_linear_keras_functional_model),
+  ])
+  def test_adv_model_save(self, model_fn):
+    self._test_adv_model_save(model_fn)
+
+  # Saving subclassed models are only supported in TF v2.
+  @test_util.run_v2_only
+  def test_adv_model_save_subclassed(self):
+    self._test_adv_model_save(build_linear_keras_subclassed_model)
 
 
 if __name__ == '__main__':

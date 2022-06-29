@@ -139,3 +139,9 @@ class GraphRegularization(tf.keras.Model):
     self.add_loss(scaled_graph_loss)
 
     return base_output
+
+  def save(self, *args, **kwargs):
+    """Saves the base model. See base class for details of the interface."""
+    # Graph regularization doesn't introduce new model variables, so saving the
+    # base model can capture all variables in the model.
+    self.base_model.save(*args, **kwargs)
