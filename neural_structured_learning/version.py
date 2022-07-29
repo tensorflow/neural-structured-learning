@@ -15,8 +15,8 @@
 
 # We follow Semantic Versioning (https://semver.org/).
 _MAJOR_VERSION = '1'
-_MINOR_VERSION = '3'
-_PATCH_VERSION = '1'
+_MINOR_VERSION = '4'
+_PATCH_VERSION = '0'
 
 _VERSION_SUFFIX = ''
 

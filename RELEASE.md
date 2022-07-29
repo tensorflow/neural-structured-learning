@@ -1,3 +1,57 @@
+# Release 1.4.0
+
+## Major Features and Improvements
+
+*   Add `params` as an optional third argument to the `embedding_fn` argument of
+    `nsl.estimator.add_graph_regularization`. This is similar to the `params`
+    argument of an Estimator's `model_fn`, which allows users to pass arbitrary
+    states through. Adding this as an argument to `embedding_fn` will allow
+    users to access that state in the implementation of `embedding_fn`.
+*   Both `nsl.keras.AdversarialRegularization` and
+    `nsl.keras.GraphRegularization` now support the `save` method which will
+    save the base model.
+*   `nsl.keras.AdversarialRegularization` now supports a `tf.keras.Sequential`
+    base model with a `tf.keras.layers.DenseFeatures` layer.
+*   `nsl.configs.AdvNeighborConfig` has a new field `random_init`. If set to
+    `True`, a random perturbation will be performed before FGSM/PGD steps.
+*   `nsl.lib.gen_adv_neighbor` now has a new parameter `use_while_loop`. If set
+    to `True`, the PGD steps are done in a `tf.while_loop` which is potentially
+    more memory efficient but has some restrictions.
+*   New library functions:
+    *   `nsl.lib.random_in_norm_ball` for generating random tensors in a norm
+        ball.
+    *   `nsl.lib.project_to_ball` for projecting tensors onto a norm ball.
+
+## Bug Fixes and Other Changes
+
+*   Dropped Python 2 support (which was deprecated 2+ years ago).
+*   `nsl.keras.AdversarialRegularization` and `nsl.lib.gen_adv_neighbor` will
+    not attempt to calculate gradients for tensors with a non-differentiable
+    `dtype`. This doesn’t change the functionality, but only suppresses excess
+    warnings.
+*   Both `estimator/adversarial_regularization.py` and
+    `estimator/graph_regularization.py` explicitly import `estimator` from
+    `tensorflow` as a separate import instead of accessing it via `tf.estimator`
+    and depend on the tensorflow `estimator` target.
+*   The new top-level `workshops` directory contains presentation materials from
+    tutorials we organized on NSL at KDD 2020, WSDM 2021, and WebConf 2021.
+*   The new `usage.md` page describes featured usage of NSL, external talks,
+    blog posts, media coverage, and more.
+*   End-to-end examples under the `examples` directory:
+    *   New examples about graph neural network modules with graph-regularizer
+        and graph convolution.
+    *   New README file providing an overview of the examples.
+*   New tutorial examples under the `examples/notebooks` directory:
+    *   Graph regularization for image classification using synthesized graphs
+    *   Adversarial Learning: Building Robust Image Classifiers
+    *   Saving and loading NSL models
+
+## Thanks to our Contributors
+
+This release contains contributions from many people at Google Research and from
+TF community members: @angela-wang1 , @dipanjanS, @joshchang1112, @SamuelMarks,
+@sayakpaul, @wangbingnan136, @zoeyz101
+
 # Release 1.3.1
 
 ## Major Features and Improvements
