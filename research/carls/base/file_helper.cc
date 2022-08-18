@@ -104,7 +104,7 @@ absl::Status WriteFileString(const std::string& filepath,
 
 absl::Status IsDirectory(const std::string& path) {
   tensorflow::Env* env = tensorflow::Env::Default();
-  return ToAbslStatus(env->IsDirectory(path));
+  return carls::ToAbslStatus(env->IsDirectory(path));
 }
 
 absl::string_view Dirname(absl::string_view path) {
@@ -133,7 +133,7 @@ std::pair<absl::string_view, absl::string_view> SplitPath(
 
 absl::Status RecursivelyCreateDir(const std::string& dirname) {
   tensorflow::Env* env = tensorflow::Env::Default();
-  return ToAbslStatus(env->RecursivelyCreateDir(dirname));
+  return carls::ToAbslStatus(env->RecursivelyCreateDir(dirname));
 }
 
 }  // namespace carls
