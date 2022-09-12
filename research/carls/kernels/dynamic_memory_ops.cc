@@ -56,7 +56,7 @@ REGISTER_OP("DynamicGaussianMemoryLookup")
         }
         c->set_output(2, c->MakeShape(dims));
       }
-      return Status::OK();
+      return tensorflow::OkStatus();
     })
     .Doc(R"doc(
 A Gaussian memory assumes the input pattern can be represented by a number of

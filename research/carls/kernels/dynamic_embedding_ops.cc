@@ -64,7 +64,7 @@ Status SetInputShape(InferenceContext* c) {
                   DimensionOrConstant(embedding_dimension));
     c->set_output(0, output_shape);
   }
-  return Status::OK();
+  return tensorflow::OkStatus();
 }
 
 }  // namespace

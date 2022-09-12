@@ -95,7 +95,7 @@ class DynamicEmbeddingManagerResourceOp
       return Status(tensorflow::error::FAILED_PRECONDITION,
                     "DynamicEmbeddingManager is NULL.");
     }
-    return Status::OK();
+    return tensorflow::OkStatus();
   }
 
   DynamicEmbeddingConfig config_;

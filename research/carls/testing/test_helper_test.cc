@@ -58,13 +58,13 @@ TEST(TestHelperTest, GrpcStatusChecks) {
 }
 
 TEST(TestHelperTest, TensoFlowStatusChecks) {
-  EXPECT_OK(tensorflow::Status::OK());
+  EXPECT_OK(tensorflow::OkStatus());
   EXPECT_NOT_OK(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."));
   EXPECT_ERROR_EQ(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."),
       "First error.");
-  ASSERT_OK(tensorflow::Status::OK());
+  ASSERT_OK(tensorflow::OkStatus());
   ASSERT_ERROR_EQ(
       tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Second error."),
       "Second error.");
