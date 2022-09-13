@@ -129,7 +129,8 @@ class DynamicNormalizationTest(tf.test.TestCase):
 
     bn_model = _create_model(False)  # Model with batch normalization.
     dn_model = _create_model(True)  # Model with dynamic normalization.
-    optimizer = tf.keras.optimizers.SGD(learning_rate=0.01)
+    optimizer_bn = tf.keras.optimizers.SGD(learning_rate=0.01)
+    optimizer_dn = tf.keras.optimizers.SGD(learning_rate=0.01)
     for i in range(100):
       bn_loss_value, bn_grads = _grad(bn_model, x, y)
       dn_loss_value, dn_grads = _grad(dn_model, x, y)
@@ -138,8 +139,8 @@ class DynamicNormalizationTest(tf.test.TestCase):
                                                         bn_loss_value.numpy(),
                                                         dn_loss_value.numpy()))
       # Update the trainable variables w.r.t. the logistic loss
-      optimizer.apply_gradients(zip(bn_grads, bn_model.trainable_variables))
-      optimizer.apply_gradients(zip(dn_grads, dn_model.trainable_variables))
+      optimizer_bn.apply_gradients(zip(bn_grads, bn_model.trainable_variables))
+      optimizer_dn.apply_gradients(zip(dn_grads, dn_model.trainable_variables))
 
     # Checks that DynamicNormalization consistently outperforms
     # BatchNormalization in terms of finding lower loss.

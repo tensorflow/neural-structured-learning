@@ -148,6 +148,13 @@ def make_dataset(example_proto,
   return dataset
 
 
+def get_sgd_optimizer(learning_rate):
+  if hasattr(tf.keras.optimizers, 'legacy'):
+    return tf.keras.optimizers.legacy.SGD(learning_rate=learning_rate)
+  else:
+    return tf.keras.optimizers.SGD(learning_rate=learning_rate)
+
+
 class MockNeighborCacheClient(ncc.NeighborCacheClient):
 
   def __init__(self):
@@ -172,7 +179,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularizationWithCaching(model)
-    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
 
     prediction = graph_reg_model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -184,7 +191,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularizationWithCaching(model)
-    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
 
     prediction = model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -241,7 +248,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       graph_reg_model = graph_regularization.GraphRegularizationWithCaching(
           model, graph_reg_config, neighbor_cache_client)
       graph_reg_model.compile(
-          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE), loss='MSE')
+          optimizer=get_sgd_optimizer(LEARNING_RATE), loss='MSE')
       return model, graph_reg_model
 
     if distributed_strategy:
@@ -454,7 +461,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       graph_reg_model = graph_regularization.GraphRegularizationWithCaching(
           model, graph_reg_config)
       graph_reg_model.compile(
-          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE),
+          optimizer=get_sgd_optimizer(LEARNING_RATE),
           loss='MSE',
           metrics=['accuracy'])
       return model, graph_reg_model

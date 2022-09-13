@@ -62,6 +62,13 @@ def make_feature_spec(input_shape, max_neighbors):
   return feature_spec
 
 
+def get_sgd_optimizer(learning_rate):
+  if hasattr(tf.keras.optimizers, 'legacy'):
+    return tf.keras.optimizers.legacy.SGD(learning_rate=learning_rate)
+  else:
+    return tf.keras.optimizers.SGD(learning_rate=learning_rate)
+
+
 def build_linear_sequential_model(input_shape, weights, num_output=1):
   model = tf.keras.Sequential()
   model.add(
@@ -147,7 +154,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularization(model)
-    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
 
     prediction = graph_reg_model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -159,7 +166,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularization(model)
-    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
 
     prediction = model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -210,7 +217,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
       graph_reg_model = graph_regularization.GraphRegularization(
           model, graph_reg_config)
       graph_reg_model.compile(
-          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE), loss='MSE')
+          optimizer=get_sgd_optimizer(LEARNING_RATE), loss='MSE')
       return model, graph_reg_model
 
     if distributed_strategy:
@@ -409,7 +416,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
       graph_reg_model = graph_regularization.GraphRegularization(
           model, graph_reg_config)
       graph_reg_model.compile(
-          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE),
+          optimizer=get_sgd_optimizer(LEARNING_RATE),
           loss='MSE',
           metrics=['accuracy'])
       return model, graph_reg_model
@@ -500,7 +507,7 @@ class GraphRegularizationTest(tf.test.TestCase, parameterized.TestCase):
     graph_reg_model = graph_regularization.GraphRegularization(
         base_model, graph_reg_config)
     graph_reg_model.compile(
-        optimizer=tf.keras.optimizers.SGD(LEARNING_RATE),
+        optimizer=get_sgd_optimizer(LEARNING_RATE),
         loss='MSE',
         metrics=['accuracy'])
 

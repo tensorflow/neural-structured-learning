@@ -106,8 +106,12 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
         transform_fn=configs.TransformType.SOFTMAX,
         sum_over_axis=-1)
     model = model_fn(distance_config)
+    if hasattr(tf.keras.optimizers, 'legacy'):
+      optimizer = tf.keras.optimizers.legacy.SGD()
+    else:
+      optimizer = tf.keras.optimizers.SGD()
     model.compile(
-        optimizer=tf.keras.optimizers.SGD(),
+        optimizer=optimizer,
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[
             tf.keras.metrics.SparseCategoricalAccuracy(),
