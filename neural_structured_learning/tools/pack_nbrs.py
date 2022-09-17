@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""Program & library to prepare input for graph-based NSL."""
 
 from __future__ import absolute_import
@@ -42,6 +41,7 @@ def _read_tfrecord_examples(filename, id_feature_name):
   Returns:
     A dictionary that maps the ID of each Example to that Example.
   """
+
   def parse_example(raw_record):
     """Parses and returns a single record of a TFRecord file."""
     example = tf.train.Example()
@@ -54,7 +54,6 @@ def _read_tfrecord_examples(filename, id_feature_name):
     Args:
       tf_example: The `tensorflow.Example` from which to extract the ID feature.
         This is expected to contain a singleton bytes_list value.
-
     Returns: The ID feature value as a (decoded) string.
     """
     id_feature = tf_example.features.feature[id_feature_name].bytes_list
@@ -133,7 +132,7 @@ def _join_examples(seed_exs, nbr_exs, graph, max_nbrs):
     Args:
       seed_ex: A labeled Example.
       nbr_wt_ex_list: A list of (nbr_wt, nbr_id) pairs (in decreasing nbr_wt
-         order) representing the neighbors of 'seed_ex'.
+        order) representing the neighbors of 'seed_ex'.
 
     Returns:
       The Example that results from merging the features of the neighbor
@@ -272,8 +271,7 @@ def pack_nbrs(labeled_examples_path,
 
 def _main(argv):
   """Main function for invoking the `nsl.tools.pack_nbrs` function."""
-  flag = flags.FLAGS
-  flag.showprefixforinfo = False
+  flags.FLAGS.showprefixforinfo = False
   # Check that the correct number of arguments have been provided.
   if len(argv) != 5:
     raise app.UsageError('Invalid number of arguments; expected 4, got %d' %
@@ -284,27 +282,27 @@ def _main(argv):
       unlabeled_examples_path=argv[2],
       graph_path=argv[3],
       output_training_data_path=argv[4],
-      add_undirected_edges=flag.add_undirected_edges,
-      max_nbrs=flag.max_nbrs,
-      id_feature_name=flag.id_feature_name)
+      add_undirected_edges=_ADD_UNDIRECTED_EDGES.value,
+      max_nbrs=_MAX_NBRS.value,
+      id_feature_name=_ID_FEATURE_NAME.value)
 
 
 if __name__ == '__main__':
-  flags.DEFINE_integer(
-      'max_nbrs', None,
-      'The maximum number of neighbors to merge into each labeled Example.')
-  flags.DEFINE_string(
-      'id_feature_name', 'id',
-      """Name of the singleton bytes_list feature in each input Example
-      whose value is the Example's ID.""")
-  flags.DEFINE_bool(
+  _ADD_UNDIRECTED_EDGES = flags.DEFINE_bool(
       'add_undirected_edges', False,
       """By default, the set of neighbors of a node S are
-      only those nodes T such that there is an edge S-->T in the input graph. If
-      this flag is True, all edges of the graph will be made symmetric before
-      determining each node's neighbors (and in the case where edges S-->T and
-      T-->S exist in the input graph with weights w1 and w2, respectively, the
-      weight of the symmetric edge will be max(w1, w2)).""")
+        only those nodes T such that there is an edge S-->T in the input graph. If
+        this flag is True, all edges of the graph will be made symmetric before
+        determining each node's neighbors (and in the case where edges S-->T and
+        T-->S exist in the input graph with weights w1 and w2, respectively, the
+        weight of the symmetric edge will be max(w1, w2)).""")
+  _MAX_NBRS = flags.DEFINE_integer(
+      'max_nbrs', None,
+      'The maximum number of neighbors to merge into each labeled Example.')
+  _ID_FEATURE_NAME = flags.DEFINE_string(
+      'id_feature_name', 'id',
+      """Name of the singleton bytes_list feature in each input Example
+        whose value is the Example's ID.""")
 
   # Ensure TF 2.0 behavior even if TF 1.X is installed.
   tf.compat.v1.enable_v2_behavior()

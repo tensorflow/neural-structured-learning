@@ -47,20 +47,19 @@ from tensorflow_docs.api_generator import doc_controls
 from tensorflow_docs.api_generator import generate_lib
 from tensorflow_docs.api_generator import public_api
 
-flags.DEFINE_string("output_dir", "/tmp/neural_structured_learning_api",
-                    "Where to output the docs")
-flags.DEFINE_string(
+_OUTPUT_DIR = flags.DEFINE_string("output_dir",
+                                  "/tmp/neural_structured_learning_api",
+                                  "Where to output the docs")
+_CODE_URL_PREFIX = flags.DEFINE_string(
     "code_url_prefix",
     "https://github.com/tensorflow/neural-structured-learning/blob/master/neural_structured_learning",
     "The url prefix for links to code.")
-
-flags.DEFINE_bool("search_hints", True,
-                  "Include metadata search hints in the generated files")
-
-flags.DEFINE_string("site_path", "neural_structured_learning/api_docs/python",
-                    "Path prefix in the _toc.yaml")
-
-FLAGS = flags.FLAGS
+_SEARCH_HINTS = flags.DEFINE_bool(
+    "search_hints", True,
+    "Include metadata search hints in the generated files")
+_SITE_PATH = flags.DEFINE_string("site_path",
+                                 "neural_structured_learning/api_docs/python",
+                                 "Path prefix in the _toc.yaml")
 
 
 def main(_):
@@ -72,14 +71,14 @@ def main(_):
   doc_generator = generate_lib.DocGenerator(
       root_title="Neural Structured Learning",
       py_modules=[("nsl", nsl)],
-      code_url_prefix=FLAGS.code_url_prefix,
-      search_hints=FLAGS.search_hints,
-      site_path=FLAGS.site_path,
+      code_url_prefix=_CODE_URL_PREFIX.value,
+      search_hints=_SEARCH_HINTS.value,
+      site_path=_SITE_PATH.value,
       # local_definitions_filter ensures that shared modules are only
       # documented in the location that defines them, instead of every location
       # that imports them.
       callbacks=[public_api.local_definitions_filter])
-  doc_generator.build(output_dir=FLAGS.output_dir)
+  doc_generator.build(output_dir=_OUTPUT_DIR.value)
 
 
 if __name__ == "__main__":

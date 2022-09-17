@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""Program & library to build a graph from dense features (embeddings)."""
 
 from __future__ import absolute_import
@@ -42,7 +41,7 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
       objects.
     id_feature_name: Name of the feature that identifies the Example's ID.
     embedding_feature_name: Name of the feature that identifies the Example's
-        embedding.
+      embedding.
 
   Returns:
     A dict mapping each instance ID to its L2-normalized embedding, represented
@@ -51,6 +50,7 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
     expected to be contained in the float_list feature named by
     'embedding_feature_name'.
   """
+
   def parse_tf_record_examples(filename):
     """Generator that returns the tensorflow.Examples in `filename`.
 
@@ -96,7 +96,8 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
       embedding_list = f_map[embedding_feature_name].float_list.value
       embeddings[ex_id] = l2_normalize(embedding_list)
     logging.info('Done reading %d tf.train.Examples from: %s (%.2f seconds).',
-                 len(embeddings), filename, time.time() - start_time)
+                 len(embeddings), filename,
+                 time.time() - start_time)
   return embeddings
 
 
@@ -154,7 +155,8 @@ class GraphBuilder(object):
     bucket = 0
     mask = 1
     for x in np.matmul(lsh_matrix, embedding):
-      if x > 0.0: bucket = bucket | mask
+      if x > 0.0:
+        bucket = bucket | mask
       mask = mask << 1
     return bucket
 
@@ -174,7 +176,8 @@ class GraphBuilder(object):
       The bucket IDs are integers in the half-open interval `[0, 2^n)`, where
       `n = config.lsh_splits`.
     """
-    if self.config.lsh_splits <= 0: return {0: set(embeddings.keys())}
+    if self.config.lsh_splits <= 0:
+      return {0: set(embeddings.keys())}
 
     # Generate a random matrix of values in the range [-1.0, 1.0] to use
     # to create the LSH buckets.
@@ -272,7 +275,8 @@ class GraphBuilder(object):
         edge_cnt += 1
       logging.info(
           'Wrote graph containing %d bi-directional edges (%.2f seconds).',
-          edge_cnt, time.time() - start_time)
+          edge_cnt,
+          time.time() - start_time)
 
 
 def build_graph_from_config(embedding_files, output_graph_path,
@@ -441,8 +445,7 @@ def build_graph(embedding_files,
 
 def _main(argv):
   """Main function for invoking the `nsl.tools.build_graph` function."""
-  flag = flags.FLAGS
-  flag.showprefixforinfo = False
+  flags.FLAGS.showprefixforinfo = False
   if len(argv) < 3:
     raise app.UsageError(
         'Invalid number of arguments; expected 2 or more, got %d' %
@@ -451,39 +454,39 @@ def _main(argv):
   build_graph_from_config(
       argv[1:-1], argv[-1],
       nsl_configs.GraphBuilderConfig(
-          id_feature_name=flag.id_feature_name,
-          embedding_feature_name=flag.embedding_feature_name,
-          similarity_threshold=flag.similarity_threshold,
-          lsh_splits=flag.lsh_splits,
-          lsh_rounds=flag.lsh_rounds,
-          random_seed=flag.random_seed))
+          id_feature_name=_ID_FEATURE_NAME.value,
+          embedding_feature_name=_EMBEDDING_FEATURE_NAME.value,
+          similarity_threshold=_SIMILARITY_THRESHOLD.value,
+          lsh_splits=_LSH_SPLITS.value,
+          lsh_rounds=_LSH_ROUNDS.value,
+          random_seed=_RANDOM_SEED.value))
 
 
 if __name__ == '__main__':
-  flags.DEFINE_string(
+  _ID_FEATURE_NAME = flags.DEFINE_string(
       'id_feature_name', 'id',
       """Name of the singleton bytes_list feature in each input Example
       whose value is the Example's ID.""")
-  flags.DEFINE_string(
+  _EMBEDDING_FEATURE_NAME = flags.DEFINE_string(
       'embedding_feature_name', 'embedding',
       """Name of the float_list feature in each input Example
       whose value is the Example's (dense) embedding.""")
-  flags.DEFINE_float(
+  _SIMILARITY_THRESHOLD = flags.DEFINE_float(
       'similarity_threshold', 0.8,
       """Lower bound on the cosine similarity required for an edge
       to be created between two nodes.""")
-  flags.DEFINE_integer(
+  _LSH_SPLITS = flags.DEFINE_integer(
       'lsh_splits', 0,
       """On each LSH bucketing round, the space containing the input instances
       will be randomly split/partitioned this many times for better performance,
       resulting in up to 2^(lsh_splits) LSH buckets. The larger your number of
       input instances, the larger this value should be. A good rule of thumb is
       to set `lsh_splits = ceiling(log_2(num_instances / 1000))`.""")
-  flags.DEFINE_integer(
+  _LSH_ROUNDS = flags.DEFINE_integer(
       'lsh_rounds', 2,
       """The number of rounds of LSH bucketing to perform when `lsh_splits > 0`.
       This is also the number of LSH buckets each point will be hashed into.""")
-  flags.DEFINE_integer(
+  _RANDOM_SEED = flags.DEFINE_integer(
       'random_seed', None,
       """Value used to seed the random number generator used to perform
       randomized LSH bucketing of the inputs when `lsh_splits > 0`. By default,
