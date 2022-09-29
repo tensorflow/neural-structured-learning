@@ -45,7 +45,6 @@ py_test(
         "//neural_structured_learning/configs",
         # package numpy
         # package tensorflow
-        # package tensorflow framework_test_lib,
     ],
 )
 

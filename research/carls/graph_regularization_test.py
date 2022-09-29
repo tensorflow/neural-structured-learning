@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import parameterized
-import neural_structured_learning.configs as configs
+from neural_structured_learning import configs
 from research.carls import graph_regularization
 from research.carls import neighbor_cache_client as ncc
 
@@ -148,13 +148,6 @@ def make_dataset(example_proto,
   return dataset
 
 
-def get_sgd_optimizer(learning_rate):
-  if hasattr(tf.keras.optimizers, 'legacy'):
-    return tf.keras.optimizers.legacy.SGD(learning_rate=learning_rate)
-  else:
-    return tf.keras.optimizers.SGD(learning_rate=learning_rate)
-
-
 class MockNeighborCacheClient(ncc.NeighborCacheClient):
 
   def __init__(self):
@@ -179,7 +172,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularizationWithCaching(model)
-    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = graph_reg_model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -191,7 +184,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
     inputs = {FEATURE_NAME: tf.constant([[5.0, 3.0]])}
 
     graph_reg_model = graph_regularization.GraphRegularizationWithCaching(model)
-    graph_reg_model.compile(optimizer=get_sgd_optimizer(0.01), loss='MSE')
+    graph_reg_model.compile(optimizer=tf.keras.optimizers.SGD(0.01), loss='MSE')
 
     prediction = model.predict(x=inputs, steps=1, batch_size=1)
 
@@ -248,7 +241,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       graph_reg_model = graph_regularization.GraphRegularizationWithCaching(
           model, graph_reg_config, neighbor_cache_client)
       graph_reg_model.compile(
-          optimizer=get_sgd_optimizer(LEARNING_RATE), loss='MSE')
+          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE), loss='MSE')
       return model, graph_reg_model
 
     if distributed_strategy:
@@ -266,15 +259,15 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
 
     # Check that the weight parameter of the linear regressor has the correct
     # value.
-    self.assertAllClose(expected_weight,
-                        model.layers[dense_layer_index].weights[0].value())
+    self.assertAllClose(
+        expected_weight,
+        tf.keras.backend.get_value(model.layers[dense_layer_index].weights[0]))
 
   @parameterized.named_parameters([
       ('_sequential', 0, build_linear_sequential_model),
       ('_functional', 1, build_linear_functional_model),
       ('_subclass', 0, build_linear_subclass_model),
   ])
-  @test_util.run_in_graph_and_eager_modes
   def test_graph_reg_model_one_neighbor_training(self, dense_layer_index,
                                                  model_fn):
     w = np.array([[4.0], [-3.0]])
@@ -395,7 +388,6 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       ('_functional', 1, build_linear_functional_model),
       ('_subclass', 0, build_linear_subclass_model),
   ])
-  @test_util.run_in_graph_and_eager_modes
   def test_graph_reg_model_two_neighbors_training(self, dense_layer_index,
                                                   model_fn):
     self._test_training_with_two_neighbors(dense_layer_index, model_fn)
@@ -461,7 +453,7 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       graph_reg_model = graph_regularization.GraphRegularizationWithCaching(
           model, graph_reg_config)
       graph_reg_model.compile(
-          optimizer=get_sgd_optimizer(LEARNING_RATE),
+          optimizer=tf.keras.optimizers.SGD(LEARNING_RATE),
           loss='MSE',
           metrics=['accuracy'])
       return model, graph_reg_model
@@ -548,7 +540,6 @@ class GraphRegularizationWithCachingTest(tf.test.TestCase,
       ('_functional', 1, build_linear_functional_model),
       ('_subclass', 0, build_linear_subclass_model),
   ])
-  @test_util.run_in_graph_and_eager_modes
   def test_graph_reg_with_dynamic_embedding(self, dense_layer_index, model_fn):
     client = MockNeighborCacheClient()
     self._test_training_with_two_neighbors(

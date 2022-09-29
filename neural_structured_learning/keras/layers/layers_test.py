@@ -20,12 +20,11 @@ from __future__ import print_function
 import itertools
 
 from absl.testing import parameterized
-import neural_structured_learning.configs as configs
+from neural_structured_learning import configs
 from neural_structured_learning.keras import layers
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.python.framework import test_util  # pylint: disable=g-direct-tensorflow-import
 
 _ERR_TOL = 3e-5  # Tolerance when comparing floats.
 
@@ -90,7 +89,6 @@ class _PairwiseRegularizedModel(tf.keras.Model):
     return logits
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class LayersTest(tf.test.TestCase, parameterized.TestCase):
   """Tests for neural_structured_learning.keras.layers."""
 
@@ -106,12 +104,8 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
         transform_fn=configs.TransformType.SOFTMAX,
         sum_over_axis=-1)
     model = model_fn(distance_config)
-    if hasattr(tf.keras.optimizers, 'legacy'):
-      optimizer = tf.keras.optimizers.legacy.SGD()
-    else:
-      optimizer = tf.keras.optimizers.SGD()
     model.compile(
-        optimizer=optimizer,
+        optimizer=tf.keras.optimizers.SGD(),
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[
             tf.keras.metrics.SparseCategoricalAccuracy(),
