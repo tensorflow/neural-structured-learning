@@ -252,7 +252,7 @@ cc_library(
         "//research/carls/base:status_helper",
         "//research/carls/knowledge_bank:in_proto_knowledge_bank",
         "//research/carls/memory_store:gaussian_memory_config_cc_proto",
-        "@com_github_grpc_grpc//:gpr_codegen",
+        "@com_github_grpc_grpc//:gpr",
         "@com_github_grpc_grpc//:grpc++",
         "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/flags:flag",
