@@ -80,6 +80,18 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       prediction. This is required for PGD with more than one step.
     pgd_loss_fn: the loss function. Calculates loss between prediction and
       ground truth.
+    regularizer_fn: regularization function for pgd_loss_fn.
+      This is optional for PGD. It should be a function that accepts:
+        1. perturbations: a dense (float32) tensor, a list of dense tensors,
+          or a dictionary of feature names and dense tensors. The shape should
+          be the same as input_features. This is the perturbation at each step
+          of PGD.
+        2. keyed_grads_x: a dense (float32) tensor, a list of dense tensors,
+          or a dictionary of feature names and dense tensors. The shape should
+          be the same as input_features. This is the gradient of the labeled
+          loss with respect to input_features.
+      The output of this function is added to pgd_loss_fn during PGD steps.
+      The default when it is not given is None.
     use_while_loop: A Boolean indicating whether the PGD steps should be done in
       a `tf.while_loop`. This can potentially reduce memory footprint, but is
       not compatible to `pgd_model_fn` with side effects. (default=False)
@@ -92,6 +104,7 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
                gradient_tape=None,
                pgd_model_fn=None,
                pgd_loss_fn=None,
+               regularizer_fn=None,
                use_while_loop=False):
     if (adv_config.pgd_iterations > 1 or
         adv_config.random_init) and (not pgd_model_fn or not pgd_loss_fn):
@@ -105,6 +118,8 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
     # The condition above guards the default functions from really being used.
     self._pgd_model_fn = pgd_model_fn or (lambda _: tf.constant(0.))
     self._pgd_loss_fn = pgd_loss_fn or (lambda _, __: tf.constant(0.))
+    self._regularizer_fn = regularizer_fn or (lambda _, __: tf.constant(0.))
+    self._regularizer_fn_set = regularizer_fn is not None
     self._use_while_loop = use_while_loop
     # Compose the feature masks and constraints to dictionaries, so that they
     # can be looked up by key.
@@ -238,6 +253,28 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
             self.feature_max.get(key, None))
     return perturbed_features
 
+  def _retrieve_perturbations(self, dense_original_features,
+                              dense_perturbed_features):
+    """Retrieves perturbations given original features and perturbed features.
+
+    Args:
+      dense_original_features: A dictionary of tensors representing original
+        features.
+      dense_perturbed_features: A dictionary of tensors with the same structure
+        as `dense_original_features` representing the perturbed features.
+
+    Returns:
+      A dictionary of tensors representing the adversarial perturbations.
+    """
+    perturbations = {}
+    for key, feature in dense_original_features.items():
+      if key not in dense_perturbed_features:  # Should not happen.
+        raise ValueError('key ' + key + ' found in dense_original_features but '
+                         + 'not in dense_perturbed_features')
+      else:
+        perturbations[key] = dense_perturbed_features[key] - feature
+    return perturbations
+
   def gen_neighbor(self, input_features, pgd_labels=None):
     """Generates adversarial neighbors and the corresponding weights.
 
@@ -285,14 +322,37 @@ class _GenAdvNeighbor(abs_gen.GenNeighbor):
       logging.log_first_n(logging.WARNING,
                           'Cannot perturb non-Tensor input: %s', 1, sparse_keys)
 
+    # Compute keyed_grads_x only if regularizer_fn will be used.
+    keyed_grads_x = None
+    if self._regularizer_fn_set:
+      with tf.GradientTape() as gradient_tape_x:
+        gradient_tape_x.watch(dense_original_features)
+        original_inputs = self._decompose_as(
+            input_features,
+            dict(dense_original_features, **sparse_original_features),
+        )
+        original_predictions = self._pgd_model_fn(original_inputs)
+        loss = self._pgd_loss_fn(pgd_labels, original_predictions)
+      keyed_grads_x = self._compute_gradient(
+          loss, dense_original_features, gradient_tape_x)
+
     def pgd_step(step, dense_features):
       """Runs one step of PGD on the given features."""
+
       with tf.GradientTape(watch_accessed_variables=False) as gradient_tape:
         gradient_tape.watch(dense_features)
+
+        perturbations = self._retrieve_perturbations(
+            dense_original_features, dense_features)
+
         # Pack dense and sparse features into the original input structure.
         inputs = self._decompose_as(
             input_features, dict(dense_features, **sparse_original_features))
-        loss = self._pgd_loss_fn(pgd_labels, self._pgd_model_fn(inputs))
+        loss = self._pgd_loss_fn(
+            pgd_labels, self._pgd_model_fn(inputs))
+        regularization = self._regularizer_fn(perturbations, keyed_grads_x)
+        loss = loss + tf.cast(regularization, dtype=loss.dtype)
+
       keyed_grads = self._compute_gradient(loss, dense_features, gradient_tape)
       perturbations = self._compute_perturbations(dense_features, keyed_grads,
                                                   dense_original_features)
@@ -348,6 +408,7 @@ def gen_adv_neighbor(input_features,
                      pgd_model_fn=None,
                      pgd_loss_fn=None,
                      pgd_labels=None,
+                     regularizer_fn=None,
                      use_while_loop=False):
   """Generates adversarial neighbors for the given input and loss.
 
@@ -389,6 +450,18 @@ def gen_adv_neighbor(input_features,
     pgd_labels: labels for the input features. This should have shape
       `[batch_size, 1]`. Required to generate adversaries with PGD, unused
       otherwise.
+    regularizer_fn: regularization function for pg_loss_fn. This is optional for
+      PGD. It should be a function that accepts:
+        1. perturbations: a dense (float32) tensor, a list of dense tensors,
+          or a dictionary of feature names and dense tensors. The shape should
+          be the same as input_features. This is the perturbation at each step
+          of PGD.
+        2. keyed_grads_x: a dense (float32) tensor, a list of dense tensors,
+          or a dictionary of feature names and dense tensors. The shape should
+          be the same as input_features. This is the gradient of the labeled
+          loss with respect to input_features.
+      The output of this function is added to pgd_loss_fn during PGD steps.
+      The default when it is not given is None.
     use_while_loop: A Boolean indicating whether the PGD steps should be done in
       a `tf.while_loop`. This can potentially reduce memory footprint, but is
       not compatible to `pgd_model_fn` with side effects. (default=False)
@@ -411,5 +484,6 @@ def gen_adv_neighbor(input_features,
       gradient_tape,
       pgd_model_fn=pgd_model_fn,
       pgd_loss_fn=pgd_loss_fn,
+      regularizer_fn=regularizer_fn,
       use_while_loop=use_while_loop)
   return adv_helper.gen_neighbor(input_features, pgd_labels)

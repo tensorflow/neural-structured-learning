@@ -134,6 +134,61 @@ class GenAdvNeighborTest(tf.test.TestCase, parameterized.TestCase):
     actual_neighbor = self.evaluate(adv_neighbor)
     self.assertAllClose(expected_neighbor, actual_neighbor)
 
+  def test_gen_adv_neighbor_for_single_tensor_feature_with_regularization(self):
+    x = tf.constant([[-1.0, 1.0]])
+    y = tf.constant([0.0])
+    w = tf.constant([[0.6], [0.8]])
+    adv_step_size = 0.1
+
+    def rev(x):  # Only works for (*, 2)-shaped tensors.
+      return tf.roll(x, shift=1, axis=1)
+
+    def loss_fn(y0, y_hat):
+      return (y0 - y_hat) ** 2
+
+    def model_fn(x):
+      return tf.matmul(x, w) + tf.tensordot(x, tf.transpose(rev(x)), 1)
+
+    def regularizer_fn(perturbations, keyed_grads):
+      """Local Linearization Regularizer. See https://arxiv.org/abs/1907.02610.
+      """
+      regularization = 0
+      for key in perturbations:
+        perturbation = perturbations[key]
+        grad = keyed_grads[key]
+        regularization += tf.tensordot(perturbation, tf.transpose(grad), 1)
+      return regularization
+
+    with tf.GradientTape() as tape:
+      tape.watch(x)
+      y_hat = model_fn(x)
+      loss = loss_fn(y, y_hat)
+    adv_config = configs.AdvNeighborConfig(
+        feature_mask=tf.constant(1.0),
+        adv_step_size=adv_step_size,
+        adv_grad_norm='l2',
+        pgd_iterations=2)
+    adv_neighbor, _ = adv_lib.gen_adv_neighbor(
+        x,
+        loss,
+        adv_config,
+        gradient_tape=tape,
+        pgd_model_fn=model_fn,
+        pgd_loss_fn=loss_fn,
+        regularizer_fn=regularizer_fn,
+        pgd_labels=y)
+
+    # Take two steps in the gradient direction.
+    grad_x0 = -2 * (y - model_fn(x)) * (tf.transpose(w) + 2 * rev(x))
+    delta_0 = adv_step_size * tf.linalg.l2_normalize(2 * grad_x0)
+    x1 = x + delta_0
+    grad_x1 = -2 * (y - model_fn(x1)) * (tf.transpose(w) + 2 * rev(x1))
+    delta_1 = adv_step_size * tf.linalg.l2_normalize(grad_x1 + grad_x0)
+    expected_neighbor = x1 + delta_1
+
+    actual_neighbor = self.evaluate(adv_neighbor)
+    self.assertAllClose(expected_neighbor, actual_neighbor)
+
   @parameterized.named_parameters([('while_loop', True), ('for_loop', False)])
   def test_multi_iter_gen_adv_neighbor_proj_limits(self, use_while_loop):
     # Simple linear regression.
