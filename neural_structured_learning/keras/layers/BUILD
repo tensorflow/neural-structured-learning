@@ -18,7 +18,6 @@
 # Build rules for custom Keras layers in Neural Structured Learning.
 
 package(
-    default_visibility = ["//neural_structured_learning:__subpackages__"],
     licenses = ["notice"],  # Apache 2.0
 )
 
