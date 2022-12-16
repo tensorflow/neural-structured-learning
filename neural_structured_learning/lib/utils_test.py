@@ -182,6 +182,24 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     global_norm = np.linalg.norm(np.stack(per_feature_norm, axis=1), order, 1)
     self.assertAllLessEqual(global_norm, radius)
 
+  @parameterized.named_parameters(
+      ('LInf', configs.NormType.INFINITY, np.inf),
+      ('L2', configs.NormType.L2, 2),
+      ('L1', configs.NormType.L1, 1),
+  )
+  def testRandomInNormBallInKerasLayer(self, norm_type, order):
+    batch_size, input_dim, radius = 2, 4, 1.0
+    keras_layer = tf.keras.layers.Lambda(
+        lambda x: utils.random_in_norm_ball(x, radius, norm_type))
+    keras_input = tf.keras.Input(shape=(input_dim,))
+    keras_output = keras_layer(keras_input)
+    keras_model = tf.keras.Model(inputs=keras_input, outputs=keras_output)
+
+    input_array = np.zeros([batch_size, input_dim])
+    output_array = self.evaluate(keras_model(input_array))
+    self.assertAllLessEqual(
+        np.linalg.norm(output_array, ord=order, axis=-1), radius)
+
   def testNormalizeInfWithOnes(self):
     target_tensor = tf.constant(1.0, shape=[2, 4])
     normalized_tensor = self.evaluate(

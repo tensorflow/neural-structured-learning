@@ -175,17 +175,18 @@ def random_in_norm_ball(tensor_structure, radius, norm_type):
 
   if norm_type == configs.NormType.INFINITY:
     return tf.nest.map_structure(
-        lambda t: tf.random.uniform(t.shape, -radius, radius, t.dtype),
+        lambda t: tf.random.uniform(tf.shape(t), -radius, radius, t.dtype),
         tensor_structure)
   elif norm_type == configs.NormType.L2:
     # Sample each coordinate with Normal(0, 1).
-    samples = [tf.random.normal(t.shape, dtype=t.dtype) for t in tensors]
+    samples = [tf.random.normal(tf.shape(t), dtype=t.dtype) for t in tensors]
     squared_norm = _reduce_across_tensors(tf.reduce_sum,
                                           [tf.square(t) for t in samples])
     # Squared L2 norm of two extra coordinates:
     # Normal(0, 1)^2 + Normal(0, 1)^2 ~ Chi^2(2) ~ Exponential(0.5)
     # Exponential(lambda) ~ Gamma(1, beta=lambda)
-    extra = tf.random.gamma(squared_norm.shape, 1.0, 0.5, squared_norm.dtype)
+    extra = tf.random.gamma(
+        tf.shape(squared_norm), 1.0, 0.5, squared_norm.dtype)
     scale = radius / tf.math.sqrt(squared_norm + extra)
     return tf.nest.pack_sequence_as(
         tensor_structure,
@@ -195,12 +196,12 @@ def random_in_norm_ball(tensor_structure, radius, norm_type):
     samples = []
     for t in tensors:
       samples.append(
-          tf.random.gamma(t.shape, 1., 1., t.dtype) -
-          tf.random.gamma(t.shape, 1., 1., t.dtype))
+          tf.random.gamma(tf.shape(t), 1., 1., t.dtype) -
+          tf.random.gamma(tf.shape(t), 1., 1., t.dtype))
     l1_norm = _reduce_across_tensors(tf.reduce_sum,
                                      [tf.abs(t) for t in samples])
     # L1 norm of one extra coordinate: |Laplace(0, 1)| ~ Exponential(1).
-    extra = tf.random.gamma(l1_norm.shape, 1.0, 1.0, l1_norm.dtype)
+    extra = tf.random.gamma(tf.shape(l1_norm), 1.0, 1.0, l1_norm.dtype)
     scale = radius / (l1_norm + extra)
     return tf.nest.pack_sequence_as(
         tensor_structure,
