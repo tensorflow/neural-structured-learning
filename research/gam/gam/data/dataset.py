@@ -669,7 +669,7 @@ class CotrainDataset(object):
       labeled_indices = list(self.get_indices_train())
       labeled_indices_labels = dataset.get_labels(labeled_indices)
       label_counts = collections.Counter(labeled_indices_labels)
-      num_labels = np.float(len(labeled_indices))
+      num_labels = float(len(labeled_indices))
       assert num_labels > 0, 'There are no labeled samples in the dataset.'
       self.label_prop = {
           label: count / num_labels for label, count in label_counts.items()

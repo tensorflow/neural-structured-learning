@@ -94,7 +94,7 @@ def load_data_realistic_ssl(dataset_name, data_path, label_map_path):
   train_indices = np.asarray(train_indices)
 
   # Select the loaded train indices, and make the rest unlabeled.
-  unlabeled_mask = np.ones((train_inputs.shape[0],), dtype=np.bool)
+  unlabeled_mask = np.ones((train_inputs.shape[0],), dtype=bool)
   unlabeled_mask[train_indices] = False
   unlabeled_inputs = train_inputs[unlabeled_mask]
   unlabeled_labels = train_labels[unlabeled_mask]
@@ -159,7 +159,7 @@ def load_from_planetoid_files(dataset_name, path):
     """Create mask."""
     mask = np.zeros(l)
     mask[idx] = 1
-    return np.array(mask, dtype=np.bool)
+    return np.array(mask, dtype=bool)
 
   def _parse_index_file(filename):
     """Parse index file."""

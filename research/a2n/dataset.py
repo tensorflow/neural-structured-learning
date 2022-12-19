@@ -36,7 +36,7 @@ def get_graph_nbrhd(train_graph, ent, exclude_tuple):
                        # er not in train_graph.reverse_kg_data[ent][nbr]]
                        (train_graph.reverse_kg_data[ent][nbr] - set([er]))]
     neighborhood += rev_nighborhood
-  neighborhood = np.array(list(set(neighborhood)), dtype=np.int)
+  neighborhood = np.array(list(set(neighborhood)), dtype=int)
   return neighborhood
 
 
@@ -55,7 +55,7 @@ def get_graph_nbrhd_with_rels(train_graph, ent, exclude_tuple):
   #                      # er not in train_graph.reverse_kg_data[ent][nbr]]
   #                      (train_graph.reverse_kg_data[ent][nbr] - set([er]))]
   #   neighborhood += rev_nighborhood
-  neighborhood = np.array(neighborhood, dtype=np.int)
+  neighborhood = np.array(neighborhood, dtype=int)
   return neighborhood
 
 
@@ -78,7 +78,7 @@ def get_graph_nbrhd_text(train_graph, ent, max_text_len):
   #                      # er not in train_graph.reverse_kg_data[ent][nbr]]
   #                      (train_graph.reverse_kg_data[ent][nbr] - set([er]))]
   #   neighborhood += rev_nighborhood
-  neighborhood = np.array(neighborhood, dtype=np.int)
+  neighborhood = np.array(neighborhood, dtype=int)
   return neighborhood
 
 
@@ -94,7 +94,7 @@ def get_graph_nbrhd_embd_text(train_graph, ent, max_text_nbrs):
   if not neighborhood:
     neighborhood = [[]]
     neighborhood_emb = [np.zeros(train_graph.embeddings[0].size)]
-  neighborhood = np.array(neighborhood, dtype=np.int)
+  neighborhood = np.array(neighborhood, dtype=int)
   neighborhood_emb = np.array(neighborhood_emb, dtype=np.float32)
   if neighborhood.shape[0] > max_text_nbrs:
     ids = np.random.choice(np.range(neighborhood.shape[0]),
@@ -162,7 +162,7 @@ def get_graph_nbrhd_paths(train_graph, ent, exclude_tuple):
     neighborhood += paths
   if not neighborhood:
     neighborhood = [[]]
-  neighborhood = np.array(neighborhood, dtype=np.int)
+  neighborhood = np.array(neighborhood, dtype=int)
   return neighborhood
 
 
@@ -223,7 +223,7 @@ def get_graph_nbrhd_paths_randwalk(train_graph, ent, exclude_tuple,
   if not neighborhood:
     neighborhood = [[]]
   # import pdb; pdb.set_trace()
-  neighborhood = np.array(neighborhood, dtype=np.int)
+  neighborhood = np.array(neighborhood, dtype=int)
   return neighborhood
 
 
@@ -354,7 +354,7 @@ class Dataset(object):
     # else:
     #   negatives = np.array(candidate_negatives)
     negatives = sample_or_pad(
-        np.array(candidate_negatives, dtype=np.int), self.max_negatives,
+        np.array(candidate_negatives, dtype=int), self.max_negatives,
         pad_value=self.train_graph.ent_pad
     )
     # negatives is an array of shape (max_negatives)
@@ -377,8 +377,8 @@ class Dataset(object):
       nbrhd_fn = get_graph_nbrhd
       pad_value = self.train_graph.ent_pad
     if self.model_type == "distmult":
-      nbrs_s = np.array([], dtype=np.int)
-      nbrs_candidates = np.array([], dtype=np.int)
+      nbrs_s = np.array([], dtype=int)
+      nbrs_candidates = np.array([], dtype=int)
     elif self.model_type in ["source_attention", "source_rel_attention",
                              "source_path_attention"]:
       nbrs_s = sample_or_pad(nbrhd_fn(self.train_graph, s, (s, r, t)),
@@ -396,7 +396,7 @@ class Dataset(object):
             get_graph_nbrhd_text(self.train_graph, s, self.max_text_len),
             self.max_text_neighbors, pad_value=text_pad_value
         )
-      nbrs_candidates = np.array([], dtype=np.int)
+      nbrs_candidates = np.array([], dtype=int)
     else:
       nbrs_s = sample_or_pad(nbrhd_fn(self.train_graph, s, (s, r, t)),
                              self.max_neighbors,
@@ -417,7 +417,7 @@ class Dataset(object):
     if self.mode != "train":
       labels = [t]
     else:
-      labels = np.zeros(candidates.shape[0], dtype=np.int)
+      labels = np.zeros(candidates.shape[0], dtype=int)
       labels[0] = 1
       idx = np.arange(candidates.shape[0])
       np.random.shuffle(idx)
