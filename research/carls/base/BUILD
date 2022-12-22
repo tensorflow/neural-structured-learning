@@ -79,7 +79,6 @@ cc_library(
     hdrs = ["status_helper.h"],
     deps = [
         "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@tensorflow_includes//:includes",

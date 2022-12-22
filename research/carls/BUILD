@@ -254,7 +254,6 @@ cc_library(
         "//research/carls/memory_store:gaussian_memory_config_cc_proto",
         "@com_github_grpc_grpc//:gpr",
         "@com_github_grpc_grpc//:grpc++",
-        "@com_github_grpc_grpc//:grpc++_codegen_base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
