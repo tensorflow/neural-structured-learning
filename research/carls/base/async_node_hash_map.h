@@ -24,7 +24,6 @@ limitations under the License.
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/internal/raw_hash_set.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/platform/fingerprint.h"
@@ -53,19 +52,11 @@ namespace carls {
 // Note that we do not take into account the original value/embedding of "key".
 //
 template <class Key, class Value,
-          class Hash = absl::container_internal::hash_default_hash<Key>,
-          class Eq = absl::container_internal::hash_default_eq<Key>,
+          class Hash = typename absl::node_hash_map<Key, Value>::hasher,
+          class Eq = typename absl::node_hash_map<Key, Value, Hash>::key_equal,
           class Alloc = std::allocator<std::pair<const Key, Value>>>
 class async_node_hash_map {
   using NodeHashMap = absl::node_hash_map<Key, Value, Hash, Eq, Alloc>;
-  // P is Policy. It's passed as a template argument to support maps that have
-  // incomplete types as values, as in unordered_map<K, IncompleteType>.
-  // MappedReference<> may be a non-reference type.
-  template <class P>
-  using MappedReference = decltype(P::value(
-      std::addressof(std::declval<typename NodeHashMap::reference>())));
-
-  using Policy = absl::container_internal::NodeHashMapPolicy<Key, Value>;
 
   using IterVector = std::vector<typename NodeHashMap::iterator>;
 
@@ -295,8 +286,8 @@ class async_node_hash_map {
   }
 
   // The API of operator [].
-  template <class K = key_type, class P = Policy, K* = nullptr>
-  MappedReference<P> operator[](key_arg<K>&& key) {
+  template <class K = key_type, K* = nullptr>
+  Value& operator[](key_arg<K>&& key) {
     const int p = get_partition(key);
     absl::MutexLock l(partitioned_mu_[p].get());
     if (aggregator_ != nullptr) {
@@ -310,12 +301,13 @@ class async_node_hash_map {
         partitioned_update_buffer_[p].erase(key);
       }
     }
-    return Policy::value(
-        &*partitioned_hash_maps_[p]->try_emplace(std::forward<K>(key)).first);
+    return partitioned_hash_maps_[p]
+        ->try_emplace(std::forward<K>(key))
+        .first->second;
   }
 
-  template <class K = key_type, class P = Policy>
-  MappedReference<P> operator[](const key_arg<K>& key) {
+  template <class K = key_type>
+  Value& operator[](const key_arg<K>& key) {
     const int p = get_partition(key);
     absl::MutexLock l(partitioned_mu_[p].get());
     if (aggregator_ != nullptr) {
@@ -329,7 +321,7 @@ class async_node_hash_map {
         partitioned_update_buffer_[p].erase(key);
       }
     }
-    return Policy::value(&*partitioned_hash_maps_[p]->try_emplace(key).first);
+    return partitioned_hash_maps_[p]->try_emplace(key).first->second;
   }
 
  private:
