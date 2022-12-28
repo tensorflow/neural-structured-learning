@@ -16,9 +16,11 @@ limitations under the License.
 #ifndef NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_ASYNC_NODE_HASH_MAP_H_
 #define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_ASYNC_NODE_HASH_MAP_H_
 
+#include <algorithm>
 #include <deque>
 #include <functional>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -64,6 +66,8 @@ class async_node_hash_map {
       std::addressof(std::declval<typename NodeHashMap::reference>())));
 
   using Policy = absl::container_internal::NodeHashMapPolicy<Key, Value>;
+
+  using IterVector = std::vector<typename NodeHashMap::iterator>;
 
  public:
   using key_type = typename NodeHashMap::key_type;
@@ -151,8 +155,10 @@ class async_node_hash_map {
     }
 
    private:
-    iterator(std::vector<typename NodeHashMap::iterator> iterators,
-             std::vector<typename NodeHashMap::iterator> end_iterators,
+    // Requires: for all i, iterators[i] is comparable with end_iterators[i].
+    // This means that both iterators[i] and end_iterators[i] must have been
+    // initialized in the same critical section.
+    iterator(IterVector iterators, IterVector end_iterators,
              int current_partition)
         : iterators_(std::move(iterators)),
           end_iterators_(std::move(end_iterators)),
@@ -168,20 +174,24 @@ class async_node_hash_map {
 
     // Keeps track of current state of all NodeHashMap::iterators, such that
     // the current element can be retrieved by iterators_[current_partition_].
-    std::vector<typename NodeHashMap::iterator> iterators_;
+    IterVector iterators_;
     // The end iterators for all partitions. This is needed for early version
     // of absl::node_hash_map whose end() points to the address after the last
     // element.
-    std::vector<typename NodeHashMap::iterator> end_iterators_;
+    IterVector end_iterators_;
     // The current partition of the iterators_.
     unsigned int current_partition_ = 0;
   };
 
   iterator begin() {
-    return iterator(get_begin_iterators(), get_end_iterators(), 0);
+    auto [iterators, end_iterators] = get_begin_and_end_iterators();
+    return iterator(std::move(iterators), std::move(end_iterators), 0);
   }
   iterator end() {
-    return iterator(get_end_iterators(), get_end_iterators(), num_partitions_);
+    IterVector end_iterators = get_end_iterators();
+    IterVector end_iterators_copy = end_iterators;
+    return iterator(std::move(end_iterators), std::move(end_iterators_copy),
+                    num_partitions_);
   }
 
   // Returns true if the hash map is empty.
@@ -249,8 +259,7 @@ class async_node_hash_map {
   template <class K = key_type>
   iterator find(const key_arg<K>& key) {
     const int p = get_partition(key);
-    auto iterators = get_begin_iterators();
-    auto end_iterators = get_end_iterators();
+    auto [iterators, end_iterators] = get_begin_and_end_iterators();
     absl::MutexLock l(partitioned_mu_[p].get());
     // First checks value buffer. If not empty, update the hash map with
     // aggregated value.
@@ -261,6 +270,7 @@ class async_node_hash_map {
         auto pair = partitioned_hash_maps_[p]->insert_or_assign(
             key, std::move(aggregated_value));
         iterators[p] = std::move(pair.first);
+        end_iterators[p] = partitioned_hash_maps_[p]->end();
         partitioned_update_buffer_[p].erase(key);
       }
     }
@@ -272,6 +282,7 @@ class async_node_hash_map {
                       num_partitions_);
     }
     iterators[p] = std::move(iter);
+    end_iterators[p] = partitioned_hash_maps_[p]->end();
     return iterator(std::move(iterators), std::move(end_iterators), p);
   }
 
@@ -328,8 +339,7 @@ class async_node_hash_map {
   template <class K, class V>
   std::pair<iterator, bool> insert_or_assign_impl(K&& key, V&& value) {
     const int p = get_partition(key);
-    auto iterators = get_begin_iterators();
-    auto end_iterators = get_end_iterators();
+    auto [iterators, end_iterators] = get_begin_and_end_iterators();
     absl::MutexLock l(partitioned_mu_[p].get());
     if (aggregator_ == nullptr || max_write_buffer_size_ == 1 ||
         partitioned_hash_maps_[p]->find(key) ==
@@ -337,6 +347,7 @@ class async_node_hash_map {
       // Add the element without buffering.
       auto pair = partitioned_hash_maps_[p]->insert_or_assign(key, value);
       iterators[p] = std::move(pair.first);
+      end_iterators[p] = partitioned_hash_maps_[p]->end();
       return {iterator(std::move(iterators), std::move(end_iterators), p),
               pair.second};
     }
@@ -348,19 +359,22 @@ class async_node_hash_map {
     return {iterator(std::move(iterators), std::move(end_iterators), p), false};
   }
 
-  std::vector<typename NodeHashMap::iterator> get_begin_iterators() {
-    std::vector<typename NodeHashMap::iterator> iterators;
-    iterators.reserve(num_partitions_ + 1);
+  std::pair<IterVector, IterVector> get_begin_and_end_iterators() {
+    IterVector begins, ends;
+    begins.reserve(num_partitions_ + 1);
+    ends.reserve(num_partitions_ + 1);
     for (unsigned int p = 0; p < num_partitions_; ++p) {
       absl::MutexLock l(partitioned_mu_[p].get());
-      iterators.push_back(partitioned_hash_maps_[p]->begin());
+      begins.push_back(partitioned_hash_maps_[p]->begin());
+      ends.push_back(partitioned_hash_maps_[p]->end());
     }
-    iterators.push_back(end_);
-    return iterators;
+    begins.push_back(end_);
+    ends.push_back(end_);
+    return {std::move(begins), std::move(ends)};
   }
 
-  std::vector<typename NodeHashMap::iterator> get_end_iterators() {
-    std::vector<typename NodeHashMap::iterator> iterators;
+  IterVector get_end_iterators() {
+    IterVector iterators;
     iterators.reserve(num_partitions_ + 1);
     for (unsigned int p = 0; p < num_partitions_; ++p) {
       absl::MutexLock l(partitioned_mu_[p].get());
@@ -381,7 +395,7 @@ class async_node_hash_map {
   mutable std::vector<std::unique_ptr<absl::Mutex>> partitioned_mu_;
   // Partitioned key to updated values buffer.
   mutable std::vector<ValueUpdateBuffer> partitioned_update_buffer_;
-  // A spacial iterator denoting the end of all partitions.
+  // A special iterator denoting the end of all partitions.
   const typename NodeHashMap::iterator end_;
 };
 
