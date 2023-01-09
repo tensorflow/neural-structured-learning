@@ -137,12 +137,12 @@ class async_node_hash_map {
     }
 
     friend bool operator==(const iterator& a, const iterator& b) {
+      if (a.current_partition_ != b.current_partition_) return false;
       return a.iterators_[a.current_partition_] ==
              b.iterators_[b.current_partition_];
     }
     friend bool operator!=(const iterator& a, const iterator& b) {
-      return a.iterators_[a.current_partition_] !=
-             b.iterators_[b.current_partition_];
+      return !(a == b);
     }
 
    private:
