@@ -20,7 +20,7 @@ limitations under the License.
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
-#include "grpc/impl/codegen/gpr_types.h"
+#include "grpc/support/time.h"
 #include "grpcpp/create_channel.h"  // third_party
 #include "grpcpp/impl/codegen/client_context.h"  // third_party
 #include "grpcpp/security/credentials.h"  // third_party
