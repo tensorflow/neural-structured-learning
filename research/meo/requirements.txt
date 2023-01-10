@@ -1,0 +1,5 @@
+absl-py
+numpy
+tensorflow
+tensorflow_datasets
+xmanager
