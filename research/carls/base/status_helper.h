@@ -17,7 +17,7 @@ limitations under the License.
 #define NEURAL_STRUCTURED_LEARNING_RESEARCH_CARLS_BASE_STATUS_HELPER_H_
 
 #include "absl/status/status.h"
-#include "grpcpp/impl/codegen/client_context.h"  // third_party
+#include "grpcpp/client_context.h"  // third_party
 #include "tensorflow/core/platform/status.h"
 
 namespace carls {
