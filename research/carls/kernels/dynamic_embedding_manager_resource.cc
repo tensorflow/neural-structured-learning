@@ -92,7 +92,8 @@ class DynamicEmbeddingManagerResourceOp
     *ret = new DynamicEmbeddingManagerResource(config_, var_name_, kbs_address_,
                                                timeout_);
     if ((*ret)->manager() == nullptr) {
-      return Status(tensorflow::error::FAILED_PRECONDITION,
+      return Status(static_cast<tensorflow::errors::Code>(
+                        absl::StatusCode::kFailedPrecondition),
                     "DynamicEmbeddingManager is NULL.");
     }
     return tensorflow::OkStatus();

@@ -43,8 +43,9 @@ TEST(ProtoFactoryTest, ToAbslStatus_Grpc) {
 TEST(ProtoFactoryTest, ToAbslStatus_TensorFlow) {
   EXPECT_EQ(absl::OkStatus(), carls::ToAbslStatus(tensorflow::OkStatus()));
 
-  auto tf_status =
-      tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Error.");
+  auto tf_status = tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                                          absl::StatusCode::kInvalidArgument),
+                                      "Error.");
   auto absl_status = carls::ToAbslStatus(tf_status);
   EXPECT_ERROR_EQ(absl_status, "Error.");
   EXPECT_TRUE(absl::IsInvalidArgument(absl_status));

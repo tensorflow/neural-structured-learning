@@ -59,15 +59,18 @@ TEST(TestHelperTest, GrpcStatusChecks) {
 
 TEST(TestHelperTest, TensoFlowStatusChecks) {
   EXPECT_OK(tensorflow::OkStatus());
-  EXPECT_NOT_OK(
-      tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."));
-  EXPECT_ERROR_EQ(
-      tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "First error."),
-      "First error.");
+  EXPECT_NOT_OK(tensorflow::Status(
+      static_cast<tensorflow::errors::Code>(absl::StatusCode::kInvalidArgument),
+      "First error."));
+  EXPECT_ERROR_EQ(tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                                         absl::StatusCode::kInvalidArgument),
+                                     "First error."),
+                  "First error.");
   ASSERT_OK(tensorflow::OkStatus());
-  ASSERT_ERROR_EQ(
-      tensorflow::Status(tensorflow::error::INVALID_ARGUMENT, "Second error."),
-      "Second error.");
+  ASSERT_ERROR_EQ(tensorflow::Status(static_cast<tensorflow::errors::Code>(
+                                         absl::StatusCode::kInvalidArgument),
+                                     "Second error."),
+                  "Second error.");
 }
 
 }  // namespace carls
