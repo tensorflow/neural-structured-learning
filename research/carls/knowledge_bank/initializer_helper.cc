@@ -85,7 +85,7 @@ EmbeddingVectorProto InitializeEmbedding(
     return result;
   }
 
-  LOG(FATAL) << "Initializer is not supported: " << initializer.DebugString();
+  LOG(FATAL) << "Initializer is not supported: " << initializer;
   return result;
 }
 
@@ -124,7 +124,7 @@ EmbeddingVectorProto InitializeEmbeddingWithSeed(
     return result;
   }
 
-  LOG(FATAL) << "Initializer is not supported: " << initializer.DebugString();
+  LOG(FATAL) << "Initializer is not supported: " << initializer;
   return result;
 }
 

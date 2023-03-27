@@ -115,8 +115,7 @@ REGISTER_SAMPLER_FACTORY(
         -> std::unique_ptr<CandidateSampler> {
       NegativeSamplerConfig sampler_config;
       if (!config.extension().UnpackTo(&sampler_config)) {
-        LOG(ERROR) << "Unpacking extension failed with input: "
-                   << config.DebugString();
+        LOG(ERROR) << "Unpacking extension failed with input: " << config;
       }
       if (sampler_config.sampler() == NegativeSamplerConfig::UNKNOWN) {
         LOG(ERROR) << "Unkown sampler.";
