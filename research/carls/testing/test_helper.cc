@@ -15,8 +15,11 @@ limitations under the License.
 
 #include "research/carls/testing/test_helper.h"
 
+#include <string>
+
 #include "grpcpp/support/status.h"  // net
 #include "tensorflow/core/platform/status.h"
+#include "tensorflow/core/public/version.h"
 
 namespace carls {
 namespace internal {
@@ -33,7 +36,14 @@ std::string GetErrorMessage(const grpc::Status& status) {
 
 template <>
 std::string GetErrorMessage(const tensorflow::Status& status) {
+// On April 2023, there is not yet an official release of Tensorflow which
+// includes `message().` One will need to wait for the release following 2.12.0.
+// The code can be updated to just be the else branch after such release exists.
+#if TF_GRAPH_DEF_VERSION < 1467
   return status.error_message();
+#else
+  return std::string(status.message());
+#endif
 }
 
 }  // namespace internal

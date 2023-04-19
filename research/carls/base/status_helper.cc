@@ -15,9 +15,12 @@ limitations under the License.
 
 #include "research/carls/base/status_helper.h"
 
+#include <string>
+
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/platform/abi.h"
+#include "tensorflow/core/public/version.h"
 
 #if defined(TF_HAS_STACKTRACE)
 #include <dlfcn.h>
@@ -214,7 +217,11 @@ absl::Status ToAbslStatus(const grpc::Status& status) {
 
 absl::Status ToAbslStatus(const tensorflow::Status& status) {
   return absl::Status(static_cast<absl::StatusCode>(status.code()),
+#if TF_GRAPH_DEF_VERSION < 1467
                       status.error_message());
+#else
+                      status.message());
+#endif
 }
 
 grpc::Status ToGrpcStatus(const absl::Status& status) {

@@ -15,10 +15,13 @@ limitations under the License.
 
 #include "research/carls/base/file_helper.h"
 
+#include <string>
+
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "research/carls/base/status_helper.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/public/version.h"
 
 namespace carls {
 namespace internal {
@@ -66,8 +69,13 @@ absl::Status ReadFileString(const std::string& filepath, std::string* output) {
   auto tf_status = env->NewReadOnlyMemoryRegionFromFile(filepath, &file);
   if (!tf_status.ok()) {
     return absl::Status(absl::StatusCode::kInternal,
+#if TF_GRAPH_DEF_VERSION < 1467
                         absl::StrCat("Reading file failed with error:",
                                      tf_status.error_message()));
+#else
+                        absl::StrCat("Reading file failed with error:",
+                                     tf_status.message()));
+#endif
   }
   *output = std::string(static_cast<const char*>(file->data()), file->length());
   return absl::OkStatus();
@@ -84,20 +92,35 @@ absl::Status WriteFileString(const std::string& filepath,
   auto tf_status = env->NewWritableFile(filepath, &file);
   if (!tf_status.ok()) {
     return absl::Status(absl::StatusCode::kInternal,
+#if TF_GRAPH_DEF_VERSION < 1467
                         absl::StrCat("Creating file failed with error:",
                                      tf_status.error_message()));
+#else
+                        absl::StrCat("Creating file failed with error:",
+                                     tf_status.message()));
+#endif
   }
   tf_status = file->Append(content);
   if (!tf_status.ok()) {
     return absl::Status(absl::StatusCode::kInternal,
+#if TF_GRAPH_DEF_VERSION < 1467
                         absl::StrCat("Appending file failed with error:",
                                      tf_status.error_message()));
+#else
+                        absl::StrCat("Appending file failed with error:",
+                                     tf_status.message()));
+#endif
   }
   tf_status = file->Close();
   if (!tf_status.ok()) {
     return absl::Status(absl::StatusCode::kInternal,
+#if TF_GRAPH_DEF_VERSION < 1467
                         absl::StrCat("Closing file failed with error:",
                                      tf_status.error_message()));
+#else
+                        absl::StrCat("Closing file failed with error:",
+                                     tf_status.message()));
+#endif
   }
   return absl::OkStatus();
 }
