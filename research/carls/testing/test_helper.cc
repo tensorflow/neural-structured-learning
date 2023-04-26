@@ -34,7 +34,10 @@ std::string GetErrorMessage(const grpc::Status& status) {
   return status.error_message();
 }
 
-template <>
+// Starting from TF 2.13, `tensorflow::Status` will be an alias to
+// `absl::Status`, thus, we don't define the specialization in that case.
+template <class T,
+          std::enable_if_t<!std::is_same<T, absl::Status>::value, bool> = true>
 std::string GetErrorMessage(const tensorflow::Status& status) {
 // On April 2023, there is not yet an official release of Tensorflow which
 // includes `message().` One will need to wait for the release following 2.12.0.
