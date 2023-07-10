@@ -11,7 +11,7 @@ def repo():
 
     http_archive(
         name = "farmhash_archive",
-        build_file = "//research/carls/third_party/farmhash:farmhash.BUILD",
+        build_file = "//research/carls/knowledge_bank/farmhash:farmhash.BUILD",
         sha256 = FARMHASH_SHA256,
         strip_prefix = "farmhash-{commit}".format(commit = FARMHASH_COMMIT),
         urls = [

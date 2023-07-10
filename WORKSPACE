@@ -3,15 +3,15 @@ workspace(name = "org_tensorflow_neural_structured_learning")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # farmhash
-load("//research/carls/third_party/farmhash:workspace.bzl", farmhash = "repo")
+load("//research/carls/knowledge_bank/farmhash:workspace.bzl", farmhash = "repo")
 farmhash()
 
 # leveldb
-load("//research/carls/third_party/leveldb:workspace.bzl", leveldb = "repo")
+load("//research/carls/knowledge_bank/leveldb:workspace.bzl", leveldb = "repo")
 leveldb()
 
 # rocksdb
-load("//research/carls/third_party/rocksdb:workspace.bzl", rocksdb = "repo")
+load("//research/carls/knowledge_bank/rocksdb:workspace.bzl", rocksdb = "repo")
 rocksdb()
 
 # absl

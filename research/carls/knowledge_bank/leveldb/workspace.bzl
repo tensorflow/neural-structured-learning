@@ -11,7 +11,7 @@ def repo():
 
     http_archive(
         name = "com_google_leveldb",
-        build_file = "//research/carls/third_party/leveldb:leveldb.BUILD",
+        build_file = "//research/carls/knowledge_bank/leveldb:leveldb.BUILD",
         patch_cmds = [
             """mkdir leveldb; cp include/leveldb/* leveldb""",
         ],

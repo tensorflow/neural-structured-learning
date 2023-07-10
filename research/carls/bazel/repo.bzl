@@ -188,7 +188,7 @@ cc_library(
 def _protobuf_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(tf_include_path, "tf_includes")
-    repo_ctx.symlink(Label("//research/carls/third_party:protobuf.BUILD"), "BUILD")
+    repo_ctx.symlink(Label("//research/carls:protobuf.BUILD"), "BUILD")
 
 def _tensorflow_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)

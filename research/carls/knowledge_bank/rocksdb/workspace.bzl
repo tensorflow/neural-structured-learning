@@ -10,7 +10,7 @@ def repo():
 
     http_archive(
         name = "rocksdb",
-        build_file = "//research/carls/third_party/rocksdb:rocksdb.BUILD",
+        build_file = "//research/carls/knowledge_bank/rocksdb:rocksdb.BUILD",
         sha256 = ROCKSDB_SHA256,
         strip_prefix = "rocksdb-{version}".format(version = ROCKSDB_VERSION),
         url = "https://github.com/facebook/rocksdb/archive/v{version}.tar.gz".format(version = ROCKSDB_VERSION),
@@ -19,7 +19,7 @@ def repo():
     # A dependency of rocksdb that is required for rocksdb::ClockCache.
     http_archive(
         name = "tbb",
-        build_file = "//research/carls/third_party/rocksdb:tbb.BUILD",
+        build_file = "//research/carls/knowledge_bank/rocksdb:tbb.BUILD",
         sha256 = "b182c73caaaabc44ddc5ad13113aca7e453af73c1690e4061f71dfe4935d74e8",
         strip_prefix = "oneTBB-2021.1.1",
         url = "https://github.com/oneapi-src/oneTBB/archive/v2021.1.1.tar.gz",
