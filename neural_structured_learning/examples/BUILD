@@ -1,6 +1,9 @@
 package(
-    licenses = ["notice"],  # Apache 2.0
+    default_applicable_licenses = ["//neural_structured_learning:license"],
+    default_visibility = ["//visibility:public"],
 )
+
+licenses(["notice"])
 
 py_binary(
     name = "graph_keras_mlp_cora",

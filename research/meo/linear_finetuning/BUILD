@@ -15,9 +15,11 @@
 load("//devtools/python/blaze:pytype.bzl", "pytype_strict_binary", "pytype_strict_library")
 
 package(
+    default_applicable_licenses = ["//neural_structured_learning:license"],
     default_visibility = ["//research/meo:__subpackages__"],
-    licenses = ["notice"],  # Apache 2.0
 )
+
+licenses(["notice"])
 
 pytype_strict_library(
     name = "linear_finetuning_lib",

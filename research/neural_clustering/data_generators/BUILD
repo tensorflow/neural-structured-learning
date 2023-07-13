@@ -18,9 +18,11 @@
 # Build rules for data modules in Neural Clustering.
 
 package(
+    default_applicable_licenses = ["//neural_structured_learning:license"],
     default_visibility = ["//visibility:public"],
-    licenses = ["notice"],  # Apache 2.0
 )
+
+licenses(["notice"])
 
 py_library(
     name = "data_generators",

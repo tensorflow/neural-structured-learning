@@ -18,9 +18,11 @@
 # Placeholder for internal Python strict & test compatibility macro.
 
 package(
+    default_applicable_licenses = ["//neural_structured_learning:license"],
     default_visibility = ["//research/carls:internal"],
-    licenses = ["notice"],  # Apache 2.0
 )
+
+licenses(["notice"])
 
 py_library(
     name = "array_ops",

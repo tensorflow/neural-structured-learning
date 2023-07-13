@@ -17,8 +17,17 @@
 
 # Placeholder for internal Python strict compatibility macro.
 # Internal annotation for sync
+load("@rules_license//rules:license.bzl", "license")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = [":license"],
+    default_visibility = ["//visibility:public"],
+)
+
+license(
+    name = "license",
+    package_name = "neural_structured_learning",
+)
 
 licenses(["notice"])
 

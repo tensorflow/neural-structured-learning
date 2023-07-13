@@ -18,8 +18,11 @@
 # Build rules for custom Keras layers in Neural Structured Learning.
 
 package(
-    licenses = ["notice"],  # Apache 2.0
+    default_applicable_licenses = ["//neural_structured_learning:license"],
+    default_visibility = ["//visibility:public"],
 )
+
+licenses(["notice"])
 
 py_library(
     name = "layers",

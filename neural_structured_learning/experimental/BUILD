@@ -2,9 +2,11 @@
 # Placeholder for internal Python strict compatibility macro.
 
 package(
+    default_applicable_licenses = ["//neural_structured_learning:license"],
     default_visibility = ["//neural_structured_learning:__subpackages__"],
-    licenses = ["notice"],  # Apache 2.0
 )
+
+licenses(["notice"])
 
 py_library(
     name = "experimental",
