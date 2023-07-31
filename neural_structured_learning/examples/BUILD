@@ -1,3 +1,5 @@
+# Placeholder for loading py_binary
+
 package(
     default_applicable_licenses = ["//neural_structured_learning:license"],
     default_visibility = ["//visibility:public"],
