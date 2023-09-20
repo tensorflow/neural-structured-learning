@@ -124,7 +124,7 @@ def read_tsv_graph(filename):
   logging.info('Reading graph file: %s...', filename)
   graph = {}
   edge_cnt = 0
-  with open(filename, 'rU') as f:
+  with open(filename, 'r') as f:
     for tsv_line in f:
       edge = tsv_line.rstrip('\n').split('\t')
       if add_edge(graph, edge): edge_cnt += 1

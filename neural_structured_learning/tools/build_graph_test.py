@@ -87,7 +87,7 @@ class BuildGraphTest(absltest.TestCase):
     return self.create_tempfile('graph.tsv').full_path
 
   def _num_file_lines(self, graph_path):
-    with open(graph_path, 'rU') as f:
+    with open(graph_path, 'r') as f:
       return sum(1 for _ in f)
 
   def testBuildGraphInvalidLshBitsValue(self):
