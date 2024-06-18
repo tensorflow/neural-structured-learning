@@ -68,7 +68,7 @@ EmbeddingVectorProto InitializeEmbedding(
     return result;
   }
   if (initializer.has_random_uniform_initializer()) {
-    absl::BitGen bit_gen;
+    absl::SharedBitGen bit_gen;
     const auto& init = initializer.random_uniform_initializer();
     for (int i = 0; i < embedding_dimension; ++i) {
       result.add_value(absl::Uniform<float>(bit_gen, init.low(), init.high()));
@@ -76,7 +76,7 @@ EmbeddingVectorProto InitializeEmbedding(
     return result;
   }
   if (initializer.has_random_normal_initializer()) {
-    absl::BitGen bit_gen;
+    absl::SharedBitGen bit_gen;
     const auto& init = initializer.random_normal_initializer();
     for (int i = 0; i < embedding_dimension; ++i) {
       result.add_value(
