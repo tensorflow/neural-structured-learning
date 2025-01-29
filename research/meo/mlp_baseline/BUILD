@@ -31,7 +31,6 @@ pytype_strict_library(
         "mlp_baseline.py",
         "obfuscations.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -46,7 +45,6 @@ pytype_strict_library(
 pytype_strict_binary(
     name = "mlp_baseline",
     srcs = ["mlp_baseline.py"],
-    python_version = "PY3",
     deps = [
         ":mlp_baseline_lib",
         # package absl:app
@@ -65,7 +63,6 @@ pytype_strict_library(
         "multiple_decoders.py",
         "obfuscations.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -81,7 +78,6 @@ pytype_strict_library(
 pytype_strict_binary(
     name = "multiple_decoders",
     srcs = ["multiple_decoders.py"],
-    python_version = "PY3",
     deps = [
         ":multiple_decoders_lib",
         # package absl:app

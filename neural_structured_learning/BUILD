@@ -50,5 +50,4 @@ py_library(
 py_library(
     name = "version",
     srcs = ["version.py"],
-    srcs_version = "PY3",
 )

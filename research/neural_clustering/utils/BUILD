@@ -27,7 +27,6 @@ licenses(["notice"])
 py_library(
     name = "utils",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":data_utils",
     ],
@@ -36,7 +35,6 @@ py_library(
 py_library(
     name = "data_utils",
     srcs = ["data_utils.py"],
-    srcs_version = "PY3",
     deps = [
         # package numpy
     ],
@@ -45,8 +43,6 @@ py_library(
 py_test(
     name = "data_utils_test",
     srcs = ["data_utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":data_utils",
         # package absl/testing:absltest

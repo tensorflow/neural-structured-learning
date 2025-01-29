@@ -27,7 +27,6 @@ licenses(["notice"])
 py_library(
     name = "neural_clustering",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         "//research/neural_clustering/data_generators",
         "//research/neural_clustering/models",
@@ -38,5 +37,4 @@ py_library(
 py_library(
     name = "setup",
     srcs = ["setup.py"],
-    srcs_version = "PY3",
 )

@@ -27,7 +27,6 @@ licenses(["notice"])
 py_library(
     name = "lib",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":abstract_gen_neighbor",
         ":adversarial_neighbor",
@@ -42,7 +41,6 @@ py_library(
 py_library(
     name = "abstract_gen_neighbor",
     srcs = ["abstract_gen_neighbor.py"],
-    srcs_version = "PY3",
     deps = [
     ],
 )
@@ -50,7 +48,6 @@ py_library(
 py_library(
     name = "adversarial_neighbor",
     srcs = ["adversarial_neighbor.py"],
-    srcs_version = "PY3",
     deps = [
         ":abstract_gen_neighbor",
         ":utils",
@@ -62,8 +59,6 @@ py_library(
 py_test(
     name = "adversarial_neighbor_test",
     srcs = ["adversarial_neighbor_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":adversarial_neighbor",
         # package absl/testing:parameterized
@@ -77,7 +72,6 @@ py_test(
 py_library(
     name = "distances",
     srcs = ["distances.py"],
-    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         # package tensorflow
@@ -87,8 +81,6 @@ py_library(
 py_test(
     name = "distances_test",
     srcs = ["distances_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":distances",
         "//neural_structured_learning/configs",
@@ -100,7 +92,6 @@ py_test(
 py_library(
     name = "regularizer",
     srcs = ["regularizer.py"],
-    srcs_version = "PY3",
     deps = [
         ":distances",
         ":utils",
@@ -111,8 +102,6 @@ py_library(
 py_test(
     name = "regularizer_test",
     srcs = ["regularizer_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":regularizer",
         "//neural_structured_learning/configs",
@@ -124,7 +113,6 @@ py_test(
 py_library(
     name = "utils",
     srcs = ["utils.py"],
-    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         # package six
@@ -136,8 +124,6 @@ py_test(
     name = "utils_test",
     size = "small",
     srcs = ["utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":utils",
         # package absl/testing:parameterized

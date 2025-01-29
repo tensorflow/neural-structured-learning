@@ -37,7 +37,6 @@ py_library(
 py_library(
     name = "adversarial_regularization",
     srcs = ["adversarial_regularization.py"],
-    srcs_version = "PY3",
     deps = [
         # package attr
         "//neural_structured_learning/configs",
@@ -50,8 +49,6 @@ py_library(
 py_test(
     name = "adversarial_regularization_multi_device_test",
     srcs = ["adversarial_regularization_multi_device_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
         "//neural_structured_learning/configs",
@@ -63,8 +60,6 @@ py_test(
 py_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":adversarial_regularization",
         # package absl/testing:parameterized
@@ -78,7 +73,6 @@ py_test(
 py_library(
     name = "graph_regularization",
     srcs = ["graph_regularization.py"],
-    srcs_version = "PY3",
     deps = [
         "//neural_structured_learning/configs",
         "//neural_structured_learning/keras/layers",
@@ -91,8 +85,6 @@ py_test(
     name = "graph_regularization_test",
     timeout = "long",
     srcs = ["graph_regularization_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":graph_regularization",
         # package protobuf,

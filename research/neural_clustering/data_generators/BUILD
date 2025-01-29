@@ -27,7 +27,6 @@ licenses(["notice"])
 py_library(
     name = "data_generators",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":mog",
         ":partition",
@@ -37,7 +36,6 @@ py_library(
 py_library(
     name = "partition",
     srcs = ["partition.py"],
-    srcs_version = "PY3",
     deps = [
         # package numpy
     ],
@@ -46,8 +44,6 @@ py_library(
 py_test(
     name = "partition_test",
     srcs = ["partition_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":partition",
         # package absl/testing:absltest
@@ -59,15 +55,12 @@ py_test(
 py_library(
     name = "mog",
     srcs = ["mog.py"],
-    srcs_version = "PY3",
     deps = ["//third_party/py/numpy"],
 )
 
 py_test(
     name = "mog_test",
     srcs = ["mog_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":mog",
         # package absl/testing:absltest

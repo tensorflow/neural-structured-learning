@@ -26,7 +26,6 @@ pytype_strict_library(
     srcs = [
         "parameter_generator.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -40,7 +39,6 @@ pytype_strict_library(
 pytype_strict_binary(
     name = "parameter_generator",
     srcs = ["parameter_generator.py"],
-    python_version = "PY3",
     deps = [
         ":parameter_generator_lib",
         # package absl:app

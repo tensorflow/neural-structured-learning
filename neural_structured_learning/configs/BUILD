@@ -30,7 +30,6 @@ py_library(
         "__init__.py",
         "configs.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # package attr
         # package tensorflow

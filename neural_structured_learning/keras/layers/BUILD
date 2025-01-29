@@ -40,7 +40,6 @@ py_test(
     srcs = [
         "layers_test.py",
     ],
-    python_version = "PY3",
     deps = [
         ":layers",
         # package absl/testing:parameterized
@@ -53,7 +52,6 @@ py_test(
 py_library(
     name = "neighbor_features",
     srcs = ["neighbor_features.py"],
-    srcs_version = "PY3",
     deps = [
         # package attr
         "//neural_structured_learning/configs",
@@ -67,8 +65,6 @@ py_test(
     srcs = [
         "neighbor_features_test.py",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":neighbor_features",
         # package absl/testing:parameterized
@@ -82,7 +78,6 @@ py_test(
 py_library(
     name = "pairwise_distance",
     srcs = ["pairwise_distance.py"],
-    srcs_version = "PY3",
     deps = [
         # package attr
         "//neural_structured_learning/configs",
@@ -95,8 +90,6 @@ py_library(
 py_test(
     name = "pairwise_distance_test",
     srcs = ["pairwise_distance_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":pairwise_distance",
         "//neural_structured_learning/configs",

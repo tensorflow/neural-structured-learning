@@ -26,7 +26,6 @@ pytype_strict_library(
     srcs = [
         "linear_finetuning.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -41,7 +40,6 @@ pytype_strict_library(
 pytype_strict_binary(
     name = "linear_finetuning",
     srcs = ["linear_finetuning.py"],
-    python_version = "PY3",
     deps = [
         ":linear_finetuning_lib",
         # package absl:app

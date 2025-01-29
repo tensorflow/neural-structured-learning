@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for loading py_binary
 # Placeholder for internal Python strict & test compatibility macro.
+# Placeholder for loading py_binary
 
 # Description:
 # Build rules for tools in Neural Structured Learning.
@@ -28,7 +28,6 @@ licenses(["notice"])
 py_library(
     name = "tools",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":build_graph_lib",
         ":graph_utils",
@@ -39,7 +38,6 @@ py_library(
 py_library(
     name = "graph_utils",
     srcs = ["graph_utils.py"],
-    srcs_version = "PY3",
     deps = [
         # package absl/logging
         # package six
@@ -49,8 +47,6 @@ py_library(
 py_test(
     name = "graph_utils_test",
     srcs = ["graph_utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         # package absl/testing:absltest
@@ -60,7 +56,6 @@ py_test(
 py_library(
     name = "build_graph_lib",
     srcs = ["build_graph.py"],
-    srcs_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags
@@ -75,8 +70,6 @@ py_library(
 py_test(
     name = "build_graph_test",
     srcs = ["build_graph_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":build_graph_lib",
         ":graph_utils",
@@ -90,7 +83,6 @@ py_test(
 py_binary(
     name = "build_graph",
     srcs = ["build_graph.py"],
-    python_version = "PY3",
     deps = [
         ":build_graph_lib",
     ],
@@ -99,7 +91,6 @@ py_binary(
 py_library(
     name = "pack_nbrs_lib",
     srcs = ["pack_nbrs.py"],
-    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         # package absl:app
@@ -113,8 +104,6 @@ py_library(
 py_test(
     name = "pack_nbrs_test",
     srcs = ["pack_nbrs_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":graph_utils",
         ":pack_nbrs_lib",
@@ -127,7 +116,6 @@ py_test(
 py_binary(
     name = "pack_nbrs",
     srcs = ["pack_nbrs.py"],
-    python_version = "PY3",
     deps = [
         ":pack_nbrs_lib",
         # package tensorflow
@@ -137,7 +125,6 @@ py_binary(
 py_binary(
     name = "build_docs",
     srcs = ["build_docs.py"],
-    python_version = "PY3",
     deps = [
         # package absl:app
         # package absl/flags

@@ -27,7 +27,6 @@ licenses(["notice"])
 py_library(
     name = "models",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":ncp_base",
         ":ncp_models",
@@ -38,7 +37,6 @@ py_library(
 py_library(
     name = "ncp_base",
     srcs = ["ncp_base.py"],
-    srcs_version = "PY3",
     deps = [
         # package numpy
         # package tensorflow
@@ -48,7 +46,6 @@ py_library(
 py_library(
     name = "ncp_models",
     srcs = ["ncp_models.py"],
-    srcs_version = "PY3",
     deps = [
         ":ncp_base",
         # package tensorflow
@@ -58,7 +55,6 @@ py_library(
 py_library(
     name = "ncp_wrapper",
     srcs = ["ncp_wrapper.py"],
-    srcs_version = "PY3",
     deps = [
         "//research/neural_clustering/utils:data_utils",
         # package tensorflow
@@ -68,8 +64,6 @@ py_library(
 py_test(
     name = "ncp_test",
     srcs = ["ncp_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":models",
         # package absl/testing:parameterized
