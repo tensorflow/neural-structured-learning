@@ -94,7 +94,7 @@ def _read_tfrecord_examples(filenames, id_feature_name, embedding_feature_name):
                       embedding_feature_name, ex_id)
         continue
       embedding_list = f_map[embedding_feature_name].float_list.value
-      embeddings[ex_id] = l2_normalize(embedding_list)
+      embeddings[ex_id] = l2_normalize(np.array(embedding_list, np.float64))
     logging.info('Done reading %d tf.train.Examples from: %s (%.2f seconds).',
                  len(embeddings), filename,
                  time.time() - start_time)
