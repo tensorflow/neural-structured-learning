@@ -28,10 +28,13 @@ class TransformsTest(tf.test.TestCase):
 
     # Calculated by a reference implementation.
     expected = np.reshape(
-        np.array([[1.5, 0.12247449, -0.21213203],
-                  [-0.12247449, -0.45, 0.25980762],
-                  [0.21213203, -0.4330127, -0.15]]),
-        newshape=[1, 3, 3, 1])
+        np.array([
+            [1.5, 0.12247449, -0.21213203],
+            [-0.12247449, -0.45, 0.25980762],
+            [0.21213203, -0.4330127, -0.15],
+        ]),
+        [1, 3, 3, 1],
+    )
     self.assertAllClose(dct_x, expected)
 
   def test_idct(self):
@@ -41,10 +44,13 @@ class TransformsTest(tf.test.TestCase):
 
     # Calculated by a reference implementation.
     expected = np.reshape(
-        np.array([[1.42522291, -0.04099682, 0.09735938],
-                  [-0.44310533, -0.39329966, 0.18787686],
-                  [0.39594028, -0.49707437, -0.13192325]]),
-        newshape=[1, 3, 3, 1])
+        np.array([
+            [1.42522291, -0.04099682, 0.09735938],
+            [-0.44310533, -0.39329966, 0.18787686],
+            [0.39594028, -0.49707437, -0.13192325],
+        ]),
+        [1, 3, 3, 1],
+    )
     self.assertAllClose(idct_x, expected)
 
   def test_inverse(self):
