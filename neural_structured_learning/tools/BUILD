@@ -84,6 +84,7 @@ py_test(
 py_binary(
     name = "build_graph",
     srcs = ["build_graph.py"],
+    strict_deps = False,
     deps = [
         ":build_graph_lib",
     ],
@@ -117,6 +118,7 @@ py_test(
 py_binary(
     name = "pack_nbrs",
     srcs = ["pack_nbrs.py"],
+    strict_deps = False,
     deps = [
         ":pack_nbrs_lib",
         # package tensorflow
@@ -126,6 +128,7 @@ py_binary(
 py_binary(
     name = "build_docs",
     srcs = ["build_docs.py"],
+    strict_deps = False,
     deps = [
         # package absl:app
         # package absl/flags

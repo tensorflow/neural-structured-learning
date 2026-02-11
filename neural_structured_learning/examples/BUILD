@@ -10,6 +10,7 @@ licenses(["notice"])
 py_binary(
     name = "graph_keras_mlp_cora",
     srcs = ["graph_keras_mlp_cora.py"],
+    strict_deps = False,
     deps = [
         # package absl:app
         # package absl/flags
@@ -23,6 +24,7 @@ py_binary(
 py_binary(
     name = "graph_nets_cora_graph_regularization",
     srcs = ["graph_nets_cora_graph_regularization.py"],
+    strict_deps = False,
     deps = [
         # package absl:app
         # package absl/flags
@@ -36,6 +38,7 @@ py_binary(
 py_binary(
     name = "graph_nets_cora_gcn",
     srcs = ["graph_nets_cora_gcn.py"],
+    strict_deps = False,
     deps = [
         # package absl:app
         # package absl/flags
