@@ -15,7 +15,7 @@
 # Description:
 # Build rules for Estimator APIs in Neural Structured Learning.
 
-# Placeholder for internal Python strict test compatibility macro.
+load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_library
 
 package(
@@ -45,7 +45,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
     deps = [
@@ -71,7 +71,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "graph_regularization_test",
     srcs = ["graph_regularization_test.py"],
     deps = [

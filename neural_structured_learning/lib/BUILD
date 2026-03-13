@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Placeholder for internal Python strict test compatibility macro.
+load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_library
 
 # Description:
@@ -57,7 +57,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "adversarial_neighbor_test",
     srcs = ["adversarial_neighbor_test.py"],
     deps = [
@@ -79,7 +79,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "distances_test",
     srcs = ["distances_test.py"],
     deps = [
@@ -100,7 +100,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "regularizer_test",
     srcs = ["regularizer_test.py"],
     deps = [
@@ -121,7 +121,7 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "utils_test",
     size = "small",
     srcs = ["utils_test.py"],
