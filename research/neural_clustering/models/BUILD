@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_library
+# Placeholder for loading py_test
 
 # Description:
 # Build rules for models in Neural Clustering.
@@ -62,7 +62,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "ncp_test",
     srcs = ["ncp_test.py"],
     deps = [

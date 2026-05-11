@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_library
+# Placeholder for loading py_test
 
 # Description:
 # Build rules for custom Keras layers in Neural Structured Learning.
@@ -35,7 +35,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "layers_test",
     size = "medium",
     srcs = [
@@ -61,7 +61,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "neighbor_features_test",
     srcs = [
         "neighbor_features_test.py",
@@ -88,7 +88,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "pairwise_distance_test",
     srcs = ["pairwise_distance_test.py"],
     deps = [

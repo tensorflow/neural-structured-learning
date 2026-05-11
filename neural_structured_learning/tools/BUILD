@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_binary
 # Placeholder for loading py_library
+# Placeholder for loading py_test
 
 # Description:
 # Build rules for tools in Neural Structured Learning.
@@ -45,7 +45,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "graph_utils_test",
     srcs = ["graph_utils_test.py"],
     deps = [
@@ -68,7 +68,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "build_graph_test",
     srcs = ["build_graph_test.py"],
     deps = [
@@ -103,7 +103,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "pack_nbrs_test",
     srcs = ["pack_nbrs_test.py"],
     deps = [

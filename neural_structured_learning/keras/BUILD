@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//devtools/python/blaze:strict.bzl", "py_strict_test")
 # Placeholder for loading py_library
+# Placeholder for loading py_test
 
 # Description:
 # Build rules for Keras APIs in Neural Structured Learning.
@@ -47,7 +47,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "adversarial_regularization_multi_device_test",
     srcs = ["adversarial_regularization_multi_device_test.py"],
     deps = [
@@ -58,7 +58,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "adversarial_regularization_test",
     srcs = ["adversarial_regularization_test.py"],
     deps = [
@@ -82,7 +82,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "graph_regularization_test",
     timeout = "long",
     srcs = ["graph_regularization_test.py"],
