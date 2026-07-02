@@ -142,10 +142,10 @@ def train_and_eval_model(
       initial_epoch = optimizer.iterations.numpy() // train_steps_per_epoch
 
   clf_train_summary_writer = tf.summary.create_file_writer(
-      os.path.join(_MODEL_DIR.value, 'summaries/clf_train'))
+      os.path.join(_MODEL_DIR.value, 'summaries/clf_train'))  # pyrefly: ignore[no-matching-overload]
 
   clf_test_summary_writer = tf.summary.create_file_writer(
-      os.path.join(_MODEL_DIR.value, 'summaries/clf_test'))
+      os.path.join(_MODEL_DIR.value, 'summaries/clf_test'))  # pyrefly: ignore[no-matching-overload]
 
   @tf.function
   def clf_train_step(item):
@@ -170,7 +170,7 @@ def train_and_eval_model(
           # Pack the images from the shape of [batch_size, num_views, H, W, C]
           # to [batch_size * num_views, H, W, C] to compute embeddings from the
           # encoder model.
-          orig_shape = tf.shape(all_data)
+          orig_shape = tf.shape(all_data)  # pyrefly: ignore[unbound-name]
           num_views = orig_shape[1]
           height = orig_shape[2]
           width = orig_shape[3]
@@ -181,7 +181,7 @@ def train_and_eval_model(
           all_embed = model_clf.feature_extractor.encode_clean(
               all_data, training=False)
         else:
-          all_embed = all_data
+          all_embed = all_data  # pyrefly: ignore[unbound-name]
           orig_shape = tf.shape(all_data)
           num_views = orig_shape[1]
           all_embed = tf.reshape(
@@ -190,10 +190,10 @@ def train_and_eval_model(
           )
 
         # Crossentropy loss for the classifier.
-        logits = model_clf.clf_layer(all_embed, training=True)
+        logits = model_clf.clf_layer(all_embed, training=True)  # pyrefly: ignore[not-callable]
 
         # Duplicate the labels by the number of views.
-        labels = tf.tile(tf.expand_dims(labels, axis=-1), [1, num_views])
+        labels = tf.tile(tf.expand_dims(labels, axis=-1), [1, num_views])  # pyrefly: ignore[unbound-name]
         labels = tf.reshape(labels, [-1])
 
         crossentropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
@@ -232,7 +232,7 @@ def train_and_eval_model(
         # Recover embeddings from the base model and then classify them,
         # skipping the autoencoder part for inference.
         embeds = model_clf.feature_extractor.base_model(images)
-        logits = model_clf.clf_layer(embeds, training=False)
+        logits = model_clf.clf_layer(embeds, training=False)  # pyrefly: ignore[not-callable]
 
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
         loss = tf.math.divide_no_nan(
@@ -256,7 +256,7 @@ def train_and_eval_model(
 
     strategy.run(step_fn, args=(item,))
 
-  train_iterator = iter(train_dataset)
+  train_iterator = iter(train_dataset)  # pyrefly: ignore[no-matching-overload]
   for epoch in range(initial_epoch, _EPOCHS.value):
     logging.info('Training Epoch: %s', epoch)
     with clf_train_summary_writer.as_default():
@@ -288,12 +288,12 @@ def train_and_eval_model(
 
       tf.summary.scalar(
           'clf_learning_rate',
-          lr_sched(optimizer.iterations).numpy(),
+          lr_sched(optimizer.iterations).numpy(),  # pyrefly: ignore[unbound-name]
           step=optimizer.iterations)
 
     logging.info('Testing Epoch: %s', epoch)
     with clf_test_summary_writer.as_default():
-      test_iterator = iter(test_dataset)
+      test_iterator = iter(test_dataset)  # pyrefly: ignore[no-matching-overload]
       for step in range(eval_steps_per_epoch):
         item = next(test_iterator)
         if step % _LOGGING_STEP.value == 0:
@@ -312,7 +312,7 @@ def train_and_eval_model(
                             step=optimizer.iterations)
           acc.reset_state()
 
-    clf_checkpoint.save(os.path.join(_MODEL_DIR.value, 'clf_checkpoint'))
+    clf_checkpoint.save(os.path.join(_MODEL_DIR.value, 'clf_checkpoint'))  # pyrefly: ignore[no-matching-overload]
 
 
 def main(argv: Sequence[str]) -> None:
@@ -325,7 +325,7 @@ def main(argv: Sequence[str]) -> None:
                      'obfuscation \'{}\''.format(data_utils.CLEAN))
 
   per_replica_batch_size = _BATCH_SIZE.value
-  global_batch_size = per_replica_batch_size * _NUM_CORES.value
+  global_batch_size = per_replica_batch_size * _NUM_CORES.value  # pyrefly: ignore[unsupported-operation]
   data_config = configs.DatasetConfig(_DATASET.value)
   model_config = configs.ModelConfig(_MODEL_TYPE.value)
 
@@ -341,8 +341,8 @@ def main(argv: Sequence[str]) -> None:
 
   logging.info('Defining dataset.')
   data_train = obfuscations.ObfuscatedEmbeddingDataset(
-      data_dir=_DATA_DIR_TRAIN.value,
-      embed_dim=model_config.embed_dim,
+      data_dir=_DATA_DIR_TRAIN.value,  # pyrefly: ignore[bad-argument-type]
+      embed_dim=model_config.embed_dim,  # pyrefly: ignore[bad-argument-type]
       split='train',
       batch_size=per_replica_batch_size,
       num_views=len(_OBFUSCATIONS_TRAIN.value)
@@ -352,7 +352,7 @@ def main(argv: Sequence[str]) -> None:
 
   data_test = obfuscations.ObfuscatedImageDataset(
       dataset,
-      data_dir=_DATA_DIR_EVAL.value,
+      data_dir=_DATA_DIR_EVAL.value,  # pyrefly: ignore[bad-argument-type]
       obfuscation_list=[data_utils.CLEAN],
       split='test',
       batch_size=per_replica_batch_size)
@@ -395,7 +395,7 @@ def main(argv: Sequence[str]) -> None:
       )
 
     optimizer = tf.keras.optimizers.SGD(
-        learning_rate=lr_scheduler,
+        learning_rate=lr_scheduler,  # pyrefly: ignore[unbound-name]
         momentum=_MOMENTUM.value,
         nesterov=True)
     logging.info('Built model.')

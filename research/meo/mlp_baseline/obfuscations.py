@@ -224,7 +224,7 @@ class ObfuscatedEmbeddingDataset(ObfuscatedDatasetBase):
     return features, label
 
   def _read_file(self, filename: str) -> tf.data.Dataset:
-    dataset = tf.data.TFRecordDataset(filename)
+    dataset = tf.data.TFRecordDataset(filename)  # pyrefly: ignore[bad-instantiation]
 
     # The parsing function internally expects a batch of records, hence the
     # batching below. The actual batch size of this is irrelevant.
@@ -236,7 +236,7 @@ class ObfuscatedEmbeddingDataset(ObfuscatedDatasetBase):
       self,
       context: Optional[tf.distribute.InputContext] = None
   ) -> tf.data.Dataset:
-    dataset = tf.data.Dataset.from_tensor_slices(self._filenames)
+    dataset = tf.data.Dataset.from_tensor_slices(self._filenames)  # pyrefly: ignore[bad-argument-type]
     if context and context.num_input_pipelines > 1:
       dataset = dataset.shard(
           context.num_input_pipelines,

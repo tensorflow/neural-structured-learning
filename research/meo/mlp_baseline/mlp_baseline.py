@@ -123,7 +123,7 @@ def save_sample_images(dataset: tf.distribute.DistributedDataset,
       images to the corresponding TensorBoard summary.
     strategy: Strategy used for distributed training and evaluation.
   """
-  iterator = iter(dataset)
+  iterator = iter(dataset)  # pyrefly: ignore[no-matching-overload]
   logging.info('Saving sample images.')
   for i in range(_NUM_SAVE_IMG.value):
     items = next(iterator)
@@ -186,7 +186,7 @@ def train_and_eval_model(
     clf_checkpoint = tf.train.Checkpoint(model=model_clf, optimizer=optimizer)
 
   clf_train_summary_writer = tf.summary.create_file_writer(
-      os.path.join(
+      os.path.join(  # pyrefly: ignore[no-matching-overload]
           _MODEL_DIR.value,
           'summaries'
           f'lr_{_BASE_LR.value}_decay_{_WEIGHT_DECAY.value}',
@@ -195,7 +195,7 @@ def train_and_eval_model(
   )
 
   clf_test_summary_writer = tf.summary.create_file_writer(
-      os.path.join(
+      os.path.join(  # pyrefly: ignore[no-matching-overload]
           _MODEL_DIR.value,
           'summaries',
           f'lr_{_BASE_LR.value}_decay_{_WEIGHT_DECAY.value}',
@@ -231,7 +231,7 @@ def train_and_eval_model(
         clean_embeddings = model_clf.feature_extractor.encode_clean(
             clean_images, training=True)
         if _EMBED_MAPPING_TYPE.value == 'MLP':
-          obf_embeddings = model_clf.feature_extractor(obf_images,
+          obf_embeddings = model_clf.feature_extractor(obf_images,  # pyrefly: ignore[not-callable]
                                                        training=True)
           # Embedding matching loss.
           embed_loss = tf.reduce_mean(
@@ -239,7 +239,7 @@ def train_and_eval_model(
                                                   obf_embeddings)
           )
         elif _EMBED_MAPPING_TYPE.value == 'VAE':
-          obf_embeddings, z_mean, z_log_var = model_clf.feature_extractor(
+          obf_embeddings, z_mean, z_log_var = model_clf.feature_extractor(  # pyrefly: ignore[not-callable]
               obf_images, training=True)
 
           # Calculate appropriate KL term weight (based on a sigmoid, which
@@ -261,14 +261,14 @@ def train_and_eval_model(
           embed_loss = recon_loss + kl_weight * kl_loss
 
         # Crossentropy loss for the classifier.
-        logits = model_clf.clf_layer(obf_embeddings, training=True)
+        logits = model_clf.clf_layer(obf_embeddings, training=True)  # pyrefly: ignore[not-callable, unbound-name]
         crossentropy_loss = tf.reduce_mean(
             tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits))
 
         # model_clf.losses contains the regularizer for the linear classifier.
         regularizer_loss = tf.reduce_sum(model_clf.losses)
 
-        loss = _EMBED_LOSS_WEIGHT.value * embed_loss + crossentropy_loss + regularizer_loss
+        loss = _EMBED_LOSS_WEIGHT.value * embed_loss + crossentropy_loss + regularizer_loss  # pyrefly: ignore[unbound-name]
 
         # Divide by number of replicas to balance out the artificially increased
         # batch size.
@@ -295,7 +295,7 @@ def train_and_eval_model(
         if images.dtype == tf.uint8:
           images = tf.cast(images, tf.float32) / 255.0
 
-        logits = model_clf(images, training=False)
+        logits = model_clf(images, training=False)  # pyrefly: ignore[not-callable]
 
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
         loss = tf.math.divide_no_nan(
@@ -308,7 +308,7 @@ def train_and_eval_model(
     strategy.run(step_fn, args=(item,))
 
   save_sample_images(train_dataset, clf_train_summary_writer, strategy)
-  train_iterator = iter(train_dataset)
+  train_iterator = iter(train_dataset)  # pyrefly: ignore[no-matching-overload]
   for epoch in range(_EPOCHS.value):
     logging.info('Training Epoch: %s', epoch)
     with clf_train_summary_writer.as_default():
@@ -344,7 +344,7 @@ def train_and_eval_model(
 
     logging.info('Testing Epoch: %s', epoch)
     with clf_test_summary_writer.as_default():
-      test_iterator = iter(test_dataset)
+      test_iterator = iter(test_dataset)  # pyrefly: ignore[no-matching-overload]
       for step in range(eval_steps_per_epoch):
         item = next(test_iterator)
         if step % _LOGGING_STEP.value == 0:
@@ -363,7 +363,7 @@ def train_and_eval_model(
                             step=optimizer.iterations)
           acc.reset_state()
 
-    clf_checkpoint.save(os.path.join(_MODEL_DIR.value, 'clf_checkpoint'))
+    clf_checkpoint.save(os.path.join(_MODEL_DIR.value, 'clf_checkpoint'))  # pyrefly: ignore[no-matching-overload]
 
 
 def main(argv: Sequence[str]) -> None:
@@ -376,7 +376,7 @@ def main(argv: Sequence[str]) -> None:
                      'obfuscation \'{}\''.format(data_utils.CLEAN))
 
   per_replica_batch_size = _BATCH_SIZE.value
-  global_batch_size = per_replica_batch_size * _NUM_CORES.value
+  global_batch_size = per_replica_batch_size * _NUM_CORES.value  # pyrefly: ignore[unsupported-operation]
   data_config = configs.DatasetConfig(_DATASET.value)
   model_config = configs.ModelConfig(_MODEL_TYPE.value)
 
@@ -395,7 +395,7 @@ def main(argv: Sequence[str]) -> None:
   # The obfuscation is set to 'Clean' simply for compatibility.
   data_train = obfuscations.ObfuscatedImageDataset(
       dataset,
-      data_dir=_DATA_DIR.value,
+      data_dir=_DATA_DIR.value,  # pyrefly: ignore[bad-argument-type]
       obfuscation_list=[data_utils.CLEAN],
       split='train',
       batch_size=per_replica_batch_size)
@@ -405,7 +405,7 @@ def main(argv: Sequence[str]) -> None:
 
   data_test = obfuscations.ObfuscatedImageDataset(
       dataset,
-      data_dir=_DATA_DIR.value,
+      data_dir=_DATA_DIR.value,  # pyrefly: ignore[bad-argument-type]
       obfuscation_list=[data_utils.CLEAN],
       split='test',
       batch_size=per_replica_batch_size)
@@ -422,13 +422,13 @@ def main(argv: Sequence[str]) -> None:
     ]
     if _EMBED_MAPPING_TYPE.value == 'MLP':
       encoder = extended_model.MLPEmbeddingMapper(
-          embed_dim=model_config.embed_dim,
+          embed_dim=model_config.embed_dim,  # pyrefly: ignore[bad-argument-type]
           mlp_sizes=mlp_sizes,
           weight_decay=_WEIGHT_DECAY.value)
     elif _EMBED_MAPPING_TYPE.value == 'VAE':
       encoder = extended_model.VAEEmbeddingMapper(
           mlp_sizes=mlp_sizes,
-          embed_dim=model_config.embed_dim,
+          embed_dim=model_config.embed_dim,  # pyrefly: ignore[bad-argument-type]
           weight_decay=_WEIGHT_DECAY.value)
     else:
       raise ValueError('Mapping type is not defined: {}'.format(
