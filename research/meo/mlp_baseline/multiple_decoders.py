@@ -486,11 +486,11 @@ def train_and_eval_model(
           loss.reset_state()
 
       if _LR_DECAY_TYPE.value == 'exponential':
-        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(
+        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(  # pyrefly: ignore[missing-argument]
             optimizer.get_config()['learning_rate']['config']
         )
       elif _LR_DECAY_TYPE.value == 'cosine':
-        lr_sched = tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(
+        lr_sched = tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(  # pyrefly: ignore[missing-argument]
             optimizer.get_config()['learning_rate']['config']
         )
 

@@ -328,7 +328,7 @@ def train_and_eval_model(
                             step=optimizer.iterations)
           loss.reset_state()
 
-      lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(
+      lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(  # pyrefly: ignore[missing-argument]
           optimizer.get_config()['learning_rate']['config']
       )
       tf.summary.scalar(
