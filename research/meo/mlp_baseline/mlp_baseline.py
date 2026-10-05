@@ -123,7 +123,7 @@ def save_sample_images(dataset: tf.distribute.DistributedDataset,
       images to the corresponding TensorBoard summary.
     strategy: Strategy used for distributed training and evaluation.
   """
-  iterator = iter(dataset)  # pyrefly: ignore[no-matching-overload]
+  iterator = iter(dataset)
   logging.info('Saving sample images.')
   for i in range(_NUM_SAVE_IMG.value):
     items = next(iterator)
@@ -231,16 +231,18 @@ def train_and_eval_model(
         clean_embeddings = model_clf.feature_extractor.encode_clean(
             clean_images, training=True)
         if _EMBED_MAPPING_TYPE.value == 'MLP':
-          obf_embeddings = model_clf.feature_extractor(obf_images,  # pyrefly: ignore[not-callable]
-                                                       training=True)
+          obf_embeddings = model_clf.feature_extractor(
+              obf_images, training=True
+          )
           # Embedding matching loss.
           embed_loss = tf.reduce_mean(
               tf.keras.metrics.mean_squared_error(clean_embeddings,
                                                   obf_embeddings)
           )
         elif _EMBED_MAPPING_TYPE.value == 'VAE':
-          obf_embeddings, z_mean, z_log_var = model_clf.feature_extractor(  # pyrefly: ignore[not-callable]
-              obf_images, training=True)
+          obf_embeddings, z_mean, z_log_var = model_clf.feature_extractor(
+              obf_images, training=True
+          )
 
           # Calculate appropriate KL term weight (based on a sigmoid, which
           # ramps up to approximately 1 in _KL_LIM epochs). More specifically,
@@ -261,7 +263,7 @@ def train_and_eval_model(
           embed_loss = recon_loss + kl_weight * kl_loss
 
         # Crossentropy loss for the classifier.
-        logits = model_clf.clf_layer(obf_embeddings, training=True)  # pyrefly: ignore[not-callable, unbound-name]
+        logits = model_clf.clf_layer(obf_embeddings, training=True)  # pyrefly: ignore[unbound-name]
         crossentropy_loss = tf.reduce_mean(
             tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits))
 
@@ -295,7 +297,7 @@ def train_and_eval_model(
         if images.dtype == tf.uint8:
           images = tf.cast(images, tf.float32) / 255.0
 
-        logits = model_clf(images, training=False)  # pyrefly: ignore[not-callable]
+        logits = model_clf(images, training=False)
 
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
         loss = tf.math.divide_no_nan(
@@ -308,7 +310,7 @@ def train_and_eval_model(
     strategy.run(step_fn, args=(item,))
 
   save_sample_images(train_dataset, clf_train_summary_writer, strategy)
-  train_iterator = iter(train_dataset)  # pyrefly: ignore[no-matching-overload]
+  train_iterator = iter(train_dataset)
   for epoch in range(_EPOCHS.value):
     logging.info('Training Epoch: %s', epoch)
     with clf_train_summary_writer.as_default():
@@ -328,7 +330,7 @@ def train_and_eval_model(
                             step=optimizer.iterations)
           loss.reset_state()
 
-      lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(  # pyrefly: ignore[missing-argument]  # pytype: disable=missing-parameter
+      lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(
           optimizer.get_config()['learning_rate']['config']
       )
       tf.summary.scalar(
@@ -344,7 +346,7 @@ def train_and_eval_model(
 
     logging.info('Testing Epoch: %s', epoch)
     with clf_test_summary_writer.as_default():
-      test_iterator = iter(test_dataset)  # pyrefly: ignore[no-matching-overload]
+      test_iterator = iter(test_dataset)
       for step in range(eval_steps_per_epoch):
         item = next(test_iterator)
         if step % _LOGGING_STEP.value == 0:

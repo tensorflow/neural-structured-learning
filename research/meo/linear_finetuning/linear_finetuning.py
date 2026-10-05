@@ -190,7 +190,7 @@ def train_and_eval_model(
           )
 
         # Crossentropy loss for the classifier.
-        logits = model_clf.clf_layer(all_embed, training=True)  # pyrefly: ignore[not-callable]
+        logits = model_clf.clf_layer(all_embed, training=True)
 
         # Duplicate the labels by the number of views.
         labels = tf.tile(tf.expand_dims(labels, axis=-1), [1, num_views])  # pyrefly: ignore[unbound-name]
@@ -232,7 +232,7 @@ def train_and_eval_model(
         # Recover embeddings from the base model and then classify them,
         # skipping the autoencoder part for inference.
         embeds = model_clf.feature_extractor.base_model(images)
-        logits = model_clf.clf_layer(embeds, training=False)  # pyrefly: ignore[not-callable]
+        logits = model_clf.clf_layer(embeds, training=False)
 
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
         loss = tf.math.divide_no_nan(
@@ -256,7 +256,7 @@ def train_and_eval_model(
 
     strategy.run(step_fn, args=(item,))
 
-  train_iterator = iter(train_dataset)  # pyrefly: ignore[no-matching-overload]
+  train_iterator = iter(train_dataset)
   for epoch in range(initial_epoch, _EPOCHS.value):
     logging.info('Training Epoch: %s', epoch)
     with clf_train_summary_writer.as_default():
@@ -278,12 +278,14 @@ def train_and_eval_model(
           loss.reset_state()
 
       if _LR_DECAY_TYPE.value == 'exponential':
-        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(  # pyrefly: ignore[missing-argument]  # pytype: disable=missing-parameter
+        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(
             optimizer.get_config()['learning_rate']['config']
         )
       elif _LR_DECAY_TYPE.value == 'cosine':
-        lr_sched = tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(  # pyrefly: ignore[missing-argument]  # pytype: disable=missing-parameter
-            optimizer.get_config()['learning_rate']['config']
+        lr_sched = (
+            tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(
+                optimizer.get_config()['learning_rate']['config']
+            )
         )
 
       tf.summary.scalar(
@@ -293,7 +295,7 @@ def train_and_eval_model(
 
     logging.info('Testing Epoch: %s', epoch)
     with clf_test_summary_writer.as_default():
-      test_iterator = iter(test_dataset)  # pyrefly: ignore[no-matching-overload]
+      test_iterator = iter(test_dataset)
       for step in range(eval_steps_per_epoch):
         item = next(test_iterator)
         if step % _LOGGING_STEP.value == 0:

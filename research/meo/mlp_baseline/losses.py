@@ -40,7 +40,7 @@ def vae_kl_divergence(
     The loss tensor for the provided input.
   """
 
-  kl_divergence = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))  # pyrefly: ignore[unsupported-operation]
+  kl_divergence = -0.5 * (1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var))
   loss = tf.reduce_sum(kl_divergence)
   return loss
 

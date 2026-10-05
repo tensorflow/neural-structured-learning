@@ -165,7 +165,7 @@ def save_sample_images(dataset: tf.distribute.DistributedDataset,
       images to the corresponding TensorBoard summary.
     strategy: Strategy used for distributed training and evaluation.
   """
-  iterator = iter(dataset)  # pyrefly: ignore[no-matching-overload]
+  iterator = iter(dataset)
   logging.info('Saving sample images.')
   for i in range(_NUM_SAVE_IMG.value):
     items = next(iterator)
@@ -268,7 +268,7 @@ def train_and_eval_model(
       with tf.GradientTape() as tape:
         if _INPUT_FEATURE_NAME.value == 'pixel':
           if custom_pretrain_model:
-            clean_embed = custom_pretrain_model(clean_data, training=False)  # pyrefly: ignore[not-callable, unbound-name]
+            clean_embed = custom_pretrain_model(clean_data, training=False)  # pyrefly: ignore[unbound-name]
           else:
             clean_embed = model_clf.feature_extractor.encode_clean(
                 clean_data, training=True)  # pyrefly: ignore[unbound-name]
@@ -284,8 +284,9 @@ def train_and_eval_model(
           )
 
           if custom_pretrain_model:
-            real_obfuscated_embed = custom_pretrain_model(  # pyrefly: ignore[not-callable]
-                obfuscated_data, training=False)
+            real_obfuscated_embed = custom_pretrain_model(
+                obfuscated_data, training=False
+            )
           else:
             real_obfuscated_embed = model_clf.feature_extractor.encode_clean(
                 obfuscated_data, training=True)
@@ -300,7 +301,7 @@ def train_and_eval_model(
           orig_shape = tf.shape(real_obfuscated_embed)
           num_views = orig_shape[1]
 
-        generated_obfuscated_embed, _ = model_clf.feature_extractor(  # pyrefly: ignore[not-callable]
+        generated_obfuscated_embed, _ = model_clf.feature_extractor(
             clean_embed, training=True
         )
 
@@ -323,10 +324,8 @@ def train_and_eval_model(
         )
 
         # Crossentropy loss for the classifier.
-        real_logits = model_clf.clf_layer(  # pyrefly: ignore[not-callable]
-            real_obfuscated_embed, training=True
-        )
-        generated_logits = model_clf.clf_layer(  # pyrefly: ignore[not-callable]
+        real_logits = model_clf.clf_layer(real_obfuscated_embed, training=True)
+        generated_logits = model_clf.clf_layer(
             generated_obfuscated_embed, training=True
         )
 
@@ -348,7 +347,11 @@ def train_and_eval_model(
         regularizer_loss = tf.reduce_sum(model_clf.losses)
 
         # loss = embed_loss + crossentropy_loss + regularizer_loss
-        loss = _EMBED_LOSS_WEIGHT.value * embed_loss + crossentropy_loss + regularizer_loss  # pyrefly: ignore[unsupported-operation]
+        loss = (
+            _EMBED_LOSS_WEIGHT.value * embed_loss
+            + crossentropy_loss
+            + regularizer_loss
+        )
 
         # Divide by number of replicas to balance out the artificially increased
         # batch size.
@@ -378,7 +381,7 @@ def train_and_eval_model(
         # Recover embeddings from the base model and then classify them,
         # skipping the autoencoder part for inference.
         embeds = model_clf.feature_extractor.base_model(images)
-        logits = model_clf.clf_layer(embeds, training=False)  # pyrefly: ignore[not-callable]
+        logits = model_clf.clf_layer(embeds, training=False)
 
         losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, logits)
         loss = tf.math.divide_no_nan(
@@ -405,7 +408,7 @@ def train_and_eval_model(
   if _INPUT_FEATURE_NAME.value == 'pixel':
     save_sample_images(train_dataset, clf_train_summary_writer, strategy)
 
-  train_iterator = iter(train_dataset)  # pyrefly: ignore[no-matching-overload]
+  train_iterator = iter(train_dataset)
   for epoch in range(initial_epoch, _EPOCHS.value):
     logging.info('Training Epoch: %s', epoch)
     with clf_train_summary_writer.as_default():
@@ -426,12 +429,14 @@ def train_and_eval_model(
           loss.reset_state()
 
       if _LR_DECAY_TYPE.value == 'exponential':
-        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(  # pyrefly: ignore[missing-argument]  # pytype: disable=missing-parameter
+        lr_sched = tf.keras.optimizers.schedules.ExponentialDecay.from_config(
             optimizer.get_config()['learning_rate']['config']
         )
       elif _LR_DECAY_TYPE.value == 'cosine':
-        lr_sched = tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(  # pyrefly: ignore[missing-argument]  # pytype: disable=missing-parameter
-            optimizer.get_config()['learning_rate']['config']
+        lr_sched = (
+            tf.keras.optimizers.schedules.CosineDecayRestarts.from_config(
+                optimizer.get_config()['learning_rate']['config']
+            )
         )
 
       tf.summary.scalar(
@@ -441,7 +446,7 @@ def train_and_eval_model(
 
     logging.info('Testing Epoch: %s', epoch)
     with clf_test_summary_writer.as_default():
-      test_iterator = iter(test_dataset)  # pyrefly: ignore[no-matching-overload]
+      test_iterator = iter(test_dataset)
       for step in range(eval_steps_per_epoch):
         item = next(test_iterator)
         if step % _LOGGING_STEP.value == 0:

@@ -43,7 +43,7 @@ class EmbeddingMapper(tf.keras.Model, metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
-  def call(self, inputs: tf.Tensor) -> Union[tf.Tensor, Sequence[tf.Tensor]]:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> Union[tf.Tensor, Sequence[tf.Tensor]]:  # pyrefly: ignore[bad-override]
     """Abstract call function to be implemented by subclasses.
 
     Args:
@@ -68,7 +68,7 @@ class IdentityEmbeddingMapper(EmbeddingMapper):
     super().__init__()
     pass
 
-  def call(self, inputs: tf.Tensor) -> tf.Tensor:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> tf.Tensor:
     return inputs
 
 
@@ -107,7 +107,7 @@ class MLPEmbeddingMapper(EmbeddingMapper):
         bias_regularizer=tf.keras.regularizers.l2(weight_decay),
         name='mapping_final'))
 
-  def call(self, inputs: tf.Tensor) -> tf.Tensor:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> tf.Tensor:
     return self.mapping(inputs)
 
 
@@ -165,7 +165,7 @@ class AutoEncoderEmbeddingMapper(EmbeddingMapper):
 
     self.skip_connection = skip_connection
 
-  def call(self, inputs: tf.Tensor) -> tf.Tensor:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> tf.Tensor:
     """Method to apply the autoencoder based mapping.
 
     Args:
@@ -175,7 +175,7 @@ class AutoEncoderEmbeddingMapper(EmbeddingMapper):
       result: A 3-dimensional tensor, of shape (batch_size, num_decoders,
         embed_dim)
     """
-    x = self.encoder(inputs)  # pyrefly: ignore[not-callable]
+    x = self.encoder(inputs)
     decoder_outputs = []
     for i in range(len(self.decoders)):
       decoder = self.decoders[i]
@@ -230,9 +230,9 @@ class GANEmbeddingMapper(EmbeddingMapper):
     self.generator.trainable = not self.generator.trainable
     self.discriminator.trainable = not self.discriminator.trainable
 
-  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:  # pytype: disable=signature-mismatch
-    embeddings = self.generator(inputs)  # pyrefly: ignore[not-callable]
-    domain = self.discriminator(embeddings)  # pyrefly: ignore[not-callable]
+  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
+    embeddings = self.generator(inputs)
+    domain = self.discriminator(embeddings)
     return embeddings, domain
 
 
@@ -291,11 +291,12 @@ class VAEEmbeddingMapper(EmbeddingMapper):
         bias_regularizer=tf.keras.regularizers.l2(weight_decay),
         name='encoder_logvar')
 
-  def call(self, inputs: tf.Tensor,  # pytype: disable=signature-mismatch
-           training: bool) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
-    x = self.encoder(inputs)  # pyrefly: ignore[not-callable]
-    z_mean = self.encoder_mean(x)  # pyrefly: ignore[not-callable]
-    z_log_var = self.encoder_logvar(x)  # pyrefly: ignore[not-callable]
+  def call(  # pyrefly: ignore[bad-override]
+      self, inputs: tf.Tensor, training: bool
+  ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    x = self.encoder(inputs)
+    z_mean = self.encoder_mean(x)
+    z_log_var = self.encoder_logvar(x)
 
     # During training, generate samples normally.
     if training:
@@ -305,7 +306,7 @@ class VAEEmbeddingMapper(EmbeddingMapper):
     else:
       sample = 0
     y = z_mean + tf.exp(z_log_var) * sample
-    y = self.decoder(y)  # pyrefly: ignore[not-callable]
+    y = self.decoder(y)
     return y, z_mean, z_log_var
 
 
@@ -391,7 +392,7 @@ class ParameterGenerationEmbeddingMapper(EmbeddingMapper):
                                            weight_decay)
       self.param_generator_list.append(param_generator)
 
-  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
     """Derive the obfuscation context and apply the generated decoder.
 
     This method returns both the generated embeddings and the learned context,
@@ -407,17 +408,17 @@ class ParameterGenerationEmbeddingMapper(EmbeddingMapper):
       A tuple containing the generated embeddings and the derived context
         vector.
     """
-    latent_vec = self.encoder(inputs)  # pyrefly: ignore[not-callable]
+    latent_vec = self.encoder(inputs)
     batch_size = tf.shape(latent_vec)[0]
     if self.generation:
       context_vec = tf.expand_dims(tf.range(self.num_contexts), axis=0)
       context_vec = tf.repeat(context_vec, batch_size, axis=0)
       context_vec = tf.reshape(context_vec, [-1])
-      context_vec = self.context(context_vec)  # pyrefly: ignore[not-callable]
+      context_vec = self.context(context_vec)
       result = tf.expand_dims(latent_vec, axis=1)
       result = tf.repeat(result, self.num_contexts, axis=0)
     else:
-      context_vec = self.context(inputs)  # pyrefly: ignore[not-callable]
+      context_vec = self.context(inputs)
       result = tf.expand_dims(latent_vec, axis=1)  # For proper batch matmul.
     for i in range(len(self.param_generator_list)):
       params = self.param_generator_list[i](context_vec)
@@ -518,12 +519,12 @@ class DiffusionEmbeddingMapper(EmbeddingMapper):
     Returns:
       The noise prediction for the input at the given timestep.
     """
-    x = self.encoder(inputs)  # pyrefly: ignore[not-callable]
+    x = self.encoder(inputs)
     x = self.concat_layer([x, tf.cast(t, tf.float32)])
-    x = self.decoder(x)  # pyrefly: ignore[not-callable]
+    x = self.decoder(x)
     return x
 
-  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:  # pytype: disable=signature-mismatch
+  def call(self, inputs: tf.Tensor) -> Tuple[tf.Tensor, tf.Tensor]:
 
     multiple_inputs = tf.repeat(inputs, self.num_points, axis=0)
 
@@ -629,17 +630,18 @@ class FeatureExtractor(tf.keras.Model):
       )
     return x
 
-  def call(self, inputs: tf.Tensor,  # pytype: disable=signature-mismatch
-           training: bool) -> Union[tf.Tensor, Sequence[tf.Tensor]]:
+  def call(  # pyrefly: ignore[bad-override]
+      self, inputs: tf.Tensor, training: bool
+  ) -> Union[tf.Tensor, Sequence[tf.Tensor]]:
     x = self._call_base_model(inputs, training=training)
-    x = self.encoder(x)  # pyrefly: ignore[not-callable]
+    x = self.encoder(x)
     return x
 
   def encode_clean(self, inputs: tf.Tensor, training: bool) -> tf.Tensor:
     return self._call_base_model(inputs, training=training)
 
   def encode_obfuscated(self, inputs: tf.Tensor) -> tf.Tensor:
-    return self(inputs)  # pyrefly: ignore[not-callable]
+    return self(inputs)
 
 
 class FeatureExtractorWithClassifier(tf.keras.Model):
@@ -671,11 +673,11 @@ class FeatureExtractorWithClassifier(tf.keras.Model):
         bias_regularizer=tf.keras.regularizers.l2(weight_decay),
         name='classifier')
 
-  def call(self, inputs: tf.Tensor) -> tf.Tensor:  # pytype: disable=signature-mismatch
-    x = self.feature_extractor(inputs)  # pyrefly: ignore[not-callable]
+  def call(self, inputs: tf.Tensor) -> tf.Tensor:  # pyrefly: ignore[bad-override]
+    x = self.feature_extractor(inputs)
     # Obtain only the first item, the encoded embeddings, from feature_extractor
     # that returns tuple.
     if isinstance(x, (list, tuple)):
       x = x[0]
-    x = self.clf_layer(x)  # pyrefly: ignore[not-callable]
+    x = self.clf_layer(x)
     return x
